@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ZapIcon } from "lucide-react";
 import { AgentSidebar } from "@/components/agent-sidebar";
@@ -37,7 +37,7 @@ const MOCK_RUNS: AutomationRun[] = [
   { id: "r10", automationId: "auto-1", title: "Weekly digest failed",           status: "failed",  startedAt: "16 days ago", duration: "0m 31s", steps: 2 },
 ];
 
-export default function AutomationsPage() {
+function AutomationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") === "runs" ? "runs" : "list";
@@ -148,5 +148,13 @@ export default function AutomationsPage() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+export default function AutomationsPage() {
+  return (
+    <Suspense>
+      <AutomationsContent />
+    </Suspense>
   );
 }
