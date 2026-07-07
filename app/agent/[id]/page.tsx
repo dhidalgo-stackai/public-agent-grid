@@ -556,7 +556,11 @@ export default function AgentChatPage() {
   const [workflowTab, setWorkflowTab] = useState<"recent" | "all" | "favorites">("recent");
   const [newChatKey, setNewChatKey] = useState(0);
   const [extraRecentChats, setExtraRecentChats] = useState<ChatItem[]>([]);
-  const [connectedConnectors, setConnectedConnectors] = useState<string[]>([]);
+  // Named-agent chats open with an app already connected; the blank landing
+  // composer starts empty so it can prompt the user to connect tools.
+  const [connectedConnectors, setConnectedConnectors] = useState<string[]>(() =>
+    isNewChat ? [] : ["notion"]
+  );
   const [moreAppsOpen, setMoreAppsOpen] = useState(false);
   const [toolToggles, setToolToggles] = useState({
     webSearch: true,
@@ -734,8 +738,11 @@ export default function AgentChatPage() {
     if (mentionTextareaRef.current) mentionTextareaRef.current.textContent = "";
     savedRangeRef.current = null;
     if (id !== "new") {
-      const newChatId = `new-${Date.now()}`;
-      router.push(`/agent/${id}?chat=${newChatId}&name=${encodeURIComponent(name || "")}&from=chat`);
+      // No `chat` param → showChat stays false so the empty composer shows
+      // instead of the conversation bubbles. beginConversation mints the id
+      // once the first message is sent.
+      pendingChatIdRef.current = null;
+      router.push(`/agent/${id}?name=${encodeURIComponent(name || "")}&from=chat`);
     } else {
       router.replace("/agent/new");
     }
@@ -1184,18 +1191,6 @@ export default function AgentChatPage() {
                     <div className="flex items-center gap-1 pt-1">
                       <AttachMenu />
                       <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" />
-                      <WorkflowMentionMenu
-                        search={workflowSearch}
-                        onSearchChange={setWorkflowSearch}
-                        tab={workflowTab}
-                        onTabChange={setWorkflowTab}
-                        selectedIds={selectedWorkflows.map((w) => w.id)}
-                        onSelect={handleSelectWorkflow}
-                        onTrigger={insertMentionTrigger}
-                        autoSelect={autoSelectWorkflow}
-                        onAutoSelectChange={setAutoSelectWorkflow}
-                        side="bottom"
-                      />
                       <PromptsMenu onSelect={applyPrompt} side="bottom" />
                       <div className="ml-auto flex items-center gap-0.5">
                         <button type="button" className={toolbarBtn} title="Voice input">
