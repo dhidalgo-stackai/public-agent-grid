@@ -10,7 +10,6 @@ import {
   XIcon,
   PlusIcon,
   ArrowUpIcon,
-  User,
   LayoutGrid,
   FolderArchiveIcon,
   ChevronDownIcon,
@@ -850,7 +849,7 @@ export default function AgentChatPage() {
   const currentAgentName = id === "new" ? "New conversation" : name || "Select an agent";
   const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== id);
 
-  const renderChatHeader = (showToolbar = true) => (
+  const renderChatHeader = () => (
     <header className="flex h-12 shrink-0 items-center gap-1 px-3">
       <Link href="/agent/new" className={cn(toolbarBtn)} title="New chat">
         <ArrowRightIcon className="size-4 rotate-180" />
@@ -889,17 +888,6 @@ export default function AgentChatPage() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {showToolbar && (
-        <>
-          <div className="flex-1" />
-          <Link href="/" className={cn(toolbarBtn)} title="Back to grid">
-            <LayoutGrid className="size-4" />
-          </Link>
-          <button type="button" className={toolbarBtn} title="Profile">
-            <User className="size-4" />
-          </button>
-        </>
-      )}
     </header>
   );
 
@@ -1343,7 +1331,7 @@ export default function AgentChatPage() {
                 />
                 <div className="flex items-center gap-1 pt-2">
                   <AttachMenu uploadOnly />
-                  <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" />
+                  <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={getAgentApps(id)} />
                   <PromptsMenu onSelect={applyPrompt} side="top" />
                   <div className="ml-auto flex items-center gap-0.5">
                     <button type="button" className={toolbarBtn} title="Voice input">
