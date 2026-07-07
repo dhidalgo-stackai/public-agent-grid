@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "public-agent-grid",
+      "runtimeExecutable": "/opt/homebrew/opt/node@22/bin/npx",
+      "runtimeArgs": ["next", "dev"],
+      "port": 3001,
+      "autoPort": true
+    }
+  ]
+}

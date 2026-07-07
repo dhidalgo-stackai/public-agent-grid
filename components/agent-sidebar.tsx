@@ -1,0 +1,564 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutGridIcon,
+  PlusIcon,
+  SquarePenIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  ZapIcon,
+  PanelLeftIcon,
+  SearchIcon,
+  XIcon,
+  ListFilterIcon,
+  StarIcon,
+  BookOpenIcon,
+  Plug2Icon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  MOCK_RECENT_CHATS,
+  RECENT_CHATS_EVENT,
+  getExtraRecentChats,
+  type ChatItem,
+} from "@/lib/chats-data";
+import { getAgentIcon } from "@/lib/agent-icons";
+import { ChatSearchModal } from "@/components/chat-search-modal";
+
+function ChatSidebarLink({
+  item,
+  activeChatId,
+  fallbackAgentId,
+}: {
+  item: ChatItem;
+  activeChatId: string | null;
+  fallbackAgentId?: string;
+}) {
+  const isActive = activeChatId === item.id;
+  return (
+    <Link
+      href={
+        item.agentId
+          ? `/agent/${item.agentId}?chat=${item.id}${item.agentName ? `&name=${encodeURIComponent(item.agentName)}` : ""}&from=chat`
+          : `/agent/new?chat=${item.id}`
+      }
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left transition-colors hover:bg-black/5",
+        isActive && "bg-black/8 font-medium"
+      )}
+    >
+      {getAgentIcon(item.agentId ?? fallbackAgentId)}
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm leading-none",
+          isActive ? "text-foreground" : "text-foreground/70"
+        )}
+      >
+        {item.label}
+      </span>
+    </Link>
+  );
+}
+
+interface Category {
+  id: string;
+  label: string;
+}
+
+interface AgentSidebarProps {
+  selectedCategory: string;
+  onCategoryChange: (category: string) => void;
+  categories?: Category[];
+  organisationName?: string;
+  organisationLogoUrl?: string;
+  userName?: string;
+  userEmail?: string;
+  userAvatarUrl?: string;
+  recentChats?: ChatItem[];
+  activeChatId?: string | null;
+  onNewChat?: () => void;
+  agentMode?: boolean;
+  filterAgentId?: string;
+  activeSection?: "agents" | "automations" | "knowledge-bases";
+  favoriteAgents?: { id: string; name: string }[];
+  defaultCollapsed?: boolean;
+}
+
+export function AgentSidebar({
+  selectedCategory,
+  onCategoryChange,
+  categories = [],
+  organisationName = "Acme",
+  organisationLogoUrl = "/acme-logo.svg",
+  userName = "David Hidalgo",
+  userEmail = "dhidalgo@stack-ai.com",
+  userAvatarUrl,
+  recentChats = MOCK_RECENT_CHATS,
+  activeChatId = null,
+  onNewChat,
+  agentMode = false,
+  filterAgentId,
+  activeSection,
+  favoriteAgents = [],
+  defaultCollapsed = false,
+}: AgentSidebarProps) {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [peeking, setPeeking] = useState(false);
+  const initials = organisationName[0]?.toUpperCase() ?? "S";
+  const userInitials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  const pathname = usePathname();
+
+  const [chatsOpen, setChatsOpen] = useState(true);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
+  const [chatSearch, setChatSearch] = useState("");
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [extraChats, setExtraChats] = useState<ChatItem[]>([]);
+  const [chatFilterActive, setChatFilterActive] = useState(!!filterAgentId && !activeChatId);
+
+  const teamCategories =
+    categories.length > 0
+      ? categories
+      : [
+          { id: "work", label: "Engineering" },
+          { id: "marketing", label: "Growth" },
+          { id: "sales", label: "Revenue" },
+        ];
+
+  useEffect(() => {
+    const refresh = () => setExtraChats(getExtraRecentChats());
+    refresh();
+    window.addEventListener(RECENT_CHATS_EVENT, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(RECENT_CHATS_EVENT, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeChatId) setChatsOpen(true);
+  }, [activeChatId]);
+
+  const allChats = [...extraChats, ...recentChats];
+  const mergedChats = filterAgentId && chatFilterActive
+    ? allChats.filter((c) => c.agentId === filterAgentId)
+    : allChats;
+
+  const isAutomations = activeSection === "automations";
+  const isKnowledgeBases = activeSection === "knowledge-bases" || pathname === "/knowledge-bases";
+  const isNewChat = pathname === "/agent/new";
+
+  const filteredChats = mergedChats.filter((c) =>
+    c.label.toLowerCase().includes(chatSearch.toLowerCase())
+  );
+
+  const railPanel = (
+    <div className="flex h-full w-14 flex-col border-r border-black/5 bg-muted">
+      <div className="flex flex-col items-center gap-1 px-2 py-3">
+        <Avatar className="size-7 rounded-md border border-black/10">
+          {organisationLogoUrl && (
+            <AvatarImage src={organisationLogoUrl} alt={organisationName} loading="eager" />
+          )}
+          <AvatarFallback className="rounded-md text-xs font-semibold bg-neutral-900 text-white">{initials}</AvatarFallback>
+        </Avatar>
+      </div>
+
+      <div className="flex flex-col items-center gap-1 px-2">
+        <button
+          type="button"
+          onClick={onNewChat}
+          title="New Chat"
+          className="flex size-9 items-center justify-center rounded-md text-foreground/60 transition-colors hover:bg-black/5 hover:text-foreground"
+        >
+          <SquarePenIcon className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onCategoryChange("all")}
+          title="All Agents"
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
+            selectedCategory === "all" && !isAutomations && !isNewChat && !activeChatId
+              ? "bg-black/8 text-foreground"
+              : "text-foreground/60 hover:text-foreground"
+          )}
+        >
+          <LayoutGridIcon className="size-4" />
+        </button>
+        <Link
+          href="/automations"
+          title="My automations"
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
+            isAutomations ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
+          )}
+        >
+          <ZapIcon className="size-4" />
+        </Link>
+      </div>
+
+      <div className="mt-auto border-t border-black/5 p-2 pb-3 flex justify-center">
+        <Avatar className="size-6 rounded-full">
+          {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={userName} />}
+          <AvatarFallback className="text-[10px]">{userInitials}</AvatarFallback>
+        </Avatar>
+      </div>
+    </div>
+  );
+
+  const expandedPanel = agentMode ? (
+      <div className="flex h-full w-64 flex-col border-r border-black/5 bg-muted">
+        {/* Org header */}
+        <div className="flex items-center gap-2 pl-3.5 pr-3 py-3">
+          <Avatar className="size-7 rounded-md border border-black/10">
+            {organisationLogoUrl && (
+              <AvatarImage src={organisationLogoUrl} alt={organisationName} loading="eager" />
+            )}
+            <AvatarFallback className="rounded-md text-xs font-semibold bg-neutral-900 text-white">{initials}</AvatarFallback>
+          </Avatar>
+          <p className="flex-1 text-sm font-semibold tracking-tight truncate">{organisationName}</p>
+          <button
+            type="button"
+            onClick={() => { setCollapsed((prev) => !prev); setPeeking(false); }}
+            className="shrink-0 rounded p-0.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-muted-foreground"
+          >
+            <PanelLeftIcon className="size-3.5" />
+          </button>
+        </div>
+
+        <div className="px-2">
+          <button
+            type="button"
+            onClick={onNewChat}
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+          >
+            <SquarePenIcon className="size-4 shrink-0" />
+            <span>New Chat</span>
+          </button>
+        </div>
+
+        <p className="px-5 pt-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">
+          Recents
+        </p>
+
+        {/* Search */}
+        <div className="px-3 pb-1">
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+            <input
+              type="text"
+              value={chatSearch}
+              onChange={(e) => setChatSearch(e.target.value)}
+              placeholder="Search"
+              className="h-8 w-full rounded-md border border-black/10 bg-background py-1.5 pl-8 pr-7 text-xs text-foreground shadow-xs outline-none placeholder:text-muted-foreground/50 focus:border-black/15 focus:ring-2 focus:ring-ring/20"
+            />
+            {chatSearch && (
+              <button
+                type="button"
+                onClick={() => setChatSearch("")}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-muted-foreground"
+                aria-label="Clear search"
+              >
+                <XIcon className="size-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+          {filteredChats.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted-foreground/50">No conversations found</p>
+          ) : (
+            filteredChats.map((item) => (
+              <ChatSidebarLink
+                key={item.id}
+                item={item}
+                activeChatId={activeChatId}
+                fallbackAgentId={filterAgentId}
+              />
+            ))
+          )}
+        </div>
+
+        <div className="mt-auto border-t border-black/5 p-2 pb-3">
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-black/5"
+          >
+            <Avatar className="size-8 rounded-full">
+              {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={userName} />}
+              <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{userName}</p>
+              <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    ) : (
+    <div className="flex h-full w-64 flex-col border-r border-black/5 bg-muted">
+      {/* Org header */}
+      <div className="flex items-center gap-2 pl-3.5 pr-3 py-3">
+        <Avatar className="size-7 rounded-md border border-black/10">
+          {organisationLogoUrl && (
+            <AvatarImage src={organisationLogoUrl} alt={organisationName} loading="eager" />
+          )}
+          <AvatarFallback className="rounded-md text-xs font-semibold bg-neutral-900 text-white">{initials}</AvatarFallback>
+        </Avatar>
+        <p className="flex-1 text-sm font-semibold tracking-tight truncate">
+          {organisationName.replace(" ", " ")}
+        </p>
+        <button
+          type="button"
+          onClick={() => { setCollapsed((prev) => !prev); setPeeking(false); }}
+          className="shrink-0 rounded p-0.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-muted-foreground"
+        >
+          <PanelLeftIcon className="size-3.5" />
+        </button>
+      </div>
+
+      {/* Nav */}
+      <div className="flex flex-col gap-0.5 px-2">
+        <button
+          type="button"
+          onClick={onNewChat}
+          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+        >
+          <SquarePenIcon className="size-4 shrink-0" />
+          <span>New Chat</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onCategoryChange("all")}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            selectedCategory === "all" &&
+              !isAutomations &&
+              !isNewChat &&
+              !filterAgentId &&
+              !activeChatId
+              ? "bg-black/8 text-foreground font-medium"
+              : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
+          )}
+        >
+          <LayoutGridIcon className="size-4 shrink-0" />
+          <span>All Agents</span>
+        </button>
+
+        <div className="flex flex-col gap-0.5">
+          <button
+            type="button"
+            onClick={() => setCategoriesOpen((v) => !v)}
+            aria-expanded={categoriesOpen}
+            className={cn(
+              "group/categories flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+              teamCategories.some((cat) => cat.id === selectedCategory) &&
+                !isAutomations &&
+                !isNewChat &&
+                !filterAgentId &&
+                !activeChatId
+                ? "bg-black/8 text-foreground font-medium"
+                : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
+            )}
+          >
+            <FolderIcon className="size-4 shrink-0" />
+            <span>Categories</span>
+            <ChevronRightIcon
+              className={cn(
+                "size-3 shrink-0 opacity-0 transition-all duration-150 group-hover/categories:opacity-100",
+                categoriesOpen ? "rotate-90 opacity-100" : "rotate-90"
+              )}
+            />
+          </button>
+          {categoriesOpen && (
+            <div className="flex flex-col gap-0.5 pb-0.5">
+              {teamCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => onCategoryChange(cat.id)}
+                  className={cn(
+                    "flex w-full items-center rounded-md py-1.5 pl-9 pr-3 text-left text-xs leading-none transition-colors",
+                    selectedCategory === cat.id &&
+                      !isAutomations &&
+                      !isNewChat &&
+                      !filterAgentId &&
+                      !activeChatId
+                      ? "bg-black/8 font-medium text-foreground"
+                      : "text-foreground/60 hover:bg-black/5 hover:text-foreground"
+                  )}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Link
+          href="/automations"
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            isAutomations
+              ? "bg-black/8 text-foreground font-medium"
+              : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
+          )}
+        >
+          <ZapIcon className="size-4 shrink-0" />
+          <span>My automations</span>
+        </Link>
+
+        <Link
+          href="/knowledge-bases"
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            isKnowledgeBases
+              ? "bg-black/8 text-foreground font-medium"
+              : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
+          )}
+        >
+          <BookOpenIcon className="size-4 shrink-0" />
+          <span>Knowledge Bases</span>
+        </Link>
+
+        <Link
+          href="/connections"
+          className={cn(
+            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            pathname === "/connections"
+              ? "bg-black/8 text-foreground font-medium"
+              : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
+          )}
+        >
+          <Plug2Icon className="size-4 shrink-0" />
+          <span>Connections</span>
+        </Link>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setChatsOpen((v) => !v)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChatsOpen((v) => !v); } }}
+          className="group/chats mt-4 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground/60 transition-colors hover:bg-black/5 hover:text-muted-foreground"
+        >
+          <span className="text-left">Chats</span>
+          <ChevronRightIcon
+            className={cn(
+              "size-3 shrink-0 opacity-0 transition-all duration-150 group-hover/chats:opacity-100",
+              chatsOpen && "rotate-90"
+            )}
+          />
+          <span className="flex-1" />
+          {filterAgentId && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setChatFilterActive((v) => !v);
+                setChatsOpen(true);
+              }}
+              className={cn(
+                "relative shrink-0 rounded p-0.5 transition-colors hover:bg-black/5",
+                chatFilterActive
+                  ? "text-foreground"
+                  : "text-muted-foreground/50 hover:text-muted-foreground"
+              )}
+              aria-label={chatFilterActive ? "Show all chats" : "Filter to this agent"}
+            >
+              <ListFilterIcon className="size-3.5" />
+              {chatFilterActive && (
+                <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
+              )}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSearchModalOpen(true);
+            }}
+            className="shrink-0 rounded p-0.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-muted-foreground"
+            aria-label="Search chats"
+          >
+            <SearchIcon className="size-3.5" />
+          </button>
+        </div>
+        {chatsOpen && (
+          <div className="flex flex-col gap-0.5 pb-0.5">
+            {mergedChats.map((item) => (
+              <ChatSidebarLink
+                key={item.id}
+                item={item}
+                activeChatId={activeChatId}
+                fallbackAgentId={filterAgentId}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-auto border-t border-black/5 p-2 pb-3">
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-black/5"
+        >
+          <Avatar className="size-8 rounded-full">
+            {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={userName} />}
+            <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">{userName}</p>
+            <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+
+  const searchModal = (
+    <ChatSearchModal
+      open={searchModalOpen}
+      onClose={() => setSearchModalOpen(false)}
+      chats={allChats}
+    />
+  );
+
+  if (collapsed) {
+    return (
+      <>
+        {searchModal}
+        <div
+          className="relative flex h-full"
+          onMouseEnter={() => setPeeking(true)}
+          onMouseLeave={() => setPeeking(false)}
+        >
+          {railPanel}
+          {peeking && (
+            <div className="absolute left-0 top-0 z-50 h-full shadow-xl">
+              {expandedPanel}
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {searchModal}
+      {expandedPanel}
+    </>
+  );
+}
