@@ -39,6 +39,7 @@ import {
   CheckIcon,
   SparklesIcon,
   StarIcon,
+  ListPlusIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -150,7 +151,7 @@ function ToolsMenu({
     <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors" title={connected.length ? connected.map((c) => c.label).join(", ") : "Tools"}>
+        <button type="button" className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/15 hover:text-foreground transition-colors" title={connected.length ? connected.map((c) => c.label).join(", ") : "Tools"}>
           {connected.length ? (
             connected.map((c) => (
               <span key={c.id} className="flex size-4 shrink-0 items-center justify-center">
@@ -300,6 +301,65 @@ function AttachMenu() {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+const SAVED_PROMPTS: { id: string; title: string; text: string }[] = [
+  {
+    id: "p1",
+    title: "Summarize a document",
+    text: "Summarize the attached document in 5 concise bullet points, highlighting key decisions and action items.",
+  },
+  {
+    id: "p2",
+    title: "Draft a follow-up email",
+    text: "Draft a professional follow-up email to a customer thanking them for the meeting and outlining the next steps.",
+  },
+  {
+    id: "p3",
+    title: "Analyze data trends",
+    text: "Analyze the data and describe the top three trends, then plot the most important one as a chart.",
+  },
+  {
+    id: "p4",
+    title: "Brainstorm ideas",
+    text: "Brainstorm 10 creative ideas for improving our onboarding experience, ranked by potential impact.",
+  },
+  {
+    id: "p5",
+    title: "Review and improve writing",
+    text: "Review the following text for clarity, tone, and grammar, then rewrite it to be more concise and engaging:",
+  },
+];
+
+function PromptsMenu({
+  onSelect,
+  side = "bottom",
+}: {
+  onSelect: (text: string) => void;
+  side?: "top" | "bottom";
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors" title="Saved prompts">
+          <ListPlusIcon className={toolbarIcon} />
+          Prompts
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side={side} align="start" className="w-72 p-1">
+        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Saved prompts</div>
+        {SAVED_PROMPTS.map((prompt) => (
+          <DropdownMenuItem
+            key={prompt.id}
+            className="flex cursor-pointer items-center rounded-lg px-2 py-1.5"
+            onClick={() => onSelect(prompt.text)}
+          >
+            <span className="text-sm font-medium">{prompt.title}</span>
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -525,6 +585,22 @@ export default function AgentChatPage() {
     range.selectNodeContents(el);
     range.collapse(false);
     return range;
+  }, []);
+
+  const applyPrompt = useCallback((text: string) => {
+    setMessage(text);
+    const el = mentionTextareaRef.current;
+    if (el) {
+      el.textContent = text;
+      el.focus();
+      // place caret at the end of the inserted text
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
   }, []);
 
   const insertMentionTrigger = useCallback(() => {
@@ -898,6 +974,7 @@ export default function AgentChatPage() {
                               onAutoSelectChange={setAutoSelectWorkflow}
                               side="bottom"
                             />
+                            <PromptsMenu onSelect={applyPrompt} side="bottom" />
                           </div>
                           {/* Right toolbar */}
                           <div className="ml-auto flex items-center gap-0.5">
@@ -1113,6 +1190,7 @@ export default function AgentChatPage() {
                         onAutoSelectChange={setAutoSelectWorkflow}
                         side="bottom"
                       />
+                      <PromptsMenu onSelect={applyPrompt} side="bottom" />
                       <div className="ml-auto flex items-center gap-0.5">
                         <button type="button" className={toolbarBtn} title="Voice input">
                           <MicIcon className={toolbarIcon} />
