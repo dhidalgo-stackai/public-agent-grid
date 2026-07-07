@@ -52,7 +52,7 @@ import {
   type ChatItem,
 } from "@/lib/chats-data";
 import { getAgentIcon } from "@/lib/agent-icons";
-import { AGENT_DIRECTORY } from "@/lib/agents-data";
+import { AGENT_DIRECTORY, getAgentApps, getAppLabel } from "@/lib/agents-data";
 import { integrationIcons } from "@/lib/integration-icons";
 import { ALL_WORKFLOWS, type Workflow } from "@/lib/workflows-data";
 import { AgentSidebar } from "@/components/agent-sidebar";
@@ -129,6 +129,7 @@ function ToolsMenu({
   onConnectorChange,
   onOpenMoreApps,
   side = "bottom",
+  agentApps,
 }: {
   toggles: ToolToggles;
   onToggle: (key: keyof ToolToggles) => void;
@@ -136,8 +137,18 @@ function ToolsMenu({
   onConnectorChange: (ids: string[]) => void;
   onOpenMoreApps: () => void;
   side?: "top" | "bottom";
+  /**
+   * When provided, the menu is scoped to a single agent's workflow: it shows
+   * only these apps and hides the generic tool toggles, "Create document" and
+   * "More apps" entries.
+   */
+  agentApps?: string[];
 }) {
-  const connected = CONNECTOR_ITEMS.filter((c) => connectedConnectors.includes(c.id));
+  const isAgentScoped = agentApps != null;
+  const connectorItems = isAgentScoped
+    ? agentApps.map((id) => ({ id, label: getAppLabel(id) }))
+    : CONNECTOR_ITEMS;
+  const connected = connectorItems.filter((c) => connectedConnectors.includes(c.id));
 
   const toggleConnector = (id: string) => {
     onConnectorChange(
@@ -165,25 +176,29 @@ function ToolsMenu({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-64 p-1">
-        {TOOL_TOGGLE_ITEMS.map(({ key, label, icon: Icon }) => (
-          <DropdownMenuItem
-            key={key}
-            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-            onSelect={(e) => e.preventDefault()}
-            onClick={() => onToggle(key)}
-          >
-            <Icon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm">{label}</span>
-            <Checkbox checked={toggles[key]} className="ml-auto" onClick={(e) => e.stopPropagation()} onCheckedChange={() => onToggle(key)} />
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
-          <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-          <span className="text-sm">Create document</span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {CONNECTOR_ITEMS.map((c) => {
+        {!isAgentScoped && (
+          <>
+            {TOOL_TOGGLE_ITEMS.map(({ key, label, icon: Icon }) => (
+              <DropdownMenuItem
+                key={key}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                onSelect={(e) => e.preventDefault()}
+                onClick={() => onToggle(key)}
+              >
+                <Icon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm">{label}</span>
+                <Checkbox checked={toggles[key]} className="ml-auto" onClick={(e) => e.stopPropagation()} onCheckedChange={() => onToggle(key)} />
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+              <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm">Create document</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        {connectorItems.map((c) => {
           const isConnected = connectedConnectors.includes(c.id);
           return (
             <DropdownMenuItem
@@ -203,15 +218,19 @@ function ToolsMenu({
             </DropdownMenuItem>
           );
         })}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground"
-          onSelect={(e) => e.preventDefault()}
-          onClick={() => onOpenMoreApps()}
-        >
-          <PlusIcon className="size-4 shrink-0" />
-          <span className="text-sm">More apps</span>
-        </DropdownMenuItem>
+        {!isAgentScoped && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground"
+              onSelect={(e) => e.preventDefault()}
+              onClick={() => onOpenMoreApps()}
+            >
+              <PlusIcon className="size-4 shrink-0" />
+              <span className="text-sm">More apps</span>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
     </>
@@ -556,10 +575,11 @@ export default function AgentChatPage() {
   const [workflowTab, setWorkflowTab] = useState<"recent" | "all" | "favorites">("recent");
   const [newChatKey, setNewChatKey] = useState(0);
   const [extraRecentChats, setExtraRecentChats] = useState<ChatItem[]>([]);
-  // Named-agent chats open with an app already connected; the blank landing
-  // composer starts empty so it can prompt the user to connect tools.
+  // Named-agent chats open with the agent's workflow apps already connected;
+  // the blank landing composer starts empty so it can prompt the user to
+  // connect tools.
   const [connectedConnectors, setConnectedConnectors] = useState<string[]>(() =>
-    isNewChat ? [] : ["notion"]
+    isNewChat ? [] : getAgentApps(id)
   );
   const [moreAppsOpen, setMoreAppsOpen] = useState(false);
   const [toolToggles, setToolToggles] = useState({
@@ -1190,7 +1210,7 @@ export default function AgentChatPage() {
                     />
                     <div className="flex items-center gap-1 pt-1">
                       <AttachMenu />
-                      <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" />
+                      <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" agentApps={getAgentApps(id)} />
                       <PromptsMenu onSelect={applyPrompt} side="bottom" />
                       <div className="ml-auto flex items-center gap-0.5">
                         <button type="button" className={toolbarBtn} title="Voice input">
@@ -1247,22 +1267,27 @@ export default function AgentChatPage() {
                   rows={3}
                   className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
-                <div className="flex items-center justify-between pt-2">
-                  <button type="button" className={toolbarBtn} title="Add">
-                    <PaperclipIcon className={toolbarIcon} />
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                      message.trim()
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                    title="Send"
-                  >
-                    <ArrowUpIcon className="size-4" />
-                  </button>
+                <div className="flex items-center gap-1 pt-2">
+                  <AttachMenu />
+                  <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" />
+                  <PromptsMenu onSelect={applyPrompt} side="top" />
+                  <div className="ml-auto flex items-center gap-0.5">
+                    <button type="button" className={toolbarBtn} title="Voice input">
+                      <MicIcon className={toolbarIcon} />
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        message.trim()
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                      title="Send"
+                    >
+                      <ArrowUpIcon className="size-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
