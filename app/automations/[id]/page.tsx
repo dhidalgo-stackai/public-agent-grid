@@ -459,8 +459,10 @@ function RunsPanel() {
   const runs = MOCK_RUNS.map((run) => ({
     id: run.id,
     title: run.title,
-    statusLabel: "Task completed",
+    status: "success" as const,
     time: run.time,
+    duration: "—",
+    steps: 0,
   }));
 
   return <AutomationRunsList runs={runs} />;

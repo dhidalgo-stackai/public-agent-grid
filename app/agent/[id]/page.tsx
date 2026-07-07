@@ -154,7 +154,7 @@ function ToolsMenu({
           {connected.length ? (
             connected.map((c) => (
               <span key={c.id} className="flex size-4 shrink-0 items-center justify-center">
-                {cloneElement(integrationIcons[c.id], { className: toolbarIcon })}
+                {cloneElement(integrationIcons[c.id] as React.ReactElement<{ className?: string }>, { className: toolbarIcon })}
               </span>
             ))
           ) : (
