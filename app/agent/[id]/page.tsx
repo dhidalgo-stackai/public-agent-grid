@@ -936,7 +936,7 @@ export default function AgentChatPage() {
               <div className="relative flex flex-1 flex-col overflow-y-auto gap-6">
               {/* Greeting + composer */}
               <div className="flex w-full shrink-0 flex-col items-center px-4 pt-[20vh] pb-10">
-                <div className="mx-auto w-full max-w-[42rem] flex flex-col items-center gap-10 text-center">
+                <div className="mx-auto w-full max-w-[48rem] flex flex-col items-center gap-10 text-center">
                   <div className="flex flex-col gap-1.5">
                     <h1 className="text-[2rem] font-bold tracking-tight leading-none text-foreground">
                       Hey David, what can I help with?
@@ -1070,7 +1070,7 @@ export default function AgentChatPage() {
               </div>
 
               {/* Recent chats + favorites — part of the same scroll */}
-              <div className="mx-auto w-full max-w-[42rem] pb-12 space-y-10">
+              <div className="mx-auto w-full max-w-[48rem] pb-12 space-y-10">
 
                 {/* Favourite agents */}
                 <div className="space-y-6">
