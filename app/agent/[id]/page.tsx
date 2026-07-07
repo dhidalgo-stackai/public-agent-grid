@@ -70,6 +70,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const DEFAULT_DESCRIPTION =
   "What does your application do? How does it behave? How should the user interact with it?";
@@ -251,7 +256,7 @@ const KNOWLEDGE_BASES = [
   { id: "kb4", name: "Engineering Runbooks", iconType: "database" },
 ];
 
-function AttachMenu() {
+function AttachMenu({ uploadOnly = false }: { uploadOnly?: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -264,62 +269,66 @@ function AttachMenu() {
           <UploadIcon className="size-4" />
           Upload file
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <BookOpenIcon className="size-4" />
-            Add Knowledge Base
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56">
-            {KNOWLEDGE_BASES.map((kb) => (
-              <DropdownMenuItem key={kb.id} className="gap-2">
-                {kb.iconType === "drive" ? (
-                  <svg className="size-4 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                    <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                    <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                    <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                    <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                    <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                    <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                  </svg>
-                ) : kb.iconType === "gmail" ? (
-                  <svg className="size-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.364l-6.545-4.636v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.273l8.073-5.782C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
-                    <path d="M0 5.457v13.909c0 .904.732 1.636 1.636 1.636h3.819V11.73L12 16.364V9.273L3.927 3.493C2.309 2.28 0 3.434 0 5.457z" fill="#34A853"/>
-                    <path d="M18.545 20.998h3.819c.904 0 1.636-.732 1.636-1.636V11.73l-5.455 3.817z" fill="#4285F4"/>
-                    <path d="M5.455 20.998H1.636A1.636 1.636 0 0 1 0 19.362V11.73l5.455 3.817z" fill="#FBBC05"/>
-                  </svg>
-                ) : (
-                  <DatabaseIcon className="size-4 shrink-0 text-muted-foreground" />
-                )}
-                {kb.name}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2">
-              <PlusIcon className="size-4" />
-              Create new
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <PlugIcon className="size-4" />
-            Search Connected Apps
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56">
-            {CONNECTED_APPS.map((app) => (
-              <DropdownMenuItem key={app.id} className="gap-2">
-                {integrationIcons[app.id]}
-                {app.name}
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2">
-              <PlugIcon className="size-4" />
-              Connect more apps
-            </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        {!uploadOnly && (
+          <>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="gap-2">
+                <BookOpenIcon className="size-4" />
+                Add Knowledge Base
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56">
+                {KNOWLEDGE_BASES.map((kb) => (
+                  <DropdownMenuItem key={kb.id} className="gap-2">
+                    {kb.iconType === "drive" ? (
+                      <svg className="size-4 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                      </svg>
+                    ) : kb.iconType === "gmail" ? (
+                      <svg className="size-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.364l-6.545-4.636v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.273l8.073-5.782C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+                        <path d="M0 5.457v13.909c0 .904.732 1.636 1.636 1.636h3.819V11.73L12 16.364V9.273L3.927 3.493C2.309 2.28 0 3.434 0 5.457z" fill="#34A853"/>
+                        <path d="M18.545 20.998h3.819c.904 0 1.636-.732 1.636-1.636V11.73l-5.455 3.817z" fill="#4285F4"/>
+                        <path d="M5.455 20.998H1.636A1.636 1.636 0 0 1 0 19.362V11.73l5.455 3.817z" fill="#FBBC05"/>
+                      </svg>
+                    ) : (
+                      <DatabaseIcon className="size-4 shrink-0 text-muted-foreground" />
+                    )}
+                    {kb.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2">
+                  <PlusIcon className="size-4" />
+                  Create new
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="gap-2">
+                <PlugIcon className="size-4" />
+                Search Connected Apps
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56">
+                {CONNECTED_APPS.map((app) => (
+                  <DropdownMenuItem key={app.id} className="gap-2">
+                    {integrationIcons[app.id]}
+                    {app.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2">
+                  <PlugIcon className="size-4" />
+                  Connect more apps
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -420,6 +429,67 @@ function createMentionChip(workflow: Workflow, onRemove: () => void): HTMLSpanEl
   return chip;
 }
 
+function AgentInfoTooltip({ workflow }: { workflow: Workflow }) {
+  const Icon = workflow.icon;
+  return (
+    <TooltipContent
+      side="right"
+      align="start"
+      sideOffset={10}
+      className="w-72 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-lg"
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-snug text-foreground">
+            {workflow.name}
+          </p>
+        </div>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        {workflow.description}
+      </p>
+      {(workflow.apps.length > 0 || workflow.tags.length > 0) && (
+        <div className="my-3 h-px bg-border" />
+      )}
+      {workflow.apps.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          {workflow.apps.map((appId) => {
+            const appIcon = integrationIcons[appId];
+            if (!appIcon) return null;
+            return (
+              <span
+                key={appId}
+                title={getAppLabel(appId)}
+                className="flex size-6 shrink-0 items-center justify-center rounded-md border border-border bg-background"
+              >
+                {cloneElement(
+                  appIcon as React.ReactElement<{ className?: string }>,
+                  { className: "size-3.5" }
+                )}
+              </span>
+            );
+          })}
+        </div>
+      )}
+      {workflow.tags.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {workflow.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </TooltipContent>
+  );
+}
+
 function WorkflowMentionMenu({
   search,
   onSearchChange,
@@ -448,7 +518,7 @@ function WorkflowMentionMenu({
       <DropdownMenuTrigger asChild>
         <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors" title="Agents" onClick={onTrigger}>
           <AtSignIcon className={toolbarIcon} />
-          Agents
+          {autoSelect ? "Auto" : "Agents"}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-72 p-0" onCloseAutoFocus={(e) => e.preventDefault()}>
@@ -460,12 +530,12 @@ function WorkflowMentionMenu({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => e.stopPropagation()}
-            placeholder="Search workflows…"
+            placeholder="Search agents…"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
         {/* Tabs */}
-        <div className="px-3 py-2">
+        <div className="px-3 pt-2 pb-1">
           <Tabs value={tab} onValueChange={(v) => onTabChange(v as "recent" | "all" | "favorites")}>
             <TabsList className="w-full">
               <TabsTrigger value="recent" className="flex-1 text-xs">
@@ -486,19 +556,22 @@ function WorkflowMentionMenu({
             .filter((w) => (tab === "favorites" ? w.favorite : tab === "recent" ? w.recent : true))
             .filter((w) => w.name.toLowerCase().includes(search.toLowerCase()))
             .map((workflow) => {
-              const Icon = workflow.icon;
               const isSelected = selectedIds.includes(workflow.id);
               return (
-                <DropdownMenuItem
-                  key={workflow.id}
-                  className={cn("mx-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2")}
-                  onSelect={() => {
-                    if (!isSelected) onSelect(workflow);
-                  }}
-                >
-                  <span className="flex-1 truncate text-sm">{workflow.name}</span>
-                  {isSelected && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
-                </DropdownMenuItem>
+                <Tooltip key={workflow.id} delayDuration={250}>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuItem
+                      className={cn("mx-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2")}
+                      onSelect={() => {
+                        if (!isSelected) onSelect(workflow);
+                      }}
+                    >
+                      <span className="flex-1 truncate text-sm">{workflow.name}</span>
+                      {isSelected && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
+                    </DropdownMenuItem>
+                  </TooltipTrigger>
+                  <AgentInfoTooltip workflow={workflow} />
+                </Tooltip>
               );
             })}
         </div>
@@ -665,6 +738,7 @@ export default function AgentChatPage() {
   }, []);
 
   const handleSelectWorkflow = useCallback((workflow: Workflow) => {
+    setAutoSelectWorkflow(false);
     setSelectedWorkflows((prev) =>
       prev.some((w) => w.id === workflow.id) ? prev : [...prev, { id: workflow.id, name: workflow.name }]
     );
@@ -1209,7 +1283,7 @@ export default function AgentChatPage() {
                       className="composer-editable min-h-[72px] w-full whitespace-pre-wrap break-words bg-transparent text-left text-sm outline-none leading-relaxed"
                     />
                     <div className="flex items-center gap-1 pt-1">
-                      <AttachMenu />
+                      <AttachMenu uploadOnly />
                       <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" agentApps={getAgentApps(id)} />
                       <PromptsMenu onSelect={applyPrompt} side="bottom" />
                       <div className="ml-auto flex items-center gap-0.5">
@@ -1268,7 +1342,7 @@ export default function AgentChatPage() {
                   className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
                 <div className="flex items-center gap-1 pt-2">
-                  <AttachMenu />
+                  <AttachMenu uploadOnly />
                   <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" />
                   <PromptsMenu onSelect={applyPrompt} side="top" />
                   <div className="ml-auto flex items-center gap-0.5">

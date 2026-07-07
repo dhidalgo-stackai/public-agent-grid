@@ -28,6 +28,15 @@ import {
 } from "@/lib/chats-data";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { ChatSearchModal } from "@/components/chat-search-modal";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 function ChatSidebarLink({
   item,
@@ -123,7 +132,9 @@ export function AgentSidebar({
   const [chatSearch, setChatSearch] = useState("");
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [extraChats, setExtraChats] = useState<ChatItem[]>([]);
-  const [chatFilterActive, setChatFilterActive] = useState(!!filterAgentId && !activeChatId);
+  const [chatFilterAgentId, setChatFilterAgentId] = useState<string | null>(
+    !!filterAgentId && !activeChatId ? filterAgentId : null
+  );
 
   const teamCategories =
     categories.length > 0
@@ -150,8 +161,15 @@ export function AgentSidebar({
   }, [activeChatId]);
 
   const allChats = [...extraChats, ...recentChats];
-  const mergedChats = filterAgentId && chatFilterActive
-    ? allChats.filter((c) => c.agentId === filterAgentId)
+  const filterableAgents = Array.from(
+    new Map(
+      allChats
+        .filter((c) => c.agentId && c.agentName)
+        .map((c) => [c.agentId as string, c.agentName as string])
+    )
+  ).map(([id, name]) => ({ id, name }));
+  const mergedChats = chatFilterAgentId
+    ? allChats.filter((c) => c.agentId === chatFilterAgentId)
     : allChats;
 
   const isAutomations = activeSection === "automations";
@@ -461,27 +479,56 @@ export function AgentSidebar({
             )}
           />
           <span className="flex-1" />
-          {filterAgentId && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setChatFilterActive((v) => !v);
-                setChatsOpen(true);
-              }}
-              className={cn(
-                "relative shrink-0 rounded p-0.5 transition-colors hover:bg-black/5",
-                chatFilterActive
-                  ? "text-foreground"
-                  : "text-muted-foreground/50 hover:text-muted-foreground"
-              )}
-              aria-label={chatFilterActive ? "Show all chats" : "Filter to this agent"}
-            >
-              <ListFilterIcon className="size-3.5" />
-              {chatFilterActive && (
-                <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
-              )}
-            </button>
+          {filterableAgents.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  className={cn(
+                    "relative shrink-0 rounded p-0.5 outline-none transition-colors hover:bg-black/5",
+                    chatFilterAgentId
+                      ? "text-foreground"
+                      : "text-muted-foreground/50 hover:text-muted-foreground"
+                  )}
+                  aria-label="Filter chats by agent"
+                >
+                  <ListFilterIcon className="size-3.5" />
+                  {chatFilterAgentId && (
+                    <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-52"
+                onClick={(e) => e.stopPropagation()}
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <DropdownMenuLabel className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                  Filter by agent
+                </DropdownMenuLabel>
+                {filterableAgents.map((agent) => (
+                  <DropdownMenuCheckboxItem
+                    key={agent.id}
+                    checked={chatFilterAgentId === agent.id}
+                    onCheckedChange={() => {
+                      setChatFilterAgentId((prev) => (prev === agent.id ? null : agent.id));
+                      setChatsOpen(true);
+                    }}
+                  >
+                    {agent.name}
+                  </DropdownMenuCheckboxItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={!chatFilterAgentId}
+                  onSelect={() => setChatFilterAgentId(null)}
+                >
+                  Reset
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <button
             type="button"
