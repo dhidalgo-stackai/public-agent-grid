@@ -921,9 +921,14 @@ export default function AgentChatPage() {
             </>
           ) : (
             /* ── Before first message: scrollable landing ── */
-            <div className="flex flex-1 flex-col overflow-y-auto gap-6">
+            <>
+              <div
+                aria-hidden
+                className="dotted-backdrop pointer-events-none absolute inset-0"
+              />
+              <div className="relative flex flex-1 flex-col overflow-y-auto gap-6">
               {/* Greeting + composer */}
-              <div className="flex w-full shrink-0 flex-col items-center bg-background px-4 pt-[20vh] pb-10">
+              <div className="flex w-full shrink-0 flex-col items-center px-4 pt-[20vh] pb-10">
                 <div className="mx-auto w-full max-w-[42rem] flex flex-col items-center gap-10 text-center">
                   <div className="flex flex-col gap-1.5">
                     <h1 className="text-[2rem] font-bold tracking-tight leading-none text-foreground">
@@ -1100,7 +1105,8 @@ export default function AgentChatPage() {
                 </div>
 
               </div>
-            </div>
+              </div>
+            </>
           )}
         </div>
         <MoreAppsDialog
