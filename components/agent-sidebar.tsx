@@ -535,30 +535,53 @@ export function AgentSidebar({
     />
   );
 
-  if (collapsed) {
-    return (
-      <>
-        {searchModal}
-        <div
-          className="relative flex h-full"
-          onMouseEnter={() => setPeeking(true)}
-          onMouseLeave={() => setPeeking(false)}
-        >
-          {railPanel}
-          {peeking && (
-            <div className="absolute left-0 top-0 z-50 h-full shadow-xl">
-              {expandedPanel}
-            </div>
-          )}
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       {searchModal}
-      {expandedPanel}
+      <div
+        className="relative flex h-full shrink-0"
+        onMouseEnter={collapsed ? () => setPeeking(true) : undefined}
+        onMouseLeave={collapsed ? () => setPeeking(false) : undefined}
+      >
+        {/* Width-reserving track: animates so page content slides smoothly. */}
+        <div
+          className={cn(
+            "relative h-full overflow-hidden transition-[width] duration-300 ease-in-out",
+            collapsed ? "w-14" : "w-64"
+          )}
+        >
+          {/* Rail (icon) layer — crossfades in when collapsing. */}
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 w-14 transition-opacity duration-200 ease-in-out",
+              collapsed ? "opacity-100 delay-150" : "pointer-events-none opacity-0"
+            )}
+          >
+            {railPanel}
+          </div>
+          {/* Full panel — fixed width so it clips (not reflows) while the track shrinks. */}
+          <div
+            className={cn(
+              "absolute inset-y-0 left-0 w-64 transition-opacity duration-200 ease-in-out",
+              collapsed ? "pointer-events-none opacity-0" : "opacity-100 delay-150"
+            )}
+          >
+            {expandedPanel}
+          </div>
+        </div>
+
+        {/* Peek overlay: slides in over the rail on hover while collapsed. */}
+        <div
+          className={cn(
+            "absolute left-0 top-0 z-50 h-full transition-all duration-200 ease-out",
+            collapsed && peeking
+              ? "translate-x-0 opacity-100 shadow-xl"
+              : "pointer-events-none -translate-x-3 opacity-0"
+          )}
+        >
+          {expandedPanel}
+        </div>
+      </div>
     </>
   );
 }
