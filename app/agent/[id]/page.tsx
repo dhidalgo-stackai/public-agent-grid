@@ -1230,7 +1230,7 @@ export default function AgentChatPage() {
                       className="flex w-full items-center gap-3 border-t border-border/60 px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                     >
                       <MoreHorizontalIcon className="size-4 shrink-0" />
-                      <span className="flex-1 truncate">Connect your apps for better answers</span>
+                      <span className="flex-1 truncate">Explore all agents in your organization</span>
                       <ArrowRightIcon className="size-3.5 shrink-0" />
                     </button>
                   </div>
