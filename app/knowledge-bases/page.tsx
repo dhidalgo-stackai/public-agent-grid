@@ -58,7 +58,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-2",
-    name: "Healthcare Docs - StackAI",
+    name: "Healthcare Docs - Acme",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -66,7 +66,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-3",
-    name: "StackAI Website",
+    name: "Acme Website",
     connectionProvider: "website",
     connectionStatus: "none",
     connectionName: null,
@@ -318,7 +318,7 @@ export default function KnowledgeBasesPage() {
       <AgentSidebar
         selectedCategory="all"
         onCategoryChange={() => {}}
-        organisationName="StackAI Internal"
+        organisationName="Acme"
         userName="David Hidalgo"
         onNewChat={() => router.push("/agent/new")}
         activeSection="knowledge-bases"

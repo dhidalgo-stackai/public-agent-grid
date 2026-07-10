@@ -135,6 +135,7 @@ function ToolsMenu({
   onOpenMoreApps,
   side = "bottom",
   agentApps,
+  activeApps,
 }: {
   toggles: ToolToggles;
   onToggle: (key: keyof ToolToggles) => void;
@@ -148,12 +149,24 @@ function ToolsMenu({
    * "More apps" entries.
    */
   agentApps?: string[];
+  /**
+   * Apps loaded ad-hoc for this chat (e.g. from a suggested prompt) that aren't
+   * part of a scoped agent. They show as icons in the trigger with a pulsing
+   * dot until the user connects them.
+   */
+  activeApps?: string[];
 }) {
   const isAgentScoped = agentApps != null;
   const connectorItems = isAgentScoped
     ? agentApps.map((id) => ({ id, label: getAppLabel(id) }))
     : CONNECTOR_ITEMS;
-  const connected = connectorItems.filter((c) => connectedConnectors.includes(c.id));
+  // Tools shown in the trigger button. When scoped to an agent, show all of its
+  // loaded apps. Otherwise show connected connectors plus any apps loaded
+  // ad-hoc. Any shown tool lacking a connection gets a pulsing dot.
+  const triggerIds = isAgentScoped
+    ? agentApps
+    : Array.from(new Set([...connectedConnectors, ...(activeApps ?? [])]));
+  const triggerTools = triggerIds.map((id) => ({ id, label: getAppLabel(id) }));
 
   const toggleConnector = (id: string) => {
     onConnectorChange(
@@ -167,17 +180,26 @@ function ToolsMenu({
     <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/15 hover:text-foreground transition-colors" title={connected.length ? connected.map((c) => c.label).join(", ") : "Tools"}>
-          {connected.length ? (
-            connected.map((c) => (
-              <span key={c.id} className="flex size-4 shrink-0 items-center justify-center">
-                {cloneElement(integrationIcons[c.id] as React.ReactElement<{ className?: string }>, { className: toolbarIcon })}
-              </span>
-            ))
+        <button type="button" className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/15 hover:text-foreground transition-colors" title={triggerTools.length ? triggerTools.map((c) => (connectedConnectors.includes(c.id) ? c.label : `${c.label} (not connected)`)).join(", ") : "Tools"}>
+          {triggerTools.length ? (
+            triggerTools.map((c) => {
+              const needsConnection = !connectedConnectors.includes(c.id);
+              return (
+                <span key={c.id} className="relative flex size-4 shrink-0 items-center justify-center">
+                  {cloneElement(integrationIcons[c.id] as React.ReactElement<{ className?: string }>, { className: toolbarIcon })}
+                  {needsConnection && (
+                    <span className="absolute -right-1 -top-1 flex size-1.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-yellow-400 opacity-75" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-yellow-400" />
+                    </span>
+                  )}
+                </span>
+              );
+            })
           ) : (
             <WrenchIcon className={toolbarIcon} />
           )}
-          {!connected.length && "Tools"}
+          {!triggerTools.length && "Tools"}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-64 p-1">
@@ -684,6 +706,9 @@ export default function AgentChatPage() {
   const [connectedConnectors, setConnectedConnectors] = useState<string[]>(() =>
     isNewChat ? [] : getAgentApps(id)
   );
+  // Apps loaded from a suggested prompt on the blank landing — shown in the
+  // Tools trigger with a pulsing dot until connected.
+  const [promptApps, setPromptApps] = useState<string[]>([]);
   const [moreAppsOpen, setMoreAppsOpen] = useState(false);
   const [toolToggles, setToolToggles] = useState({
     webSearch: true,
@@ -928,25 +953,36 @@ export default function AgentChatPage() {
   const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== id);
 
   const renderChatHeader = () => (
-    <header className="flex h-12 shrink-0 items-center gap-1 px-3">
-      <Link
-        href={isNewChat ? "/agent/new" : "/agents"}
-        className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
-        title={isNewChat ? "New chat" : "Back to agents"}
-      >
-        <ChevronLeftIcon className="size-4 shrink-0" />
-      </Link>
+    <header className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-1 px-3">
+      <div className="flex min-w-0 items-center justify-self-start">
+        <Link
+          href={isNewChat ? "/agent/new" : "/agents"}
+          className="flex min-w-0 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-sm text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
+        >
+          <span className="flex size-6 shrink-0 items-center justify-center">
+            <ChevronLeftIcon className="size-4 shrink-0" />
+          </span>
+          <span className="min-w-0 truncate">
+            {isNewChat ? "Back to New chat" : "Back to agents"}
+          </span>
+        </Link>
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
+            className="flex min-w-0 items-center gap-1.5 justify-self-center rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
           >
+            {!isNewChat && name && (
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
+                {getAgentIcon(id, "size-4 shrink-0 text-muted-foreground")}
+              </span>
+            )}
             <span className="min-w-0 truncate">{currentAgentName}</span>
             <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64">
+        <DropdownMenuContent align="center" className="w-64">
           <div className="max-h-72 overflow-y-auto py-1">
             {otherAgents.map((agent) => (
               <DropdownMenuItem
@@ -956,7 +992,9 @@ export default function AgentChatPage() {
                 }
                 className="flex items-center gap-2"
               >
-                {getAgentIcon(agent.id, "size-4 shrink-0 text-muted-foreground")}
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
+                  {getAgentIcon(agent.id, "size-4 shrink-0 text-muted-foreground")}
+                </span>
                 <span className="truncate">{agent.name}</span>
                 {agent.favorite && (
                   <StarIcon className="ml-auto size-3.5 shrink-0 fill-amber-400 text-amber-400" />
@@ -1046,7 +1084,7 @@ export default function AgentChatPage() {
             { id: "marketing", label: "Growth" },
             { id: "sales", label: "Revenue" },
           ]}
-          organisationName="StackAI Internal"
+          organisationName="Acme"
           userName="David Hidalgo"
           onNewChat={handleNewChat}
           activeChatId={conversationId}
@@ -1073,7 +1111,7 @@ export default function AgentChatPage() {
                   />
                   <div className="flex items-center gap-1 pt-2">
                     <AttachMenu uploadOnly={newChatAgentApps != null} />
-                    <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} />
+                    <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} activeApps={promptApps} />
                     <PromptsMenu onSelect={applyPrompt} side="top" />
                     <div className="ml-auto flex items-center gap-0.5">
                       <button type="button" className={toolbarBtn} title="Voice input">
@@ -1138,7 +1176,7 @@ export default function AgentChatPage() {
                           {/* Left toolbar */}
                           <div className="flex items-center gap-0.5">
                             <AttachMenu />
-                            <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" />
+                            <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} />
                             <WorkflowMentionMenu
                               search={workflowSearch}
                               onSearchChange={setWorkflowSearch}
@@ -1211,9 +1249,12 @@ export default function AgentChatPage() {
                             mentionTextareaRef.current.focus();
                           }
                           if (example.app) {
-                            setConnectedConnectors([example.app]);
+                            // Load the tool without connecting it, so it shows
+                            // in the Tools button with a "needs connection" dot.
+                            setPromptApps([example.app]);
                           }
                           if (example.agentId) {
+                            setPromptApps([]);
                             const workflow = ALL_WORKFLOWS.find((w) => w.id === example.agentId);
                             if (workflow) handleSelectWorkflow(workflow);
                           }
@@ -1305,7 +1346,7 @@ export default function AgentChatPage() {
           { id: "marketing", label: "Growth" },
           { id: "sales", label: "Revenue" },
         ]}
-        organisationName="StackAI Internal"
+        organisationName="Acme"
         userName="David Hidalgo"
         onNewChat={handleNewChat}
         activeChatId={conversationId}

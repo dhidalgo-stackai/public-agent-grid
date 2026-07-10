@@ -26,8 +26,8 @@ const MOCK_CONNECTIONS: Connection[] = [
   {
     id: "1",
     integration: "slack",
-    name: "Slack — StackAI Workspace",
-    account: "david@stackai.com",
+    name: "Slack — Acme Workspace",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 10, 2025",
     status: "connected",
@@ -36,8 +36,8 @@ const MOCK_CONNECTIONS: Connection[] = [
   {
     id: "2",
     integration: "gmail",
-    name: "Gmail — david@stackai.com",
-    account: "david@stackai.com",
+    name: "Gmail — david@acme.com",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 10, 2025",
     status: "connected",
@@ -47,7 +47,7 @@ const MOCK_CONNECTIONS: Connection[] = [
     id: "3",
     integration: "notion",
     name: "Notion — Engineering Wiki",
-    account: "david@stackai.com",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Dec 3, 2024",
     status: "connected",
@@ -56,8 +56,8 @@ const MOCK_CONNECTIONS: Connection[] = [
   {
     id: "4",
     integration: "gdrive",
-    name: "Google Drive — StackAI Shared",
-    account: "david@stackai.com",
+    name: "Google Drive — Acme Shared",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Nov 20, 2024",
     status: "error",
@@ -67,7 +67,7 @@ const MOCK_CONNECTIONS: Connection[] = [
     id: "5",
     integration: "figma",
     name: "Figma — Design System",
-    account: "david@stackai.com",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 15, 2025",
     status: "connected",
@@ -77,7 +77,7 @@ const MOCK_CONNECTIONS: Connection[] = [
     id: "6",
     integration: "excel",
     name: "Excel Online — Finance Sheets",
-    account: "david@stackai.com",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 8, 2025",
     status: "connected",
@@ -87,7 +87,7 @@ const MOCK_CONNECTIONS: Connection[] = [
     id: "7",
     integration: "outlook",
     name: "Outlook — Company Email",
-    account: "david@stackai.com",
+    account: "david@acme.com",
     connectedBy: "David Hidalgo",
     connectedDate: "Dec 18, 2024",
     status: "disconnected",
@@ -135,7 +135,7 @@ export default function ConnectionsPage() {
           { id: "marketing", label: "Growth" },
           { id: "sales", label: "Revenue" },
         ]}
-        organisationName="StackAI Internal"
+        organisationName="Acme"
         userName="David Hidalgo"
         onNewChat={() => router.push("/agent/new")}
         favoriteAgents={[]}

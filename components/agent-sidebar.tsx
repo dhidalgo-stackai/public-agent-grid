@@ -27,6 +27,7 @@ import {
   getExtraRecentChats,
   type ChatItem,
 } from "@/lib/chats-data";
+import { MOCK_FORM_RUNS, MOCK_BATCH_RUNS, type RunItem } from "@/lib/runs-data";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { ChatSearchModal } from "@/components/chat-search-modal";
 import {
@@ -56,20 +57,108 @@ function ChatSidebarLink({
           : `/agent/new?chat=${item.id}`
       }
       className={cn(
-        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left transition-colors hover:bg-black/5",
+        "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors hover:bg-black/5",
         isActive && "bg-black/8 font-medium"
       )}
     >
-      {getAgentIcon(item.agentId ?? fallbackAgentId)}
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-black/8 bg-black/5">
+        {getAgentIcon(item.agentId ?? fallbackAgentId)}
+      </span>
       <span
         className={cn(
           "min-w-0 flex-1 truncate text-sm leading-none",
           isActive ? "text-foreground" : "text-foreground/70"
         )}
       >
+        {item.label.replace(/@\s*/g, "").replace(/\s{2,}/g, " ").trim()}
+      </span>
+    </Link>
+  );
+}
+
+function RunSidebarLink({ item, basePath }: { item: RunItem; basePath: string }) {
+  return (
+    <Link
+      href={`${basePath}/${item.agentId}?name=${encodeURIComponent(item.agentName)}&run=${item.id}`}
+      className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors hover:bg-black/5"
+    >
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-black/8 bg-black/5">
+        {getAgentIcon(item.agentId)}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm leading-none text-foreground/70">
         {item.label}
       </span>
     </Link>
+  );
+}
+
+// Lists always cap at RUNS_COLLAPSED_COUNT items by default; a "Show more"
+// toggle to reveal the rest only appears when a list exceeds the threshold.
+const RUNS_SHOW_MORE_THRESHOLD = 5;
+const RUNS_COLLAPSED_COUNT = 2;
+
+function RunSection({
+  label,
+  items,
+  basePath,
+  open,
+  onToggle,
+}: {
+  label: string;
+  items: RunItem[];
+  basePath: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const hasMore = items.length > RUNS_SHOW_MORE_THRESHOLD;
+  const visible = showAll ? items : items.slice(0, RUNS_COLLAPSED_COUNT);
+
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        className="group/runs mt-4 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground/60 transition-colors hover:bg-black/5 hover:text-muted-foreground"
+      >
+        <span className="text-left">{label}</span>
+        <ChevronRightIcon
+          className={cn(
+            "size-3 shrink-0 opacity-0 transition-all duration-150 group-hover/runs:opacity-100",
+            open && "rotate-90"
+          )}
+        />
+      </div>
+      {open && (
+        <div className="flex flex-col gap-0.5 pb-0.5">
+          {items.length === 0 ? (
+            <p className="px-3 py-1.5 text-xs text-muted-foreground/50">No runs yet</p>
+          ) : (
+            <>
+              {visible.map((item) => (
+                <RunSidebarLink key={item.id} item={item} basePath={basePath} />
+              ))}
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll((v) => !v)}
+                  className="flex w-full items-center rounded-md py-1.5 pl-10 pr-3 text-left text-sm leading-none text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+                >
+                  {showAll ? "Show less" : `Show ${items.length - RUNS_COLLAPSED_COUNT} more`}
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -127,6 +216,9 @@ export function AgentSidebar({
   const pathname = usePathname();
 
   const [chatsOpen, setChatsOpen] = useState(true);
+  const [chatsShowAll, setChatsShowAll] = useState(false);
+  const [formRunsOpen, setFormRunsOpen] = useState(true);
+  const [batchRunsOpen, setBatchRunsOpen] = useState(true);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [chatSearchOpen, setChatSearchOpen] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
@@ -347,13 +439,15 @@ export function AgentSidebar({
       </div>
 
       {/* Nav */}
-      <div className="flex flex-col gap-0.5 px-2">
+      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
         <button
           type="button"
           onClick={onNewChat}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+          className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
         >
-          <SquarePenIcon className="size-4 shrink-0" />
+          <span className="flex size-5 shrink-0 items-center justify-center">
+            <SquarePenIcon className="size-4" />
+          </span>
           <span>New Chat</span>
         </button>
 
@@ -361,7 +455,7 @@ export function AgentSidebar({
           type="button"
           onClick={() => onCategoryChange("all")}
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
             selectedCategory === "all" &&
               !isAutomations &&
               !isNewChat &&
@@ -371,7 +465,9 @@ export function AgentSidebar({
               : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
           )}
         >
-          <LayoutGridIcon className="size-4 shrink-0" />
+          <span className="flex size-5 shrink-0 items-center justify-center">
+            <LayoutGridIcon className="size-4" />
+          </span>
           <span>All Agents</span>
         </button>
 
@@ -381,7 +477,7 @@ export function AgentSidebar({
             onClick={() => setCategoriesOpen((v) => !v)}
             aria-expanded={categoriesOpen}
             className={cn(
-              "group/categories flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+              "group/categories flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
               teamCategories.some((cat) => cat.id === selectedCategory) &&
                 !isAutomations &&
                 !isNewChat &&
@@ -391,7 +487,9 @@ export function AgentSidebar({
                 : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
             )}
           >
-            <FolderIcon className="size-4 shrink-0" />
+            <span className="flex size-5 shrink-0 items-center justify-center">
+              <FolderIcon className="size-4" />
+            </span>
             <span>Categories</span>
             <ChevronRightIcon
               className={cn(
@@ -428,39 +526,45 @@ export function AgentSidebar({
         <Link
           href="/automations"
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
             isAutomations
               ? "bg-black/8 text-foreground font-medium"
               : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
           )}
         >
-          <ZapIcon className="size-4 shrink-0" />
+          <span className="flex size-5 shrink-0 items-center justify-center">
+            <ZapIcon className="size-4" />
+          </span>
           <span>My automations</span>
         </Link>
 
         <Link
           href="/knowledge-bases"
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
             isKnowledgeBases
               ? "bg-black/8 text-foreground font-medium"
               : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
           )}
         >
-          <BookOpenIcon className="size-4 shrink-0" />
+          <span className="flex size-5 shrink-0 items-center justify-center">
+            <BookOpenIcon className="size-4" />
+          </span>
           <span>Knowledge Bases</span>
         </Link>
 
         <Link
           href="/connections"
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm leading-none transition-colors",
+            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
             pathname === "/connections"
               ? "bg-black/8 text-foreground font-medium"
               : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
           )}
         >
-          <Plug2Icon className="size-4 shrink-0" />
+          <span className="flex size-5 shrink-0 items-center justify-center">
+            <Plug2Icon className="size-4" />
+          </span>
           <span>Connections</span>
         </Link>
 
@@ -471,7 +575,7 @@ export function AgentSidebar({
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChatsOpen((v) => !v); } }}
           className="group/chats mt-4 flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground/60 transition-colors hover:bg-black/5 hover:text-muted-foreground"
         >
-          <span className="text-left">Chats</span>
+          <span className="text-left">Recent Chats</span>
           <ChevronRightIcon
             className={cn(
               "size-3 shrink-0 opacity-0 transition-all duration-150 group-hover/chats:opacity-100",
@@ -547,7 +651,7 @@ export function AgentSidebar({
         </div>
         {chatsOpen && (
           <div className="flex flex-col gap-0.5 pb-0.5">
-            {mergedChats.map((item) => (
+            {(chatsShowAll ? mergedChats : mergedChats.slice(0, RUNS_COLLAPSED_COUNT)).map((item) => (
               <ChatSidebarLink
                 key={item.id}
                 item={item}
@@ -555,8 +659,33 @@ export function AgentSidebar({
                 fallbackAgentId={filterAgentId}
               />
             ))}
+            {mergedChats.length > RUNS_SHOW_MORE_THRESHOLD && (
+              <button
+                type="button"
+                onClick={() => setChatsShowAll((v) => !v)}
+                className="flex w-full items-center rounded-md py-1.5 pl-10 pr-3 text-left text-sm leading-none text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+              >
+                {chatsShowAll ? "Show less" : `Show ${mergedChats.length - RUNS_COLLAPSED_COUNT} more`}
+              </button>
+            )}
           </div>
         )}
+
+        <RunSection
+          label="Recent Forms"
+          items={MOCK_FORM_RUNS}
+          basePath="/form"
+          open={formRunsOpen}
+          onToggle={() => setFormRunsOpen((v) => !v)}
+        />
+
+        <RunSection
+          label="Recent Batch Interfaces"
+          items={MOCK_BATCH_RUNS}
+          basePath="/batch"
+          open={batchRunsOpen}
+          onToggle={() => setBatchRunsOpen((v) => !v)}
+        />
       </div>
 
       <div className="mt-auto border-t border-black/5 p-2 pb-3">

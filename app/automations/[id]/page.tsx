@@ -627,7 +627,7 @@ function AutomationDetailPageContent() {
         { id: "marketing", label: "Growth" },
         { id: "sales", label: "Revenue" },
       ]}
-      organisationName="StackAI Internal"
+      organisationName="Acme"
       userName="David Hidalgo"
       onNewChat={() => router.push("/agent/new")}
       activeSection={automation ? "automations" : undefined}

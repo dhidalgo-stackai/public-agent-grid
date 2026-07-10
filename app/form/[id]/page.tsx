@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, Clock, Newspaper } from "lucide-react";
+import { ChevronLeftIcon, Clock, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAgentIcon } from "@/lib/agent-icons";
 
@@ -46,9 +46,11 @@ export default function FormAgentPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="group flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5" />
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border transition-colors group-hover:bg-muted-foreground/15">
+            <ChevronLeftIcon className="size-4 shrink-0" />
+          </span>
           Back
         </button>
         <div className="mx-2 h-4 w-px bg-border" />
