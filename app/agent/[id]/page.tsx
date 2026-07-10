@@ -14,6 +14,7 @@ import {
   FolderArchiveIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  ChevronLeftIcon,
   ImageIcon,
   CameraIcon,
   FolderPlusIcon,
@@ -500,6 +501,9 @@ function WorkflowMentionMenu({
   autoSelect,
   onAutoSelectChange,
   side = "bottom",
+  open,
+  onOpenChange,
+  anchor,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
@@ -511,16 +515,41 @@ function WorkflowMentionMenu({
   autoSelect: boolean;
   onAutoSelectChange: (value: boolean) => void;
   side?: "top" | "bottom";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /**
+   * Viewport coordinates of the inserted "@" character. The dropdown is
+   * anchored here so it opens right next to the mention, not under the button.
+   */
+  anchor?: { left: number; top: number } | null;
 }) {
   return (
-    <DropdownMenu onOpenChange={(open) => { if (!open) onSearchChange(""); }}>
+    <DropdownMenu
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onSearchChange("");
+        onOpenChange?.(next);
+      }}
+    >
+      {/* Visible toolbar button — opens the menu at the "@" position. */}
+      <button
+        type="button"
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors"
+        title="Agents"
+        onClick={onTrigger}
+      >
+        <AtSignIcon className={toolbarIcon} />
+        {autoSelect ? "Auto" : "Agents"}
+      </button>
+      {/* Invisible anchor positioned at the "@" character in the composer. */}
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors" title="Agents" onClick={onTrigger}>
-          <AtSignIcon className={toolbarIcon} />
-          {autoSelect ? "Auto" : "Agents"}
-        </button>
+        <span
+          aria-hidden
+          className="pointer-events-none fixed h-0 w-0"
+          style={{ left: anchor?.left ?? 0, top: anchor?.top ?? 0 }}
+        />
       </DropdownMenuTrigger>
-      <DropdownMenuContent side={side} align="start" className="w-72 p-0" onCloseAutoFocus={(e) => e.preventDefault()}>
+      <DropdownMenuContent side={side} align="start" sideOffset={4} className="w-72 p-0" onCloseAutoFocus={(e) => e.preventDefault()}>
         {/* Search */}
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
           <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -645,6 +674,8 @@ export default function AgentChatPage() {
   const [autoSelectWorkflow, setAutoSelectWorkflow] = useState(false);
   const [workflowSearch, setWorkflowSearch] = useState("");
   const [workflowTab, setWorkflowTab] = useState<"recent" | "all" | "favorites">("recent");
+  const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
+  const [mentionAnchor, setMentionAnchor] = useState<{ left: number; top: number } | null>(null);
   const [newChatKey, setNewChatKey] = useState(0);
   const [extraRecentChats, setExtraRecentChats] = useState<ChatItem[]>([]);
   // Named-agent chats open with the agent's workflow apps already connected;
@@ -701,7 +732,7 @@ export default function AgentChatPage() {
 
   const insertMentionTrigger = useCallback(() => {
     const el = mentionTextareaRef.current;
-    if (!el) return;
+    if (!el) return null;
 
     const range = getWorkingRange(el);
     range.deleteContents();
@@ -722,7 +753,20 @@ export default function AgentChatPage() {
       sel?.removeAllRanges();
       sel?.addRange(after);
     });
+
+    return anchor;
   }, [getWorkingRange]);
+
+  // Opens the agent-mention menu anchored to the just-inserted "@" character
+  // (used by both the toolbar "Agents" button and typing "@" in the composer).
+  const openMentionMenu = useCallback(() => {
+    const anchor = insertMentionTrigger();
+    if (anchor) {
+      const rect = anchor.getBoundingClientRect();
+      setMentionAnchor({ left: rect.left, top: rect.bottom });
+    }
+    setMentionMenuOpen(true);
+  }, [insertMentionTrigger]);
 
   const removeMentionChip = useCallback((chip: HTMLElement, workflowId: string) => {
     const el = mentionTextareaRef.current;
@@ -821,6 +865,21 @@ export default function AgentChatPage() {
     [description, id, isNewChat, name, router]
   );
 
+  const handleComposerKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "@") {
+        e.preventDefault();
+        openMentionMenu();
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        beginConversation(mentionTextareaRef.current?.innerText ?? message);
+      }
+    },
+    [openMentionMenu, beginConversation, message]
+  );
+
   const arrivedViaChat = searchParams.get("from") === "chat";
 
   const handleNewChat = useCallback(() => {
@@ -846,13 +905,36 @@ export default function AgentChatPage() {
     ? getChatLabel(conversationId)
     : "New conversation";
 
-  const currentAgentName = id === "new" ? "New conversation" : name || "Select an agent";
+  // On the new-chat flow there is no agent in the URL, so the "active" agent is
+  // whatever the user @-mentioned in the composer. Its name titles the header
+  // and its apps scope the tools menu.
+  const newChatWorkflows = isNewChat
+    ? selectedWorkflows
+        .map((sw) => ALL_WORKFLOWS.find((w) => w.id === sw.id))
+        .filter((w): w is Workflow => Boolean(w))
+    : [];
+  const newChatAgentApps = newChatWorkflows.length
+    ? Array.from(new Set(newChatWorkflows.flatMap((w) => w.apps)))
+    : undefined;
+
+  const currentAgentName =
+    id === "new"
+      ? newChatWorkflows.length === 1
+        ? newChatWorkflows[0].name
+        : newChatWorkflows.length > 1
+          ? `${newChatWorkflows[0].name} +${newChatWorkflows.length - 1}`
+          : "New conversation"
+      : name || "Select an agent";
   const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== id);
 
   const renderChatHeader = () => (
     <header className="flex h-12 shrink-0 items-center gap-1 px-3">
-      <Link href="/agent/new" className={cn(toolbarBtn)} title="New chat">
-        <ArrowRightIcon className="size-4 rotate-180" />
+      <Link
+        href={isNewChat ? "/agent/new" : "/agents"}
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
+        title={isNewChat ? "New chat" : "Back to agents"}
+      >
+        <ChevronLeftIcon className="size-4 shrink-0" />
       </Link>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -976,6 +1058,7 @@ export default function AgentChatPage() {
           {showChat ? (
             /* ── After first message: chat view ── */
             <>
+              <div className="relative z-10">{renderChatHeader()}</div>
               <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
                 <ChatThread chatId={conversationId!} agentName="Assistant" />
               </div>
@@ -988,22 +1071,27 @@ export default function AgentChatPage() {
                     rows={3}
                     className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
-                  <div className="flex items-center justify-between pt-2">
-                    <button type="button" className={toolbarBtn} title="Add">
-                      <PaperclipIcon className={toolbarIcon} />
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                        message.trim()
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                      title="Send"
-                    >
-                      <ArrowUpIcon className="size-4" />
-                    </button>
+                  <div className="flex items-center gap-1 pt-2">
+                    <AttachMenu uploadOnly={newChatAgentApps != null} />
+                    <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} />
+                    <PromptsMenu onSelect={applyPrompt} side="top" />
+                    <div className="ml-auto flex items-center gap-0.5">
+                      <button type="button" className={toolbarBtn} title="Voice input">
+                        <MicIcon className={toolbarIcon} />
+                      </button>
+                      <button
+                        type="button"
+                        className={cn(
+                          "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                          message.trim()
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                        title="Send"
+                      >
+                        <ArrowUpIcon className="size-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1017,7 +1105,7 @@ export default function AgentChatPage() {
               />
               <div className="relative flex flex-1 flex-col overflow-y-auto gap-6">
               {/* Greeting + composer */}
-              <div className="flex w-full shrink-0 flex-col items-center px-4 pt-[20vh] pb-10">
+              <div className="flex w-full shrink-0 flex-col items-center px-4 pt-[24vh] pb-10">
                 <div className="mx-auto w-full max-w-[48rem] flex flex-col items-center gap-10 text-center">
                   <div className="flex flex-col gap-1.5">
                     <h1 className="text-[2rem] font-bold tracking-tight leading-none text-foreground">
@@ -1043,12 +1131,7 @@ export default function AgentChatPage() {
                           onInput={(e) => setMessage(e.currentTarget.innerText)}
                           onKeyUp={saveSelection}
                           onMouseUp={saveSelection}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              beginConversation(mentionTextareaRef.current?.innerText ?? message);
-                            }
-                          }}
+                          onKeyDown={handleComposerKeyDown}
                           className="composer-editable min-h-[72px] w-full whitespace-pre-wrap break-words bg-transparent text-left text-sm outline-none leading-relaxed"
                         />
                         <div className="flex items-center gap-1 pt-1">
@@ -1063,10 +1146,13 @@ export default function AgentChatPage() {
                               onTabChange={setWorkflowTab}
                               selectedIds={selectedWorkflows.map((w) => w.id)}
                               onSelect={handleSelectWorkflow}
-                              onTrigger={insertMentionTrigger}
+                              onTrigger={openMentionMenu}
                               autoSelect={autoSelectWorkflow}
                               onAutoSelectChange={setAutoSelectWorkflow}
                               side="bottom"
+                              open={mentionMenuOpen}
+                              onOpenChange={setMentionMenuOpen}
+                              anchor={mentionAnchor}
                             />
                             <PromptsMenu onSelect={applyPrompt} side="bottom" />
                           </div>
@@ -1227,18 +1313,24 @@ export default function AgentChatPage() {
       />
 
       {/* Chat panel */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
-        {renderChatHeader()}
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
+        {!showChat && (
+          <div
+            aria-hidden
+            className="dotted-backdrop pointer-events-none absolute inset-0"
+          />
+        )}
+        <div className="relative z-10">{renderChatHeader()}</div>
 
         {/* Chat area */}
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
           {showChat ? (
             <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
               <ChatThread chatId={conversationId!} agentName={name} />
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center px-4 pb-4">
-              <div className="flex w-full max-w-[48rem] flex-col items-center gap-6 text-center">
+              <div className="relative flex w-full max-w-[48rem] flex-col items-center gap-6 text-center">
                 <div className="flex size-14 items-center justify-center rounded-xl border border-border bg-muted/60">
                   {getAgentIcon(id, "size-7 text-muted-foreground")}
                 </div>

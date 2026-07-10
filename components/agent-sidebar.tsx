@@ -17,6 +17,7 @@ import {
   StarIcon,
   BookOpenIcon,
   Plug2Icon,
+  CheckIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,7 +34,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuLabel,
-  DropdownMenuCheckboxItem,
   DropdownMenuSeparator,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -509,16 +509,19 @@ export function AgentSidebar({
                   Filter by agent
                 </DropdownMenuLabel>
                 {filterableAgents.map((agent) => (
-                  <DropdownMenuCheckboxItem
+                  <DropdownMenuItem
                     key={agent.id}
-                    checked={chatFilterAgentId === agent.id}
-                    onCheckedChange={() => {
+                    onSelect={(e) => {
+                      e.preventDefault();
                       setChatFilterAgentId((prev) => (prev === agent.id ? null : agent.id));
                       setChatsOpen(true);
                     }}
                   >
-                    {agent.name}
-                  </DropdownMenuCheckboxItem>
+                    <span className="flex-1">{agent.name}</span>
+                    {chatFilterAgentId === agent.id && (
+                      <CheckIcon className="size-4 shrink-0" />
+                    )}
+                  </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

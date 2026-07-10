@@ -10,7 +10,7 @@ import { AutomationRunsList } from "@/components/automation-runs-list";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { myAutomations } from "@/lib/automations-data";
 import {
-  ArrowLeftIcon,
+  ChevronLeftIcon,
   ZapIcon,
   GlobeIcon,
   SparklesIcon,
@@ -354,25 +354,14 @@ function MetadataRow({
       {triggerType && (
         <div className="flex flex-col gap-1.5">
           <span className="text-xs text-muted-foreground">Trigger</span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="cursor-default w-fit">
-                  <TriggerIcon triggerType={triggerType} />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                className="border border-border bg-background px-2 py-1 shadow-md"
-              >
-                <span className="text-xs font-medium text-foreground">
-                  {triggerType === "slack"
-                    ? "Slack trigger"
-                    : schedule || "Scheduled"}
-                </span>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex w-fit items-center gap-1.5">
+            <TriggerIcon triggerType={triggerType} />
+            <span className="text-xs font-medium text-foreground">
+              {triggerType === "slack"
+                ? "Message received"
+                : schedule || "Scheduled"}
+            </span>
+          </div>
         </div>
       )}
 
@@ -423,10 +412,12 @@ function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors"
+      className="group flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
-      <ArrowLeftIcon className="size-4" />
-      Back
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border transition-colors group-hover:bg-muted-foreground/15">
+        <ChevronLeftIcon className="size-4 shrink-0" />
+      </span>
+      My automations
     </button>
   );
 }
@@ -441,16 +432,18 @@ function AutomationTitleRow({
   description?: string;
 }) {
   return (
-    <div className="flex flex-col items-start">
-      <div className="flex size-10 items-center justify-center overflow-hidden rounded-lg border bg-muted text-muted-foreground">
+    <div className="flex items-start gap-4">
+      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-br from-muted to-muted/30 text-muted-foreground [&_svg]:size-6">
         {icon}
       </div>
-      <h1 className="mt-3 text-base font-semibold leading-tight">{name}</h1>
-      {description && (
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-          {description}
-        </p>
-      )}
+      <div className="flex flex-col pt-1">
+        <h1 className="text-lg font-semibold leading-tight">{name}</h1>
+        {description && (
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground leading-relaxed">
+            {description}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -563,24 +556,14 @@ function OverviewPanel({
 }) {
   return (
     <div>
-      <section className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <h2 className="text-sm font-semibold">Description</h2>
-          {automation.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {automation.description}
-            </p>
-          )}
-        </div>
-        <div className={sectionDividerClass}>
-          <MetadataRow
-            createdBy={automation.authorName}
-            labels={automation.labels}
-            triggerType={automation.triggerType}
-            schedule={automation.schedule}
-            integrations={automation.integrations}
-          />
-        </div>
+      <section>
+        <MetadataRow
+          createdBy={automation.authorName}
+          labels={automation.labels}
+          triggerType={automation.triggerType}
+          schedule={automation.schedule}
+          integrations={automation.integrations}
+        />
       </section>
 
       {automation.steps && automation.steps.length > 0 && (
@@ -713,13 +696,13 @@ function AutomationDetailPageContent() {
             <div className={cn(pageContainerClass, "space-y-6 pb-8")}>
               <AutomationTitleRow
                 name={fallbackName}
-                icon={<ZapIcon className="size-5" />}
+                icon={<ZapIcon className="size-6" />}
                 description={fallbackDescription || undefined}
               />
 
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="runs">Runs</TabsTrigger>
+                <TabsTrigger value="runs">Run history</TabsTrigger>
               </TabsList>
 
               <TabsContent value="runs" className="mt-0">
@@ -802,7 +785,7 @@ function AutomationDetailPageContent() {
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-        <Tabs defaultValue="runs" className="flex min-h-0 flex-1 flex-col">
+        <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
           <PageHeader titleRowClassName="flex items-center gap-3">
             <BackButton onClick={() => router.back()} />
             <div className="flex-1" />
@@ -832,14 +815,15 @@ function AutomationDetailPageContent() {
             <AutomationTitleRow
               name={automation.name}
               icon={
-                <span className="flex size-5 items-center justify-center">
-                  {getAgentIcon(automation.agentId, "size-5 text-muted-foreground")}
+                <span className="flex size-6 items-center justify-center">
+                  {getAgentIcon(automation.agentId, "size-6 text-muted-foreground")}
                 </span>
               }
+              description={automation.description}
             />
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="runs">Runs</TabsTrigger>
+              <TabsTrigger value="runs">Run history</TabsTrigger>
             </TabsList>
             <TabsContent value="runs" className="mt-0">
               <RunsPanel />
