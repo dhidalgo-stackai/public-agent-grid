@@ -156,16 +156,19 @@ function ToolsMenu({
    */
   activeApps?: string[];
 }) {
-  const isAgentScoped = agentApps != null;
+  // The menu is "scoped" to a specific set of apps either when it belongs to a
+  // named agent's workflow (agentApps) or when a suggested prompt has loaded its
+  // own apps ad-hoc (activeApps). In both cases we show only those apps and hide
+  // the generic tool toggles, "Create document" and "More apps" entries.
+  const scopedApps = agentApps ?? (activeApps && activeApps.length ? activeApps : null);
+  const isAgentScoped = scopedApps != null;
   const connectorItems = isAgentScoped
-    ? agentApps.map((id) => ({ id, label: getAppLabel(id) }))
+    ? scopedApps.map((id) => ({ id, label: getAppLabel(id) }))
     : CONNECTOR_ITEMS;
-  // Tools shown in the trigger button. When scoped to an agent, show all of its
-  // loaded apps. Otherwise show connected connectors plus any apps loaded
-  // ad-hoc. Any shown tool lacking a connection gets a pulsing dot.
-  const triggerIds = isAgentScoped
-    ? agentApps
-    : Array.from(new Set([...connectedConnectors, ...(activeApps ?? [])]));
+  // Tools shown in the trigger button. When scoped, show all of the scoped
+  // apps. Otherwise show connected connectors. Any shown tool lacking a
+  // connection gets a pulsing dot.
+  const triggerIds = isAgentScoped ? scopedApps : connectedConnectors;
   const triggerTools = triggerIds.map((id) => ({ id, label: getAppLabel(id) }));
 
   const toggleConnector = (id: string) => {
@@ -519,7 +522,7 @@ function WorkflowMentionMenu({
   onTabChange,
   selectedIds,
   onSelect,
-  onTrigger,
+  onButtonTrigger,
   autoSelect,
   onAutoSelectChange,
   side = "bottom",
@@ -533,7 +536,7 @@ function WorkflowMentionMenu({
   onTabChange: (value: "recent" | "all" | "favorites") => void;
   selectedIds: string[];
   onSelect: (workflow: Workflow) => void;
-  onTrigger: () => void;
+  onButtonTrigger: (rect: DOMRect) => void;
   autoSelect: boolean;
   onAutoSelectChange: (value: boolean) => void;
   side?: "top" | "bottom";
@@ -553,17 +556,17 @@ function WorkflowMentionMenu({
         onOpenChange?.(next);
       }}
     >
-      {/* Visible toolbar button — opens the menu at the "@" position. */}
+      {/* Visible toolbar button — opens the menu anchored below the button. */}
       <button
         type="button"
         className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors"
         title="Agents"
-        onClick={onTrigger}
+        onClick={(e) => onButtonTrigger(e.currentTarget.getBoundingClientRect())}
       >
         <AtSignIcon className={toolbarIcon} />
         {autoSelect ? "Auto" : "Agents"}
       </button>
-      {/* Invisible anchor positioned at the "@" character in the composer. */}
+      {/* Invisible anchor positioned at the "@" character (or the button). */}
       <DropdownMenuTrigger asChild>
         <span
           aria-hidden
@@ -783,7 +786,7 @@ export default function AgentChatPage() {
   }, [getWorkingRange]);
 
   // Opens the agent-mention menu anchored to the just-inserted "@" character
-  // (used by both the toolbar "Agents" button and typing "@" in the composer).
+  // (used when the user types "@" in the composer).
   const openMentionMenu = useCallback(() => {
     const anchor = insertMentionTrigger();
     if (anchor) {
@@ -792,6 +795,13 @@ export default function AgentChatPage() {
     }
     setMentionMenuOpen(true);
   }, [insertMentionTrigger]);
+
+  // Opens the agent-mention menu anchored below the toolbar "Agents" button.
+  // Unlike the "@"-key path, this does not insert an "@" into the composer.
+  const openMentionMenuFromButton = useCallback((rect: DOMRect) => {
+    setMentionAnchor({ left: rect.left, top: rect.bottom });
+    setMentionMenuOpen(true);
+  }, []);
 
   const removeMentionChip = useCallback((chip: HTMLElement, workflowId: string) => {
     const el = mentionTextareaRef.current;
@@ -953,8 +963,8 @@ export default function AgentChatPage() {
   const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== id);
 
   const renderChatHeader = () => (
-    <header className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-1 px-3">
-      <div className="flex min-w-0 items-center justify-self-start">
+    <header className="flex h-12 shrink-0 items-center gap-1 px-3">
+      <div className="flex min-w-0 items-center">
         <Link
           href={isNewChat ? "/agent/new" : "/agents"}
           className="flex min-w-0 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-sm text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
@@ -962,16 +972,15 @@ export default function AgentChatPage() {
           <span className="flex size-6 shrink-0 items-center justify-center">
             <ChevronLeftIcon className="size-4 shrink-0" />
           </span>
-          <span className="min-w-0 truncate">
-            {isNewChat ? "Back to New chat" : "Back to agents"}
-          </span>
+          <span className="min-w-0 truncate">Back</span>
         </Link>
+        <span className="mx-1 h-5 w-px shrink-0 bg-border" />
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex min-w-0 items-center gap-1.5 justify-self-center rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
+            className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
           >
             {!isNewChat && name && (
               <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
@@ -1184,7 +1193,7 @@ export default function AgentChatPage() {
                               onTabChange={setWorkflowTab}
                               selectedIds={selectedWorkflows.map((w) => w.id)}
                               onSelect={handleSelectWorkflow}
-                              onTrigger={openMentionMenu}
+                              onButtonTrigger={openMentionMenuFromButton}
                               autoSelect={autoSelectWorkflow}
                               onAutoSelectChange={setAutoSelectWorkflow}
                               side="bottom"

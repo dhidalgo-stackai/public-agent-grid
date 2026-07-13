@@ -61,7 +61,7 @@ function ChatSidebarLink({
         isActive && "bg-black/8 font-medium"
       )}
     >
-      <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-black/8 bg-black/5">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-black/8">
         {getAgentIcon(item.agentId ?? fallbackAgentId)}
       </span>
       <span
@@ -82,7 +82,7 @@ function RunSidebarLink({ item, basePath }: { item: RunItem; basePath: string })
       href={`${basePath}/${item.agentId}?name=${encodeURIComponent(item.agentName)}&run=${item.id}`}
       className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors hover:bg-black/5"
     >
-      <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-black/8 bg-black/5">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-md border border-black/8">
         {getAgentIcon(item.agentId)}
       </span>
       <span className="min-w-0 flex-1 truncate text-sm leading-none text-foreground/70">
@@ -273,7 +273,7 @@ export function AgentSidebar({
   );
 
   const railPanel = (
-    <div className="flex h-full w-14 flex-col border-r border-black/5 bg-muted">
+    <div className="flex h-full w-14 flex-col border-r border-black/5 bg-background">
       <div className="flex flex-col items-center gap-1 px-2 py-3">
         <Avatar className="size-7 rounded-md border border-black/10">
           {organisationLogoUrl && (
@@ -327,7 +327,7 @@ export function AgentSidebar({
   );
 
   const expandedPanel = agentMode ? (
-      <div className="flex h-full w-64 flex-col border-r border-black/5 bg-muted">
+      <div className="flex h-full w-64 flex-col border-r border-black/5 bg-background">
         {/* Org header */}
         <div className="flex items-center gap-2 pl-3.5 pr-3 py-3">
           <Avatar className="size-7 rounded-md border border-black/10">

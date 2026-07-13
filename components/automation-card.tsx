@@ -1,14 +1,22 @@
 "use client";
 
-import { ZapIcon, ClockIcon, SquareChevronRight } from "lucide-react";
+import { useState } from "react";
+import { ZapIcon, ClockIcon, SquareChevronRight, MoreVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AutomationScheduleDialog } from "@/components/automation-schedule-dialog";
 import type { Automation } from "@/lib/automations-data";
 
 const integrationIcons: Record<string, React.ReactNode> = {
@@ -44,9 +52,11 @@ interface AutomationCardProps {
   automation: Automation;
   onToggle?: (id: string) => void;
   onClick?: (automation: Automation) => void;
+  onUpdateSchedule?: (id: string, schedule: string) => void;
 }
 
-export function AutomationCard({ automation, onToggle, onClick }: AutomationCardProps) {
+export function AutomationCard({ automation, onToggle, onClick, onUpdateSchedule }: AutomationCardProps) {
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const isActive = automation.status === "active";
   const isScheduled = automation.triggerType !== "slack";
   const isSlackTriggered = automation.triggerType === "slack";
@@ -84,6 +94,41 @@ export function AutomationCard({ automation, onToggle, onClick }: AutomationCard
             onCheckedChange={() => onToggle?.(automation.id)}
             onClick={(e) => e.stopPropagation()}
           />
+
+          {/* Overflow menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground focus:outline-none"
+                title="More options"
+              >
+                <MoreVertical className="size-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                disabled={!isScheduled}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setScheduleOpen(true);
+                }}
+              >
+                <ClockIcon className="size-4" />
+                Edit schedule
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick?.(automation);
+                }}
+              >
+                <SquareChevronRight className="size-4" />
+                Open automation
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Description */}
@@ -173,6 +218,14 @@ export function AutomationCard({ automation, onToggle, onClick }: AutomationCard
           </div>
         </div>
       </div>
+
+      <AutomationScheduleDialog
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        automationName={automation.name}
+        schedule={automation.schedule}
+        onSave={(schedule) => onUpdateSchedule?.(automation.id, schedule)}
+      />
     </div>
   );
 }

@@ -73,6 +73,12 @@ function AutomationsContent() {
     );
   };
 
+  const handleUpdateSchedule = (id: string, schedule: string) => {
+    setAutomations((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, schedule } : a))
+    );
+  };
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-muted">
       <AgentSidebar
@@ -120,6 +126,7 @@ function AutomationsContent() {
                       automation={automation}
                       onToggle={handleToggle}
                       onClick={(a) => router.push(`/automations/${a.id}`)}
+                      onUpdateSchedule={handleUpdateSchedule}
                     />
                   ))}
                 </div>

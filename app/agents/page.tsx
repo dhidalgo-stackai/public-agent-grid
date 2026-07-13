@@ -498,7 +498,7 @@ function AgentLibraryPageContent() {
   );
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-muted">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <AgentSidebar
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}

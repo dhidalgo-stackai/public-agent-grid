@@ -133,7 +133,7 @@ export function AgentCard({
             onStart?.();
           }
         }}
-        className={cn("relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-muted/20 transition-all duration-150 will-change-transform group-hover/agent-card:-translate-y-0.5 group-hover/agent-card:border-foreground/30", className)}
+        className={cn("relative flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-background transition-all duration-150 will-change-transform group-hover/agent-card:-translate-y-0.5 group-hover/agent-card:border-foreground/30", className)}
       >
         {/* Header: icon + title/subtitle + toolbar */}
         <div className="flex items-start gap-3 p-4 pb-0">
