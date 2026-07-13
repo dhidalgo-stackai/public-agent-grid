@@ -18,6 +18,7 @@ import {
   BookOpenIcon,
   Plug2Icon,
   CheckIcon,
+  MoreHorizontalIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -149,8 +150,11 @@ function RunSection({
                 <button
                   type="button"
                   onClick={() => setShowAll((v) => !v)}
-                  className="flex w-full items-center rounded-md py-1.5 pl-10 pr-3 text-left text-sm leading-none text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm leading-none text-foreground/45 transition-colors hover:bg-black/5 hover:text-foreground/70"
                 >
+                  <span className="flex size-5 shrink-0 items-center justify-center">
+                    <MoreHorizontalIcon className="size-4" />
+                  </span>
                   {showAll ? "Show less" : `Show ${items.length - RUNS_COLLAPSED_COUNT} more`}
                 </button>
               )}
@@ -663,8 +667,11 @@ export function AgentSidebar({
               <button
                 type="button"
                 onClick={() => setChatsShowAll((v) => !v)}
-                className="flex w-full items-center rounded-md py-1.5 pl-10 pr-3 text-left text-sm leading-none text-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground"
+                className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm leading-none text-foreground/45 transition-colors hover:bg-black/5 hover:text-foreground/70"
               >
+                <span className="flex size-5 shrink-0 items-center justify-center">
+                  <MoreHorizontalIcon className="size-4" />
+                </span>
                 {chatsShowAll ? "Show less" : `Show ${mergedChats.length - RUNS_COLLAPSED_COUNT} more`}
               </button>
             )}
