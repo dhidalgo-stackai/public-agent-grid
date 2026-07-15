@@ -31,6 +31,16 @@ const APP_LABELS: Record<string, string> = {
   outlook: "Outlook",
   gmail: "Gmail",
   figma: "Figma",
+  github: "GitHub",
+  linear: "Linear",
+  asana: "Asana",
+  snowflake: "Snowflake",
+  jira: "Jira",
+  hubspot: "HubSpot",
+  salesforce: "Salesforce",
+  airtable: "Airtable",
+  confluence: "Confluence",
+  intercom: "Intercom",
   connector: "Connector",
 };
 

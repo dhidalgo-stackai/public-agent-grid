@@ -47,18 +47,179 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
   },
   gmail: {
     label: "Gmail",
-    icon: (
-      <svg className="size-3.5" viewBox="0 0 24 24" fill="none">
-        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
-        <path d="M1.636 21.002h3.819V11.73L0 6.82v12.546c0 .904.732 1.636 1.636 1.636z" fill="#34A853"/>
-        <path d="M18.545 21.002h3.819c.904 0 1.636-.732 1.636-1.636V6.82l-5.455 4.91v9.272z" fill="#4285F4"/>
-        <path d="M5.455 11.73V4.64L12 9.548l6.545-4.91v7.092L12 16.64l-6.545-4.91z" fill="#FBBC05"/>
-      </svg>
-    ),
+    icon: integrationIcons.gmail,
     connections: [
       { id: "gmail-1", name: "hello@acme.com" },
       { id: "gmail-2", name: "digest@acme.com" },
     ],
+    detail: {
+      label: "Mailbox",
+      options: [
+        { id: "gmail-detail-1", name: "Inbox" },
+        { id: "gmail-detail-2", name: "Customers" },
+        { id: "gmail-detail-3", name: "Newsletters" },
+      ],
+    },
+  },
+  github: {
+    label: "GitHub",
+    icon: integrationIcons.github,
+    connections: [
+      { id: "github-1", name: "Acme Engineering" },
+      { id: "github-2", name: "david-hidalgo" },
+    ],
+    detail: {
+      label: "Repository",
+      options: [
+        { id: "github-repo-1", name: "public_grid" },
+        { id: "github-repo-2", name: "agent-workflows" },
+        { id: "github-repo-3", name: "customer-portal" },
+      ],
+    },
+  },
+  linear: {
+    label: "Linear",
+    icon: integrationIcons.linear,
+    connections: [
+      { id: "linear-1", name: "Acme Product" },
+      { id: "linear-2", name: "Platform Team" },
+    ],
+    detail: {
+      label: "Team",
+      options: [
+        { id: "linear-team-1", name: "Engineering" },
+        { id: "linear-team-2", name: "Growth" },
+        { id: "linear-team-3", name: "Support" },
+      ],
+    },
+  },
+  asana: {
+    label: "Asana",
+    icon: integrationIcons.asana,
+    connections: [
+      { id: "asana-1", name: "Acme Workspace" },
+      { id: "asana-2", name: "Marketing Ops" },
+    ],
+    detail: {
+      label: "Project",
+      options: [
+        { id: "asana-project-1", name: "Launch Calendar" },
+        { id: "asana-project-2", name: "Roadmap" },
+        { id: "asana-project-3", name: "Customer Follow-up" },
+      ],
+    },
+  },
+  snowflake: {
+    label: "Snowflake",
+    icon: integrationIcons.snowflake,
+    connections: [
+      { id: "snowflake-1", name: "Acme Analytics" },
+      { id: "snowflake-2", name: "Production Warehouse" },
+    ],
+    detail: {
+      label: "Warehouse",
+      options: [
+        { id: "snowflake-wh-1", name: "COMPUTE_WH" },
+        { id: "snowflake-wh-2", name: "ANALYTICS_WH" },
+        { id: "snowflake-wh-3", name: "FINANCE_WH" },
+      ],
+    },
+  },
+  jira: {
+    label: "Jira",
+    icon: integrationIcons.jira,
+    connections: [
+      { id: "jira-1", name: "Acme Jira" },
+      { id: "jira-2", name: "Platform Jira" },
+    ],
+    detail: {
+      label: "Project",
+      options: [
+        { id: "jira-project-1", name: "ENG" },
+        { id: "jira-project-2", name: "GROWTH" },
+        { id: "jira-project-3", name: "OPS" },
+      ],
+    },
+  },
+  hubspot: {
+    label: "HubSpot",
+    icon: integrationIcons.hubspot,
+    connections: [
+      { id: "hubspot-1", name: "Acme CRM" },
+      { id: "hubspot-2", name: "Sales Team" },
+    ],
+    detail: {
+      label: "Pipeline",
+      options: [
+        { id: "hubspot-pipeline-1", name: "New Business" },
+        { id: "hubspot-pipeline-2", name: "Renewals" },
+        { id: "hubspot-pipeline-3", name: "Partners" },
+      ],
+    },
+  },
+  salesforce: {
+    label: "Salesforce",
+    icon: integrationIcons.salesforce,
+    connections: [
+      { id: "salesforce-1", name: "Acme Sales Cloud" },
+      { id: "salesforce-2", name: "Enterprise CRM" },
+    ],
+    detail: {
+      label: "Object",
+      options: [
+        { id: "salesforce-object-1", name: "Accounts" },
+        { id: "salesforce-object-2", name: "Opportunities" },
+        { id: "salesforce-object-3", name: "Cases" },
+      ],
+    },
+  },
+  airtable: {
+    label: "Airtable",
+    icon: integrationIcons.airtable,
+    connections: [
+      { id: "airtable-1", name: "Acme Base" },
+      { id: "airtable-2", name: "Content Ops" },
+    ],
+    detail: {
+      label: "Base",
+      options: [
+        { id: "airtable-base-1", name: "Editorial Calendar" },
+        { id: "airtable-base-2", name: "Customer Research" },
+        { id: "airtable-base-3", name: "Vendor Tracker" },
+      ],
+    },
+  },
+  confluence: {
+    label: "Confluence",
+    icon: integrationIcons.confluence,
+    connections: [
+      { id: "confluence-1", name: "Acme Knowledge" },
+      { id: "confluence-2", name: "Engineering Docs" },
+    ],
+    detail: {
+      label: "Space",
+      options: [
+        { id: "confluence-space-1", name: "Product" },
+        { id: "confluence-space-2", name: "Engineering" },
+        { id: "confluence-space-3", name: "Support" },
+      ],
+    },
+  },
+  intercom: {
+    label: "Intercom",
+    icon: integrationIcons.intercom,
+    connections: [
+      { id: "intercom-1", name: "Acme Support" },
+      { id: "intercom-2", name: "Customer Success" },
+    ],
+    detail: {
+      label: "Inbox",
+      options: [
+        { id: "intercom-inbox-1", name: "Support" },
+        { id: "intercom-inbox-2", name: "Sales" },
+        { id: "intercom-inbox-3", name: "VIP Customers" },
+      ],
+    },
   },
   notion: {
     label: "Notion",

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback, cloneElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
@@ -129,11 +130,43 @@ const TOOL_TOGGLE_ITEMS: { key: keyof ToolToggles; label: string; icon: React.El
 
 const CONNECTOR_ITEMS = [
   { id: "slack", label: "Slack" },
+  { id: "gmail", label: "Gmail" },
   { id: "notion", label: "Notion" },
   { id: "dropbox", label: "Dropbox" },
   { id: "gdrive", label: "Google Drive" },
   { id: "outlook", label: "Outlook" },
+  { id: "github", label: "GitHub" },
+  { id: "linear", label: "Linear" },
+  { id: "asana", label: "Asana" },
+  { id: "snowflake", label: "Snowflake" },
 ];
+
+const DROPDOWN_OPTION_SELECTOR =
+  '[data-app-tool-suggestion], [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-sub-trigger"]';
+
+function getFocusableDropdownOptions(root: ParentNode) {
+  return Array.from(root.querySelectorAll<HTMLElement>(DROPDOWN_OPTION_SELECTOR))
+    .filter((option) =>
+      option.getAttribute("aria-disabled") !== "true" &&
+      option.getAttribute("data-disabled") !== "true"
+    );
+}
+
+function focusDropdownOption(root: ParentNode, direction: 1 | -1 = 1) {
+  const options = getFocusableDropdownOptions(root);
+  if (!options.length) return false;
+
+  const activeIndex = options.indexOf(document.activeElement as HTMLElement);
+  const nextIndex =
+    activeIndex === -1
+      ? direction === 1
+        ? 0
+        : options.length - 1
+      : (activeIndex + direction + options.length) % options.length;
+
+  options[nextIndex]?.focus();
+  return true;
+}
 
 function kbIcon(iconType: string) {
   if (iconType === "drive") {
@@ -203,7 +236,7 @@ function createKnowledgeBaseIconNode(iconType: string) {
 
 // Shared props for the "+" add-menu that consolidates Attach, Tools, Agents and
 // Prompts. Sub-sections that used to be their own toolbar buttons are now
-// submenus; the optional Agents entry opens the anchored mention menu.
+// submenus.
 type AddMenuProps = {
   uploadOnly?: boolean;
   toggles: ToolToggles;
@@ -226,13 +259,69 @@ type AddMenuProps = {
   selectedKnowledgeBases?: string[];
   onKnowledgeBaseChange?: (ids: string[]) => void;
   onSelectPrompt: (text: string) => void;
-  /**
-   * When provided, an "Agents" entry is shown; clicking it opens the anchored
-   * agent-mention menu at the supplied rect.
-   */
+  /** Fallback used by anchored/search flows to open the separate mention menu. */
   onAgentsClick?: (rect: DOMRect) => void;
   agentsAutoSelect?: boolean;
+  workflowSearch?: string;
+  onWorkflowSearchChange?: (value: string) => void;
+  workflowTab?: "recent" | "all" | "favorites";
+  onWorkflowTabChange?: (value: "recent" | "all" | "favorites") => void;
+  selectedWorkflowIds?: string[];
+  onSelectWorkflow?: (workflow: Workflow) => void;
+  onAutoSelectWorkflowChange?: (value: boolean) => void;
+  onSelectConnectorMention?: (id: string, label: string) => void;
+  onSelectKnowledgeBaseMention?: (id: string) => void;
+  searchValue?: string;
+  hideSearchInput?: boolean;
+  hideConnectedApps?: boolean;
+  hideConnectorSelectedState?: boolean;
+  closeOnAction?: boolean;
+  onRequestClose?: () => void;
 };
+
+function hasAddMenuSearchResults({
+  search,
+  uploadOnly = false,
+  agentApps,
+  hideConnectedApps = false,
+  hasAgentsEntry = false,
+  hasAgentsPicker = false,
+}: {
+  search: string;
+  uploadOnly?: boolean;
+  agentApps?: string[];
+  hideConnectedApps?: boolean;
+  hasAgentsEntry?: boolean;
+  hasAgentsPicker?: boolean;
+}) {
+  const normalizedSearch = search.trim().toLowerCase();
+  if (!normalizedSearch) return true;
+
+  const matchesSearch = (value: string) =>
+    value.toLowerCase().includes(normalizedSearch);
+  const connectorItems = agentApps
+    ? agentApps.map((id) => ({ id, label: getAppLabel(id) }))
+    : CONNECTOR_ITEMS;
+
+  if (uploadOnly) return matchesSearch("upload file files knowledge");
+
+  return (
+    TOOL_TOGGLE_ITEMS.some((item) => matchesSearch(item.label)) ||
+    connectorItems.some((item) => matchesSearch(`${item.label} ${item.id}`)) ||
+    KNOWLEDGE_BASES.some((kb) => matchesSearch(kb.name)) ||
+    (!hideConnectedApps &&
+      CONNECTED_APPS.some((app) => matchesSearch(`${app.name} ${app.id}`))) ||
+    SAVED_PROMPTS.some((prompt) => matchesSearch(`${prompt.title} ${prompt.text}`)) ||
+    matchesSearch("upload file files knowledge") ||
+    (hasAgentsPicker &&
+      ALL_WORKFLOWS.some((workflow) =>
+        matchesSearch(
+          `${workflow.name} ${workflow.description} ${workflow.tags.join(" ")}`
+        )
+      )) ||
+    ((hasAgentsEntry || hasAgentsPicker) && matchesSearch("agents"))
+  );
+}
 
 // The menu body, reused by both the "+" toolbar button (AddMenu) and the
 // caret-anchored "@" menu (AddMenuAnchored). getAgentsRect supplies the anchor
@@ -254,8 +343,33 @@ function AddMenuContent({
   onKnowledgeBaseChange,
   onAgentsClick,
   agentsAutoSelect = false,
+  workflowSearch = "",
+  onWorkflowSearchChange,
+  workflowTab = "recent",
+  onWorkflowTabChange,
+  selectedWorkflowIds = [],
+  onSelectWorkflow,
+  onAutoSelectWorkflowChange,
+  onSelectConnectorMention,
+  onSelectKnowledgeBaseMention,
+  searchValue,
+  hideSearchInput = false,
+  hideConnectedApps = false,
+  hideConnectorSelectedState = false,
+  closeOnAction = false,
+  onRequestClose,
   getAgentsRect,
 }: AddMenuProps & { getAgentsRect: () => DOMRect | undefined }) {
+  const [menuSearch, setMenuSearch] = useState("");
+  const menuSearchRef = useRef<HTMLInputElement>(null);
+  const menuContentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (searchValue !== undefined) {
+      setMenuSearch(searchValue);
+    }
+  }, [searchValue]);
+
   // Only agent workflows scope the Tools submenu. Pending apps still show as
   // toolbar chips, but the user can keep adding other tools from the full list.
   const scopedApps = agentApps ?? null;
@@ -263,6 +377,49 @@ function AddMenuContent({
   const connectorItems = isAgentScoped
     ? scopedApps.map((id) => ({ id, label: getAppLabel(id) }))
     : CONNECTOR_ITEMS;
+  const normalizedSearch = menuSearch.trim().toLowerCase();
+  const isSearching = normalizedSearch.length > 0;
+  const matchesSearch = (value: string) =>
+    value.toLowerCase().includes(normalizedSearch);
+  const searchedToolToggles = TOOL_TOGGLE_ITEMS.filter((item) =>
+    matchesSearch(item.label)
+  );
+  const searchedConnectors = connectorItems.filter((item) =>
+    matchesSearch(`${item.label} ${item.id}`)
+  );
+  const searchedKnowledgeBases = KNOWLEDGE_BASES.filter((kb) =>
+    matchesSearch(kb.name)
+  );
+  const searchedConnectedApps = hideConnectedApps
+    ? []
+    : CONNECTED_APPS.filter((app) => matchesSearch(`${app.name} ${app.id}`));
+  const searchedPrompts = SAVED_PROMPTS.filter((prompt) =>
+    matchesSearch(`${prompt.title} ${prompt.text}`)
+  );
+  const hasUploadMatch = matchesSearch("upload file files knowledge");
+  const hasAgentsPicker = Boolean(
+    onSelectWorkflow &&
+      onWorkflowSearchChange &&
+      onWorkflowTabChange &&
+      onAutoSelectWorkflowChange
+  );
+  const searchedWorkflows = hasAgentsPicker
+    ? ALL_WORKFLOWS.filter((workflow) =>
+        matchesSearch(
+          `${workflow.name} ${workflow.description} ${workflow.tags.join(" ")}`
+        )
+      )
+    : [];
+  const hasSearchResults = uploadOnly
+    ? hasUploadMatch
+    : searchedToolToggles.length > 0 ||
+      searchedConnectors.length > 0 ||
+      searchedKnowledgeBases.length > 0 ||
+      searchedConnectedApps.length > 0 ||
+      searchedWorkflows.length > 0 ||
+      searchedPrompts.length > 0 ||
+      hasUploadMatch ||
+      ((onAgentsClick || hasAgentsPicker) && matchesSearch("agents"));
 
   const toggleConnector = (id: string) => {
     if (!connectedConnectors.includes(id)) {
@@ -282,6 +439,20 @@ function AddMenuContent({
     );
   };
 
+  const selectConnector = (id: string, label: string) => {
+    if (onSelectConnectorMention) {
+      const alreadyActive =
+        connectedConnectors.includes(id) || (activeApps?.includes(id) ?? false);
+      if (!alreadyActive) {
+        toggleConnector(id);
+      }
+      onSelectConnectorMention(id, label);
+      return;
+    }
+
+    toggleConnector(id);
+  };
+
   const toggleKnowledgeBase = (id: string) => {
     onKnowledgeBaseChange?.(
       selectedKnowledgeBases.includes(id)
@@ -290,11 +461,230 @@ function AddMenuContent({
     );
   };
 
+  const selectKnowledgeBase = (id: string) => {
+    if (onSelectKnowledgeBaseMention) {
+      onSelectKnowledgeBaseMention(id);
+      return;
+    }
+
+    toggleKnowledgeBase(id);
+  };
+
+  const closeAfterAction = () => {
+    if (closeOnAction) {
+      onRequestClose?.();
+    }
+  };
+
+  const runAction = (action?: () => void) => {
+    action?.();
+    closeAfterAction();
+  };
+
   return (
-      <DropdownMenuContent side={side} align="start" className="w-64 p-1">
+      <DropdownMenuContent
+        ref={menuContentRef}
+        data-add-menu-content
+        side={side}
+        align="start"
+        className="w-72 p-1"
+        onKeyDownCapture={(event) => {
+          if (event.key !== "Tab") return;
+          if (focusDropdownOption(menuContentRef.current ?? event.currentTarget, event.shiftKey ? -1 : 1)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}
+        onCloseAutoFocus={(event) => {
+          setMenuSearch("");
+          if (hideSearchInput) event.preventDefault();
+        }}
+      >
+        {!hideSearchInput && (
+          <div className="sticky top-0 z-10 bg-popover">
+            <div className="flex h-9 items-center gap-2 rounded-lg px-2 text-muted-foreground">
+              <SearchIcon className="size-4 shrink-0" />
+              <input
+                ref={menuSearchRef}
+                autoFocus
+                value={menuSearch}
+                onChange={(event) => setMenuSearch(event.target.value)}
+                onKeyDown={(event) => event.stopPropagation()}
+                placeholder="Search..."
+                className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                autoComplete="off"
+              />
+              {menuSearch && (
+                <button
+                  type="button"
+                  className="flex size-5 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  onClick={() => setMenuSearch("")}
+                  aria-label="Clear search"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {isSearching ? (
+          <div className="max-h-80 overflow-y-auto">
+            {!hasSearchResults && (
+              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                No options found
+              </div>
+            )}
+
+            {hasUploadMatch && (
+              <DropdownMenuItem
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                onClick={() => closeAfterAction()}
+              >
+                <UploadIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm">Upload file</span>
+                <span className="text-xs text-muted-foreground">Files</span>
+              </DropdownMenuItem>
+            )}
+
+            {!uploadOnly && searchedKnowledgeBases.map((kb) => {
+              const isSelected = selectedKnowledgeBases.includes(kb.id);
+              return (
+                <DropdownMenuItem
+                  key={`kb-${kb.id}`}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => runAction(() => selectKnowledgeBase(kb.id))}
+                >
+                  {kbIcon(kb.iconType)}
+                  <span className="min-w-0 flex-1 truncate text-sm">{kb.name}</span>
+                  {isSelected ? (
+                    <CheckIcon className="size-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Knowledge</span>
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
+
+            {!uploadOnly && searchedConnectedApps.map((app) => (
+              <DropdownMenuItem
+                key={`connected-app-${app.id}`}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                onClick={() => closeAfterAction()}
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[app.id]}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{app.name}</span>
+                <span className="text-xs text-muted-foreground">Connected app</span>
+              </DropdownMenuItem>
+            ))}
+
+            {!uploadOnly && !isAgentScoped &&
+              searchedToolToggles.map(({ key, label, icon: Icon }) => (
+                <DropdownMenuItem
+                  key={`tool-${key}`}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => runAction(() => onToggle(key))}
+                >
+                  <Icon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
+                  <Checkbox
+                    checked={toggles[key]}
+                    className="ml-auto"
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={() => runAction(() => onToggle(key))}
+                  />
+                </DropdownMenuItem>
+              ))}
+
+            {!uploadOnly && searchedConnectors.map((c) => {
+              const isSelected =
+                !hideConnectorSelectedState &&
+                (connectedConnectors.includes(c.id) ||
+                  (activeApps?.includes(c.id) ?? false));
+              return (
+                <DropdownMenuItem
+                  key={`connector-${c.id}`}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => runAction(() => selectConnector(c.id, c.label))}
+                  title={c.label}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[c.id]}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{c.label}</span>
+                  {isSelected ? (
+                    <CheckIcon className="size-4 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Tool</span>
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
+
+            {!uploadOnly && (onAgentsClick || hasAgentsPicker) && matchesSearch("agents") && (
+              <DropdownMenuItem
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                onClick={() => {
+                  const rect = getAgentsRect();
+                  if (rect && onAgentsClick) setTimeout(() => onAgentsClick(rect), 0);
+                  closeAfterAction();
+                }}
+              >
+                <WorkflowIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm">Agents{agentsAutoSelect ? " (Auto)" : ""}</span>
+              </DropdownMenuItem>
+            )}
+
+            {!uploadOnly && searchedWorkflows.map((workflow) => {
+              const isSelected = selectedWorkflowIds.includes(workflow.id);
+              const Icon = workflow.icon;
+              return (
+                <Tooltip key={`workflow-${workflow.id}`} delayDuration={250}>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuItem
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        if (!isSelected) {
+                          runAction(() => onSelectWorkflow?.(workflow));
+                        }
+                      }}
+                    >
+                      <Icon className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate text-sm">{workflow.name}</span>
+                      {isSelected ? (
+                        <CheckIcon className="size-4 shrink-0 text-muted-foreground" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Agent</span>
+                      )}
+                    </DropdownMenuItem>
+                  </TooltipTrigger>
+                  <AgentInfoTooltip workflow={workflow} />
+                </Tooltip>
+              );
+            })}
+
+            {!uploadOnly && searchedPrompts.map((prompt) => (
+              <DropdownMenuItem
+                key={`prompt-${prompt.id}`}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                onClick={() => runAction(() => onSelectPrompt(prompt.text))}
+              >
+                <ListPlusIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm">{prompt.title}</span>
+                <span className="text-xs text-muted-foreground">Prompt</span>
+              </DropdownMenuItem>
+            ))}
+          </div>
+        ) : (
+          <>
         {/* ── Files & Knowledge ── */}
         {uploadOnly ? (
-          <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+          <DropdownMenuItem
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+            onClick={() => closeAfterAction()}
+          >
             <UploadIcon className="size-4 shrink-0 text-muted-foreground" />
             <span className="text-sm">Upload file</span>
           </DropdownMenuItem>
@@ -305,7 +695,10 @@ function AddMenuContent({
               <span className="text-sm">Files &amp; Knowledge</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="w-64 p-1">
-              <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+              <DropdownMenuItem
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                onClick={() => closeAfterAction()}
+              >
                 <UploadIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="text-sm">Upload file</span>
               </DropdownMenuItem>
@@ -322,7 +715,7 @@ function AddMenuContent({
                         key={kb.id}
                         className="gap-2"
                         onSelect={(e) => e.preventDefault()}
-                        onClick={() => toggleKnowledgeBase(kb.id)}
+                        onClick={() => runAction(() => selectKnowledgeBase(kb.id))}
                       >
                         {kbIcon(kb.iconType)}
                         <span className="min-w-0 flex-1 truncate">{kb.name}</span>
@@ -333,31 +726,37 @@ function AddMenuContent({
                     );
                   })}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2">
+                  <DropdownMenuItem className="gap-2" onClick={() => closeAfterAction()}>
                     <PlusIcon className="size-4" />
                     Create new
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
-                  <PlugIcon className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm">Search Connected Apps</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-56">
-                  {CONNECTED_APPS.map((app) => (
-                    <DropdownMenuItem key={app.id} className="gap-2">
-                      {integrationIcons[app.id]}
-                      {app.name}
+              {!hideConnectedApps && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+                    <PlugIcon className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm">Search Connected Apps</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-56">
+                    {CONNECTED_APPS.map((app) => (
+                      <DropdownMenuItem
+                        key={app.id}
+                        className="gap-2"
+                        onClick={() => closeAfterAction()}
+                      >
+                        {integrationIcons[app.id]}
+                        {app.name}
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="gap-2" onClick={() => closeAfterAction()}>
+                      <PlugIcon className="size-4" />
+                      Connect more apps
                     </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2">
-                    <PlugIcon className="size-4" />
-                    Connect more apps
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
         )}
@@ -376,15 +775,23 @@ function AddMenuContent({
                     key={key}
                     className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
                     onSelect={(e) => e.preventDefault()}
-                    onClick={() => onToggle(key)}
+                    onClick={() => runAction(() => onToggle(key))}
                   >
                     <Icon className="size-4 shrink-0 text-muted-foreground" />
                     <span className="text-sm">{label}</span>
-                    <Checkbox checked={toggles[key]} className="ml-auto" onClick={(e) => e.stopPropagation()} onCheckedChange={() => onToggle(key)} />
+                    <Checkbox
+                      checked={toggles[key]}
+                      className="ml-auto"
+                      onClick={(e) => e.stopPropagation()}
+                      onCheckedChange={() => runAction(() => onToggle(key))}
+                    />
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+                <DropdownMenuItem
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                  onClick={() => closeAfterAction()}
+                >
                   <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
                   <span className="text-sm">Create document</span>
                 </DropdownMenuItem>
@@ -392,19 +799,21 @@ function AddMenuContent({
               </>
             )}
             {connectorItems.map((c) => {
-              const isConnected = connectedConnectors.includes(c.id);
-              const isPending = activeApps?.includes(c.id) ?? false;
+              const isSelected =
+                !hideConnectorSelectedState &&
+                (connectedConnectors.includes(c.id) ||
+                  (activeApps?.includes(c.id) ?? false));
               return (
                 <DropdownMenuItem
                   key={c.id}
                   className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
                   onSelect={(e) => e.preventDefault()}
-                  onClick={() => toggleConnector(c.id)}
+                  onClick={() => runAction(() => selectConnector(c.id, c.label))}
                   title={c.label}
                 >
                   <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[c.id]}</span>
                   <span className="min-w-0 flex-1 truncate text-sm">{c.label}</span>
-                  {isConnected || isPending ? (
+                  {isSelected ? (
                     <CheckIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
                   ) : null}
                 </DropdownMenuItem>
@@ -416,7 +825,7 @@ function AddMenuContent({
                 <DropdownMenuItem
                   className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground"
                   onSelect={(e) => e.preventDefault()}
-                  onClick={() => onOpenMoreApps()}
+                  onClick={() => runAction(() => onOpenMoreApps())}
                 >
                   <PlusIcon className="size-4 shrink-0" />
                   <span className="text-sm">More apps</span>
@@ -439,20 +848,46 @@ function AddMenuContent({
         </DropdownMenuSub>
 
         {/* ── Agents ── */}
-        {onAgentsClick && (
-          <DropdownMenuItem
-            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-            onClick={() => {
-              const rect = getAgentsRect();
-              // Defer until the "+" menu has fully closed, otherwise Radix's
-              // close handling immediately dismisses the mention menu too.
-              if (rect) setTimeout(() => onAgentsClick(rect), 0);
-            }}
-          >
-            <WorkflowIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-sm">Agents{agentsAutoSelect ? " (Auto)" : ""}</span>
-          </DropdownMenuItem>
-        )}
+        {hasAgentsPicker && onWorkflowSearchChange && onWorkflowTabChange && onSelectWorkflow && onAutoSelectWorkflowChange ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+              <WorkflowIcon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm">Agents{agentsAutoSelect ? " (Auto)" : ""}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-72 p-0">
+              <AgentPickerContent
+                search={workflowSearch}
+                onSearchChange={onWorkflowSearchChange}
+                tab={workflowTab}
+                onTabChange={onWorkflowTabChange}
+                selectedIds={selectedWorkflowIds}
+                onSelect={onSelectWorkflow}
+                autoSelect={agentsAutoSelect}
+                onAutoSelectChange={onAutoSelectWorkflowChange}
+              />
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : onAgentsClick ? (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+              <WorkflowIcon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm">Agents{agentsAutoSelect ? " (Auto)" : ""}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-72 p-1">
+              <DropdownMenuItem
+                className="gap-2"
+                onClick={() => {
+                  const rect = getAgentsRect();
+                  if (rect) setTimeout(() => onAgentsClick(rect), 0);
+                  closeAfterAction();
+                }}
+              >
+                <SearchIcon className="size-4" />
+                Search agents
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ) : null}
 
         <DropdownMenuSeparator />
 
@@ -468,13 +903,15 @@ function AddMenuContent({
               <DropdownMenuItem
                 key={prompt.id}
                 className="flex cursor-pointer items-center rounded-lg px-2 py-1.5"
-                onClick={() => onSelectPrompt(prompt.text)}
+                onClick={() => runAction(() => onSelectPrompt(prompt.text))}
               >
                 <span className="text-sm font-medium">{prompt.title}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+          </>
+        )}
       </DropdownMenuContent>
   );
 }
@@ -502,14 +939,16 @@ function AddMenuAnchored({
   open,
   onOpenChange,
   anchor,
+  preserveFocus = true,
   ...props
 }: AddMenuProps & {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   anchor?: { left: number; top: number } | null;
+  preserveFocus?: boolean;
 }) {
   return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+    <DropdownMenu open={open} onOpenChange={onOpenChange} modal={!preserveFocus}>
       {/* Invisible anchor positioned at the "@" character. */}
       <DropdownMenuTrigger asChild>
         <span
@@ -520,11 +959,61 @@ function AddMenuAnchored({
       </DropdownMenuTrigger>
       <AddMenuContent
         {...props}
+        hideSearchInput
+        hideConnectedApps
+        hideConnectorSelectedState
+        closeOnAction
+        onRequestClose={() => onOpenChange?.(false)}
         getAgentsRect={() =>
           anchor ? new DOMRect(anchor.left, anchor.top, 0, 0) : undefined
         }
       />
     </DropdownMenu>
+  );
+}
+
+function AppToolSuggestionPanel({
+  anchor,
+  searchValue,
+  onSelect,
+}: {
+  anchor?: { left: number; top: number } | null;
+  searchValue: string;
+  onSelect: (id: string, label: string) => void;
+}) {
+  const normalizedSearch = searchValue.trim().toLowerCase();
+  const matchesSearch = (value: string) =>
+    value.toLowerCase().includes(normalizedSearch);
+  const suggestions = CONNECTOR_ITEMS.filter((item) =>
+    matchesSearch(`${item.label} ${item.id}`)
+  );
+
+  if (!anchor || suggestions.length === 0) return null;
+
+  return (
+    <div
+      data-app-tool-suggestion-panel
+      className="fixed z-50 max-h-80 w-72 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+      style={{ left: anchor.left, top: anchor.top + 4 }}
+      onMouseDown={(event) => event.preventDefault()}
+    >
+      {suggestions.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          data-app-tool-suggestion
+          className="flex min-h-8 w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm outline-none hover:bg-black/[0.03] focus-visible:bg-black/[0.06] focus-visible:ring-2 focus-visible:ring-ring/30"
+          onClick={() => onSelect(item.id, item.label)}
+          title={item.label}
+        >
+          <span className="flex size-4 shrink-0 items-center justify-center">
+            {integrationIcons[item.id]}
+          </span>
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          <span className="text-xs text-muted-foreground">Tool</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -620,7 +1109,159 @@ const CONNECTED_APPS = [
   { id: "notion", name: "Notion" },
   { id: "figma", name: "Figma" },
   { id: "gmail", name: "Gmail" },
+  { id: "github", name: "GitHub" },
+  { id: "linear", name: "Linear" },
+  { id: "asana", name: "Asana" },
+  { id: "snowflake", name: "Snowflake" },
 ];
+
+const APP_SEARCH_TERMS = Array.from(
+  new Map(
+    [...CONNECTOR_ITEMS, ...CONNECTED_APPS]
+      .flatMap((app) => [
+        [app.id, "label" in app ? app.label : app.name],
+        ["label" in app ? app.label : app.name, "label" in app ? app.label : app.name],
+      ])
+      .map(([term, label]) => [term.toLowerCase(), { term, label }])
+  ).values()
+).sort((a, b) => b.term.length - a.term.length);
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findSearchedApp(text: string) {
+  const normalized = text.toLowerCase();
+  return APP_SEARCH_TERMS.find(({ term }) =>
+    new RegExp(`(^|\\s)${escapeRegExp(term.toLowerCase())}\\s*$`).test(normalized)
+  );
+}
+
+function findLastTextNodeBeforeRange(range: Range): { node: Text; offset: number } | null {
+  const container = range.startContainer;
+  if (container.nodeType === Node.TEXT_NODE) {
+    return { node: container as Text, offset: range.startOffset };
+  }
+  if (!(container instanceof HTMLElement)) return null;
+
+  const child = container.childNodes[Math.max(0, range.startOffset - 1)];
+  if (!child) return null;
+
+  let node: Node = child;
+  while (node.lastChild) node = node.lastChild;
+  return node.nodeType === Node.TEXT_NODE
+    ? { node: node as Text, offset: node.textContent?.length ?? 0 }
+    : null;
+}
+
+function findMentionTriggerRange(el: HTMLElement, preferredRange: Range | null) {
+  const createRangeFromTextNode = (node: Text, offset: number) => {
+    const beforeCaret = (node.textContent ?? "").slice(0, offset);
+    const atIndex = beforeCaret.lastIndexOf("@");
+    if (atIndex < 0 || /\s/.test(beforeCaret.slice(atIndex + 1))) return null;
+
+    const range = document.createRange();
+    range.setStart(node, atIndex);
+    range.setEnd(node, offset);
+    return range;
+  };
+
+  if (preferredRange) {
+    const textNodeAtCaret = findLastTextNodeBeforeRange(preferredRange);
+    if (textNodeAtCaret) {
+      const range = createRangeFromTextNode(textNodeAtCaret.node, textNodeAtCaret.offset);
+      if (range) return range;
+    }
+  }
+
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let fallback: Range | null = null;
+  let node = walker.nextNode();
+  while (node) {
+    const textNode = node as Text;
+    const text = textNode.textContent ?? "";
+    const atIndex = text.lastIndexOf("@");
+    if (atIndex >= 0 && !/\s/.test(text.slice(atIndex + 1))) {
+      const range = document.createRange();
+      range.setStart(textNode, atIndex);
+      range.setEnd(textNode, text.length);
+      fallback = range;
+    }
+    node = walker.nextNode();
+  }
+
+  return fallback;
+}
+
+function replaceSearchedAppTextWithChip(el: HTMLElement, chip: HTMLElement, savedRange: Range | null) {
+  const selection = window.getSelection();
+  const currentRange =
+    selection && selection.rangeCount > 0 && el.contains(selection.anchorNode)
+      ? selection.getRangeAt(0).cloneRange()
+      : null;
+  const fallbackRange =
+    savedRange && el.contains(savedRange.startContainer)
+      ? savedRange.cloneRange()
+      : null;
+  const insertionRange = currentRange ?? fallbackRange;
+  if (!insertionRange) return false;
+
+  const textNodeAtCaret = findLastTextNodeBeforeRange(insertionRange);
+  if (!textNodeAtCaret) return false;
+
+  const { node, offset } = textNodeAtCaret;
+  const beforeCaret = (node.textContent ?? "").slice(0, offset);
+  const normalizedBeforeCaret = beforeCaret.toLowerCase();
+  let matchStart = -1;
+  let matchEnd = -1;
+
+  APP_SEARCH_TERMS.forEach(({ term }) => {
+    const regex = new RegExp(
+      `(^|\\s)${escapeRegExp(term.toLowerCase())}(?=$|\\s|[.,!?;:])`,
+      "g"
+    );
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(normalizedBeforeCaret)) !== null) {
+      const start = match.index + match[1].length;
+      const end = start + term.length;
+      if (end > matchEnd) {
+        matchStart = start;
+        matchEnd = end;
+      }
+    }
+  });
+
+  if (matchStart < 0 || matchEnd < 0) return false;
+
+  const replacementRange = document.createRange();
+  replacementRange.setStart(node, matchStart);
+  replacementRange.setEnd(node, matchEnd);
+  replacementRange.deleteContents();
+  replacementRange.insertNode(chip);
+  return true;
+}
+
+function getPromptAnchoredMenuSearch(text: string) {
+  const atIndex = text.lastIndexOf("@");
+  if (atIndex < 0) return "";
+  return text.slice(atIndex + 1).trimStart();
+}
+
+function hasAddMenuSearchSuggestions(searchValue: string) {
+  const normalizedSearch = searchValue.trim().toLowerCase();
+  if (!normalizedSearch) return false;
+  return (
+    CONNECTOR_ITEMS.some((item) =>
+      `${item.label} ${item.id}`.toLowerCase().includes(normalizedSearch)
+    ) ||
+    KNOWLEDGE_BASES.some((kb) =>
+      kb.name.toLowerCase().includes(normalizedSearch)
+    ) ||
+    SAVED_PROMPTS.some((prompt) =>
+      `${prompt.title} ${prompt.text}`.toLowerCase().includes(normalizedSearch)
+    )
+  );
+}
 
 const KNOWLEDGE_BASES = [
   { id: "kb1", name: "Company Docs", iconType: "drive" },
@@ -661,19 +1302,17 @@ type ModelOption = {
   id: string;
   name: string;
   icon: React.ElementType;
-  region?: string;
 };
 
-// Model picker options. "Auto" lets the platform route to the best model; the
-// rest are pinned choices, each tagged with the region its data is processed in.
+// Model picker options. "Auto" lets the platform route to the best model.
 const AUTO_MODEL: ModelOption = { id: "auto", name: "Auto", icon: SparklesIcon };
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "gpt-5-1", name: "GPT-5.1", icon: HexagonIcon, region: "US" },
-  { id: "claude-opus", name: "Claude Opus 4.8", icon: AsteriskIcon, region: "US" },
-  { id: "claude-sonnet", name: "Claude Sonnet 5", icon: AsteriskIcon, region: "US" },
-  { id: "gemini-3-pro", name: "Gemini 3 Pro", icon: GemIcon, region: "EU" },
-  { id: "gpt-5-mini", name: "GPT-5 Mini", icon: HexagonIcon, region: "US" },
-  { id: "llama-4", name: "Llama 4 Maverick", icon: InfinityIcon, region: "EU" },
+  { id: "gpt-5-1", name: "GPT-5.1", icon: HexagonIcon },
+  { id: "claude-opus", name: "Claude Opus 4.8", icon: AsteriskIcon },
+  { id: "claude-sonnet", name: "Claude Sonnet 5", icon: AsteriskIcon },
+  { id: "gemini-3-pro", name: "Gemini 3 Pro", icon: GemIcon },
+  { id: "gpt-5-mini", name: "GPT-5 Mini", icon: HexagonIcon },
+  { id: "llama-4", name: "Llama 4 Maverick", icon: InfinityIcon },
 ];
 const ALL_MODELS = [AUTO_MODEL, ...MODEL_OPTIONS];
 
@@ -770,11 +1409,6 @@ function ModelMenuItem({
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate text-sm">{model.name}</span>
-      {model.region && (
-        <span className="rounded-md border border-border px-1 py-px text-[10px] font-medium text-muted-foreground">
-          {model.region}
-        </span>
-      )}
       {selected && <CheckIcon className="size-3.5 shrink-0 text-muted-foreground" />}
     </DropdownMenuItem>
   );
@@ -782,20 +1416,131 @@ function ModelMenuItem({
 
 const MENTION_ANCHOR_ATTR = "data-mention-anchor";
 const KNOWLEDGE_BASE_CHIP_ATTR = "data-kb-chip";
+const MENTION_CHIP_ATTR = "data-mention-chip";
+const TOOL_MENTION_CHIP_ATTR = "data-tool-mention-chip";
+const SVG_TAGS = new Set([
+  "svg",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
+  "g",
+  "defs",
+  "clipPath",
+  "linearGradient",
+  "radialGradient",
+  "stop",
+]);
+
+function toDomAttributeName(name: string) {
+  if (name === "className") return "class";
+  if (name === "htmlFor") return "for";
+  if (name === "viewBox") return "viewBox";
+  return name.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+}
+
+function appendReactNodeAsDom(parent: Node, node: React.ReactNode) {
+  if (node == null || typeof node === "boolean") return;
+
+  if (typeof node === "string" || typeof node === "number") {
+    parent.appendChild(document.createTextNode(String(node)));
+    return;
+  }
+
+  if (Array.isArray(node)) {
+    node.forEach((child) => appendReactNodeAsDom(parent, child));
+    return;
+  }
+
+  if (!React.isValidElement(node) || typeof node.type !== "string") return;
+
+  const tagName = node.type;
+  const element = SVG_TAGS.has(tagName)
+    ? document.createElementNS("http://www.w3.org/2000/svg", tagName)
+    : document.createElement(tagName);
+  const props = node.props as Record<string, unknown>;
+
+  for (const [key, value] of Object.entries(props)) {
+    if (
+      key === "children" ||
+      key === "key" ||
+      key === "ref" ||
+      value == null ||
+      value === false ||
+      typeof value === "function"
+    ) {
+      continue;
+    }
+
+    element.setAttribute(toDomAttributeName(key), value === true ? "" : String(value));
+  }
+
+  appendReactNodeAsDom(element, props.children as React.ReactNode);
+  parent.appendChild(element);
+}
+
+function createIntegrationIconNode(id: string) {
+  const icon = integrationIcons[id];
+  if (!icon) return null;
+
+  const wrapper = document.createElement("span");
+  wrapper.setAttribute("aria-hidden", "true");
+  wrapper.className = "mr-1 inline-flex size-3.5 shrink-0 items-center justify-center align-middle";
+  appendReactNodeAsDom(wrapper, icon);
+  return wrapper;
+}
+
+function createWorkflowIconNode(workflow: Workflow) {
+  const Icon = workflow.icon;
+  const wrapper = document.createElement("span");
+  wrapper.setAttribute("aria-hidden", "true");
+  wrapper.className = "mr-1 inline-flex size-3.5 shrink-0 items-center justify-center align-middle";
+  wrapper.innerHTML = renderToStaticMarkup(
+    <Icon className="size-3.5 text-gray-700/70 dark:text-gray-300/70" />
+  );
+  return wrapper;
+}
+
+function getComposerText(el: HTMLElement): string {
+  const text = el.innerText;
+  const hasInlineTokens = Boolean(
+    el.querySelector(
+      `[${MENTION_CHIP_ATTR}], [${KNOWLEDGE_BASE_CHIP_ATTR}], [${TOOL_MENTION_CHIP_ATTR}]`
+    )
+  );
+
+  if (!hasInlineTokens && text.replace(/[\s\u00A0\u200B]/g, "") === "") {
+    el.replaceChildren();
+    return "";
+  }
+
+  return text;
+}
+
+function appendSavedPromptText(currentText: string, promptText: string): string {
+  if (!currentText.trim()) return promptText;
+  const separator = /[\s\u00A0]$/.test(currentText) ? "" : " ";
+  return `${currentText}${separator}${promptText}`;
+}
 
 function createMentionChip(workflow: Workflow, onRemove: () => void): HTMLSpanElement {
   const chip = document.createElement("span");
   chip.contentEditable = "false";
-  chip.setAttribute("data-mention-chip", workflow.id);
+  chip.setAttribute(MENTION_CHIP_ATTR, workflow.id);
   chip.title = `@${workflow.name}`;
   // inline-block (not flex) so the browser's innerText serialization doesn't
   // inject line breaks around the chip's content or its children.
   chip.className =
     "mx-0.5 inline-block max-w-[240px] rounded-md align-middle bg-gray-500/10 py-0.5 pl-1.5 pr-1 text-[13px] leading-[18px] font-medium text-gray-700 dark:bg-gray-400/10 dark:text-gray-300";
 
+  chip.appendChild(createWorkflowIconNode(workflow));
+
   const label = document.createElement("span");
-  label.className = "inline-block max-w-[190px] truncate align-middle leading-[18px]";
-  label.textContent = `@ ${workflow.name}`;
+  label.className = "inline-block max-w-[170px] truncate align-middle leading-[18px]";
+  label.textContent = workflow.name;
   chip.appendChild(label);
 
   const removeBtn = document.createElement("span");
@@ -805,6 +1550,44 @@ function createMentionChip(workflow: Workflow, onRemove: () => void): HTMLSpanEl
   // No <svg>/child nodes here: an embedded <svg> forces an extra line break in
   // the browser's innerText serialization. The "x" glyph is drawn with a
   // CSS-only ::before/::after pseudo-element instead (see .mention-remove-icon).
+  removeBtn.className =
+    "mention-remove-icon ml-1 inline-block cursor-pointer align-middle text-gray-700/50 hover:text-gray-700 dark:text-gray-300/50 dark:hover:text-gray-300";
+  removeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onRemove();
+  });
+  chip.appendChild(removeBtn);
+
+  return chip;
+}
+
+function createToolMentionChip(
+  id: string,
+  labelText: string,
+  onRemove: () => void
+): HTMLSpanElement {
+  const chip = document.createElement("span");
+  chip.contentEditable = "false";
+  chip.setAttribute(TOOL_MENTION_CHIP_ATTR, id);
+  chip.title = labelText;
+  chip.className =
+    "group mx-0.5 inline-block max-w-[240px] rounded-md border border-border bg-white py-0.5 pl-1.5 pr-1 align-middle text-[13px] leading-[18px] font-medium text-foreground dark:bg-background";
+
+  const icon = createIntegrationIconNode(id);
+  if (icon) {
+    chip.appendChild(icon);
+  }
+
+  const label = document.createElement("span");
+  label.className = "inline-block max-w-[170px] truncate align-middle leading-[18px]";
+  label.textContent = labelText;
+  chip.appendChild(label);
+
+  const removeBtn = document.createElement("span");
+  removeBtn.setAttribute("data-tool-mention-remove", "true");
+  removeBtn.setAttribute("role", "button");
+  removeBtn.setAttribute("aria-label", `Remove ${labelText}`);
   removeBtn.className =
     "mention-remove-icon ml-1 inline-block cursor-pointer align-middle text-gray-700/50 hover:text-gray-700 dark:text-gray-300/50 dark:hover:text-gray-300";
   removeBtn.addEventListener("click", (e) => {
@@ -913,6 +1696,99 @@ function AgentInfoTooltip({ workflow }: { workflow: Workflow }) {
   );
 }
 
+function AgentPickerContent({
+  search,
+  onSearchChange,
+  tab,
+  onTabChange,
+  selectedIds,
+  onSelect,
+  autoSelect,
+  onAutoSelectChange,
+}: {
+  search: string;
+  onSearchChange: (value: string) => void;
+  tab: "recent" | "all" | "favorites";
+  onTabChange: (value: "recent" | "all" | "favorites") => void;
+  selectedIds: string[];
+  onSelect: (workflow: Workflow) => void;
+  autoSelect: boolean;
+  onAutoSelectChange: (value: boolean) => void;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
+        <input
+          autoFocus
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => e.stopPropagation()}
+          placeholder="Search agents…"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+      </div>
+      <div className="px-3 pt-2 pb-1">
+        <Tabs value={tab} onValueChange={(v) => onTabChange(v as "recent" | "all" | "favorites")}>
+          <TabsList className="w-full">
+            <TabsTrigger value="recent" className="flex-1 text-xs">
+              Recent
+            </TabsTrigger>
+            <TabsTrigger value="all" className="flex-1 text-xs">
+              All
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="flex-1 text-xs">
+              Favourite
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      <div className="max-h-56 overflow-y-auto py-1">
+        {ALL_WORKFLOWS
+          .filter((w) => (tab === "favorites" ? w.favorite : tab === "recent" ? w.recent : true))
+          .filter((w) => w.name.toLowerCase().includes(search.toLowerCase()))
+          .map((workflow) => {
+            const isSelected = selectedIds.includes(workflow.id);
+            return (
+              <Tooltip key={workflow.id} delayDuration={250}>
+                <TooltipTrigger asChild>
+                  <DropdownMenuItem
+                    className="mx-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2"
+                    onSelect={() => {
+                      if (!isSelected) onSelect(workflow);
+                    }}
+                  >
+                    <span className="flex-1 truncate text-sm">{workflow.name}</span>
+                    {isSelected && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
+                  </DropdownMenuItem>
+                </TooltipTrigger>
+                <AgentInfoTooltip workflow={workflow} />
+              </Tooltip>
+            );
+          })}
+      </div>
+      <DropdownMenuSeparator />
+      <div className="p-1">
+        <DropdownMenuItem
+          className="gap-2"
+          onSelect={(e) => { e.preventDefault(); onAutoSelectChange(!autoSelect); }}
+        >
+          <SparklesIcon className="size-4" />
+          <span className="flex-1">Auto-select agent</span>
+          {autoSelect && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="gap-2" asChild>
+          <Link href="/agents">
+            <ExternalLinkIcon className="size-4" />
+            Browse agents
+          </Link>
+        </DropdownMenuItem>
+      </div>
+    </>
+  );
+}
+
 function WorkflowMentionMenu({
   search,
   onSearchChange,
@@ -961,78 +1837,16 @@ function WorkflowMentionMenu({
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" sideOffset={4} className="w-72 p-0" onCloseAutoFocus={(e) => e.preventDefault()}>
-        {/* Search */}
-        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-          <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <input
-            autoFocus
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => e.stopPropagation()}
-            placeholder="Search agents…"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-        </div>
-        {/* Tabs */}
-        <div className="px-3 pt-2 pb-1">
-          <Tabs value={tab} onValueChange={(v) => onTabChange(v as "recent" | "all" | "favorites")}>
-            <TabsList className="w-full">
-              <TabsTrigger value="recent" className="flex-1 text-xs">
-                Recent
-              </TabsTrigger>
-              <TabsTrigger value="all" className="flex-1 text-xs">
-                All
-              </TabsTrigger>
-              <TabsTrigger value="favorites" className="flex-1 text-xs">
-                Favourite
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-        {/* List */}
-        <div className="max-h-56 overflow-y-auto py-1">
-          {ALL_WORKFLOWS
-            .filter((w) => (tab === "favorites" ? w.favorite : tab === "recent" ? w.recent : true))
-            .filter((w) => w.name.toLowerCase().includes(search.toLowerCase()))
-            .map((workflow) => {
-              const isSelected = selectedIds.includes(workflow.id);
-              return (
-                <Tooltip key={workflow.id} delayDuration={250}>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuItem
-                      className={cn("mx-1 flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2")}
-                      onSelect={() => {
-                        if (!isSelected) onSelect(workflow);
-                      }}
-                    >
-                      <span className="flex-1 truncate text-sm">{workflow.name}</span>
-                      {isSelected && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
-                    </DropdownMenuItem>
-                  </TooltipTrigger>
-                  <AgentInfoTooltip workflow={workflow} />
-                </Tooltip>
-              );
-            })}
-        </div>
-        <DropdownMenuSeparator />
-        {/* Footer */}
-        <div className="p-1">
-          <DropdownMenuItem
-            className="gap-2"
-            onSelect={(e) => { e.preventDefault(); onAutoSelectChange(!autoSelect); }}
-          >
-            <SparklesIcon className="size-4" />
-            <span className="flex-1">Auto-select agent</span>
-            {autoSelect && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2" asChild>
-            <Link href="/agents">
-              <ExternalLinkIcon className="size-4" />
-              Browse agents
-            </Link>
-          </DropdownMenuItem>
-        </div>
+        <AgentPickerContent
+          search={search}
+          onSearchChange={onSearchChange}
+          tab={tab}
+          onTabChange={onTabChange}
+          selectedIds={selectedIds}
+          onSelect={onSelect}
+          autoSelect={autoSelect}
+          onAutoSelectChange={onAutoSelectChange}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -1087,6 +1901,8 @@ export default function AgentChatPage() {
   const [workflowTab, setWorkflowTab] = useState<"recent" | "all" | "favorites">("recent");
   const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [addMenuSearch, setAddMenuSearch] = useState("");
+  const [addMenuSuggestionMode, setAddMenuSuggestionMode] = useState(false);
   const [addMenuAnchor, setAddMenuAnchor] = useState<{ left: number; top: number } | null>(null);
   const [mentionAnchor, setMentionAnchor] = useState<{ left: number; top: number } | null>(null);
   const [newChatKey, setNewChatKey] = useState(0);
@@ -1117,6 +1933,7 @@ export default function AgentChatPage() {
   const pendingChatIdRef = useRef<string | null>(null);
   const mentionTextareaRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
+  const anchoredAddMenuKeepOpenUntilRef = useRef(0);
 
   const saveSelection = useCallback(() => {
     const el = mentionTextareaRef.current;
@@ -1127,20 +1944,51 @@ export default function AgentChatPage() {
   }, []);
 
   const applyPrompt = useCallback((text: string) => {
-    setMessage(text);
     const el = mentionTextareaRef.current;
     if (el) {
-      el.textContent = text;
+      const selection = window.getSelection();
+      const currentRange =
+        selection && selection.rangeCount > 0 && el.contains(selection.anchorNode)
+          ? selection.getRangeAt(0).cloneRange()
+          : null;
+      const savedRange =
+        savedRangeRef.current && el.contains(savedRangeRef.current.startContainer)
+          ? savedRangeRef.current.cloneRange()
+          : null;
+      const mentionRange =
+        addMenuOpen && !addMenuSuggestionMode
+          ? findMentionTriggerRange(el, currentRange ?? savedRange)
+          : null;
+
+      if (mentionRange) {
+        mentionRange.deleteContents();
+        mentionRange.insertNode(document.createTextNode(text));
+      } else {
+        const currentText = getComposerText(el);
+        const nextText = appendSavedPromptText(currentText, text);
+        const insertedText = nextText.slice(currentText.length);
+        el.appendChild(document.createTextNode(insertedText));
+      }
+
+      setMessage(getComposerText(el));
       el.focus();
       // place caret at the end of the inserted text
       const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
+      savedRangeRef.current = range.cloneRange();
       const sel = window.getSelection();
       sel?.removeAllRanges();
       sel?.addRange(range);
+    } else {
+      setMessage((currentText) => appendSavedPromptText(currentText, text));
     }
-  }, []);
+
+    anchoredAddMenuKeepOpenUntilRef.current = 0;
+    setAddMenuOpen(false);
+    setAddMenuSearch("");
+    setAddMenuSuggestionMode(false);
+  }, [addMenuOpen, addMenuSuggestionMode]);
 
   // Opens the agent-mention menu anchored below the toolbar "Agents" button.
   // Unlike the "@"-key path, this does not insert an "@" into the composer.
@@ -1148,6 +1996,155 @@ export default function AgentChatPage() {
     setMentionAnchor({ left: rect.left, top: rect.bottom });
     setMentionMenuOpen(true);
   }, []);
+
+  const openAddMenuForAppSearch = useCallback((text: string, el: HTMLElement) => {
+    const matchedApp = findSearchedApp(text);
+    if (!matchedApp) {
+      if (addMenuSuggestionMode) {
+        setAddMenuOpen(false);
+        setAddMenuSearch("");
+        setAddMenuSuggestionMode(false);
+      }
+      return;
+    }
+
+    const selection = window.getSelection();
+    const range =
+      selection && selection.rangeCount > 0 && el.contains(selection.anchorNode)
+        ? selection.getRangeAt(0)
+        : null;
+    const rangeRect = range?.getBoundingClientRect();
+    const composerRect = el.getBoundingClientRect();
+    const left = rangeRect && (rangeRect.left !== 0 || rangeRect.right !== 0)
+      ? rangeRect.left
+      : composerRect.left + 16;
+    const top = rangeRect && (rangeRect.bottom !== 0 || rangeRect.top !== 0)
+      ? rangeRect.bottom
+      : composerRect.bottom;
+
+    setAddMenuSearch(matchedApp.label);
+    setAddMenuSuggestionMode(true);
+    setAddMenuAnchor({ left, top });
+    setAddMenuOpen(true);
+    requestAnimationFrame(() => {
+      el.focus();
+      selection?.removeAllRanges();
+      if (range) selection?.addRange(range);
+    });
+  }, [addMenuSuggestionMode]);
+
+  const restoreComposerFocusAfterMenuChange = useCallback((el?: HTMLElement | null) => {
+    const target = el ?? mentionTextareaRef.current;
+    const selection = window.getSelection();
+    const currentRange =
+      target && selection && selection.rangeCount > 0 && target.contains(selection.anchorNode)
+        ? selection.getRangeAt(0).cloneRange()
+        : null;
+    const fallbackRange = target ? document.createRange() : null;
+    if (target && fallbackRange) {
+      fallbackRange.selectNodeContents(target);
+      fallbackRange.collapse(false);
+    }
+    const restoreRange = currentRange ?? fallbackRange;
+
+    const restoreComposerFocus = () => {
+      if (!target) return;
+      target.focus();
+      if (!restoreRange) return;
+      const nextSelection = window.getSelection();
+      nextSelection?.removeAllRanges();
+      nextSelection?.addRange(restoreRange);
+    };
+
+    requestAnimationFrame(restoreComposerFocus);
+    setTimeout(restoreComposerFocus, 0);
+    setTimeout(restoreComposerFocus, 50);
+  }, []);
+
+  const closeAddMenuAndRestoreComposerFocus = useCallback((el?: HTMLElement | null) => {
+    anchoredAddMenuKeepOpenUntilRef.current = 0;
+    setAddMenuOpen(false);
+    setAddMenuSearch("");
+    setAddMenuSuggestionMode(false);
+    restoreComposerFocusAfterMenuChange(el);
+  }, [restoreComposerFocusAfterMenuChange]);
+
+  const closeAddMenuForOutsidePointer = useCallback(() => {
+    anchoredAddMenuKeepOpenUntilRef.current = 0;
+    setAddMenuOpen(false);
+    setAddMenuSearch("");
+    setAddMenuSuggestionMode(false);
+  }, []);
+
+  const composerAddMenuHasResults = useCallback((search: string) =>
+    hasAddMenuSearchResults({
+      search,
+      hideConnectedApps: true,
+      hasAgentsEntry: true,
+      hasAgentsPicker: true,
+    }), []);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeAddMenuAndRestoreComposerFocus();
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest("[data-add-menu-content], [data-app-tool-suggestion-panel]")) {
+        return;
+      }
+      closeAddMenuForOutsidePointer();
+    };
+
+    window.addEventListener("keydown", handleEscape, true);
+    window.addEventListener("pointerdown", handlePointerDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleEscape, true);
+      window.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, [addMenuOpen, closeAddMenuAndRestoreComposerFocus, closeAddMenuForOutsidePointer]);
+
+  const openAddMenuForPromptMention = useCallback((text: string, el: HTMLElement) => {
+    if (!text.includes("@")) return false;
+    const search = getPromptAnchoredMenuSearch(text);
+    if (search && !composerAddMenuHasResults(search)) {
+      anchoredAddMenuKeepOpenUntilRef.current = 0;
+      setAddMenuOpen(false);
+      setAddMenuSearch("");
+      setAddMenuSuggestionMode(false);
+      restoreComposerFocusAfterMenuChange(el);
+      return true;
+    }
+
+    const selection = window.getSelection();
+    const range =
+      selection && selection.rangeCount > 0 && el.contains(selection.anchorNode)
+        ? selection.getRangeAt(0)
+        : null;
+    const rangeRect = range?.getBoundingClientRect();
+    const composerRect = el.getBoundingClientRect();
+    const left = rangeRect && (rangeRect.left !== 0 || rangeRect.right !== 0)
+      ? rangeRect.left
+      : composerRect.left + 16;
+    const top = rangeRect && (rangeRect.bottom !== 0 || rangeRect.top !== 0)
+      ? rangeRect.bottom
+      : composerRect.bottom;
+
+    setAddMenuSuggestionMode(false);
+    setAddMenuSearch(search);
+    setAddMenuAnchor({ left, top });
+    anchoredAddMenuKeepOpenUntilRef.current = Date.now() + 500;
+    setAddMenuOpen(true);
+    restoreComposerFocusAfterMenuChange(el);
+    return true;
+  }, [composerAddMenuHasResults, restoreComposerFocusAfterMenuChange]);
 
   const removeMentionChip = useCallback((chip: HTMLElement, workflowId: string) => {
     const el = mentionTextareaRef.current;
@@ -1158,7 +2155,7 @@ export default function AgentChatPage() {
     }
     chip.remove();
     setSelectedWorkflows((prev) => prev.filter((w) => w.id !== workflowId));
-    setMessage(el.innerText);
+    setMessage(getComposerText(el));
   }, []);
 
   const removeKnowledgeBaseChip = useCallback((chip: HTMLElement, knowledgeBaseId: string) => {
@@ -1170,8 +2167,171 @@ export default function AgentChatPage() {
     }
     chip.remove();
     setSelectedKnowledgeBases((prev) => prev.filter((kb) => kb !== knowledgeBaseId));
-    setMessage(el.innerText);
+    setMessage(getComposerText(el));
   }, []);
+
+  const removeToolMentionChip = useCallback((chip: HTMLElement, connectorId: string) => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+    const next = chip.nextSibling;
+    if (next && next.nodeType === Node.TEXT_NODE && [" ", "\u00A0"].includes(next.textContent ?? "")) {
+      next.remove();
+    }
+    chip.remove();
+    const hasSameConnectorChip = Boolean(
+      el.querySelector(`[${TOOL_MENTION_CHIP_ATTR}="${connectorId}"]`)
+    );
+    if (!hasSameConnectorChip) {
+      setPromptApps((prev) => prev.filter((id) => id !== connectorId));
+    }
+    setMessage(getComposerText(el));
+  }, []);
+
+  const insertInlineChipAtMentionTrigger = useCallback((chip: HTMLElement) => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+
+    const anchor = el.querySelector(`[${MENTION_ANCHOR_ATTR}]`);
+    if (anchor) {
+      anchor.replaceWith(chip);
+    } else {
+      const selection = window.getSelection();
+      const currentRange =
+        selection && selection.rangeCount > 0 && el.contains(selection.anchorNode)
+          ? selection.getRangeAt(0).cloneRange()
+          : null;
+      const savedRange =
+        savedRangeRef.current && el.contains(savedRangeRef.current.startContainer)
+          ? savedRangeRef.current.cloneRange()
+          : null;
+      const insertionRange = savedRange ?? currentRange;
+
+      if (insertionRange) {
+        const mentionRange = findMentionTriggerRange(el, insertionRange);
+        const replacementRange = mentionRange ?? insertionRange;
+        replacementRange.deleteContents();
+        replacementRange.insertNode(chip);
+      } else {
+        const mentionRange = findMentionTriggerRange(el, null);
+        if (mentionRange) {
+          mentionRange.deleteContents();
+          mentionRange.insertNode(chip);
+        } else {
+          el.appendChild(chip);
+        }
+      }
+    }
+
+    const space = document.createTextNode("\u00A0");
+    chip.after(space);
+
+    const after = document.createRange();
+    after.setStartAfter(space);
+    after.collapse(true);
+    savedRangeRef.current = after.cloneRange();
+    setMessage(getComposerText(el));
+
+    requestAnimationFrame(() => {
+      el.focus();
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(after);
+    });
+  }, []);
+
+  const handleSelectConnectorMention = useCallback((connectorId: string, labelText: string) => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+
+    const chip = createToolMentionChip(connectorId, labelText, () =>
+      removeToolMentionChip(chip, connectorId)
+    );
+    insertInlineChipAtMentionTrigger(chip);
+  }, [insertInlineChipAtMentionTrigger, removeToolMentionChip]);
+
+  const handleSelectKnowledgeBaseMention = useCallback((knowledgeBaseId: string) => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+
+    if (selectedKnowledgeBases.includes(knowledgeBaseId)) {
+      setSelectedKnowledgeBases((prev) => prev.filter((id) => id !== knowledgeBaseId));
+      return;
+    }
+
+    const knowledgeBase = KNOWLEDGE_BASES.find((kb) => kb.id === knowledgeBaseId);
+    if (!knowledgeBase) return;
+
+    const chip = createKnowledgeBaseChip(knowledgeBase, () =>
+      removeKnowledgeBaseChip(chip, knowledgeBaseId)
+    );
+    insertInlineChipAtMentionTrigger(chip);
+    setSelectedKnowledgeBases((prev) =>
+      prev.includes(knowledgeBaseId) ? prev : [...prev, knowledgeBaseId]
+    );
+  }, [insertInlineChipAtMentionTrigger, removeKnowledgeBaseChip, selectedKnowledgeBases]);
+
+  const handleSelectAppSuggestion = useCallback((connectorId: string, labelText: string) => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+
+    const alreadyActive =
+      connectedConnectors.includes(connectorId) || promptApps.includes(connectorId);
+    if (!alreadyActive) {
+      setPromptApps((prev) =>
+        prev.includes(connectorId) ? prev : [...prev, connectorId]
+      );
+    }
+
+    const chip = createToolMentionChip(connectorId, labelText, () =>
+      removeToolMentionChip(chip, connectorId)
+    );
+    const replacedTypedApp = replaceSearchedAppTextWithChip(
+      el,
+      chip,
+      savedRangeRef.current
+    );
+
+    if (replacedTypedApp) {
+      const space = document.createTextNode("\u00A0");
+      chip.after(space);
+
+      const after = document.createRange();
+      after.setStartAfter(space);
+      after.collapse(true);
+      savedRangeRef.current = after.cloneRange();
+      setMessage(getComposerText(el));
+
+      requestAnimationFrame(() => {
+        el.focus();
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(after);
+      });
+    } else {
+      handleSelectConnectorMention(connectorId, labelText);
+    }
+
+    setAddMenuOpen(false);
+    setAddMenuSearch("");
+    setAddMenuSuggestionMode(false);
+  }, [connectedConnectors, handleSelectConnectorMention, promptApps, removeToolMentionChip]);
+
+  const handleAnchoredAddMenuOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      if (!addMenuSuggestionMode && Date.now() < anchoredAddMenuKeepOpenUntilRef.current) {
+        return;
+      }
+      const text = mentionTextareaRef.current
+        ? getComposerText(mentionTextareaRef.current)
+        : "";
+      if (!addMenuSuggestionMode && text.includes("@")) {
+        return;
+      }
+      setAddMenuSearch("");
+      setAddMenuSuggestionMode(false);
+    }
+    setAddMenuOpen(open);
+  }, [addMenuSuggestionMode]);
 
   const openConnectionSetup = useCallback((integrationId: string) => {
     setEditingConnectionId(integrationId);
@@ -1195,28 +2355,8 @@ export default function AgentChatPage() {
     if (!el) return;
 
     const chip = createMentionChip(workflow, () => removeMentionChip(chip, workflow.id));
-    const anchor = el.querySelector(`[${MENTION_ANCHOR_ATTR}]`);
-    if (anchor) {
-      anchor.replaceWith(chip);
-    } else {
-      el.appendChild(chip);
-    }
-    const space = document.createTextNode(" ");
-    chip.after(space);
-
-    const after = document.createRange();
-    after.setStartAfter(space);
-    after.collapse(true);
-    savedRangeRef.current = after.cloneRange();
-    setMessage(el.innerText);
-
-    requestAnimationFrame(() => {
-      el.focus();
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(after);
-    });
-  }, []);
+    insertInlineChipAtMentionTrigger(chip);
+  }, [insertInlineChipAtMentionTrigger, removeMentionChip]);
 
   useEffect(() => {
     const el = mentionTextareaRef.current;
@@ -1265,7 +2405,7 @@ export default function AgentChatPage() {
       el.appendChild(document.createTextNode("\u00A0"));
     });
     remainingNodes.forEach((node) => el.appendChild(node));
-    setMessage(el.innerText);
+    setMessage(getComposerText(el));
   }, [removeKnowledgeBaseChip, selectedKnowledgeBases]);
 
   useEffect(() => {
@@ -1322,13 +2462,35 @@ export default function AgentChatPage() {
 
   const handleComposerKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        e.key === "Tab" &&
+        addMenuOpen &&
+        !e.shiftKey
+      ) {
+        const suggestionRoot = addMenuSuggestionMode
+          ? document
+          : document.querySelector("[data-add-menu-content]");
+        if (suggestionRoot && focusDropdownOption(suggestionRoot)) {
+          e.preventDefault();
+          return;
+        }
+      }
+      if (e.key === "Escape" && addMenuOpen) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeAddMenuAndRestoreComposerFocus(e.currentTarget);
+        return;
+      }
       if (e.key === "@") {
         // Let the "@" be typed into the composer as normal text, then anchor
         // the add-menu at the caret so it opens right next to the "@".
         requestAnimationFrame(() => {
+          setAddMenuSearch("");
+          setAddMenuSuggestionMode(false);
           const sel = window.getSelection();
           if (sel && sel.rangeCount > 0) {
             const caret = sel.getRangeAt(0);
+            const restoreRange = caret.cloneRange();
             // Measure the just-typed "@" itself rather than the collapsed
             // caret — a collapsed range can report an empty (0,0) rect.
             let rect = caret.getBoundingClientRect();
@@ -1345,17 +2507,59 @@ export default function AgentChatPage() {
             if (rect.left !== 0 || rect.bottom !== 0) {
               setAddMenuAnchor({ left: rect.left, top: rect.bottom });
             }
+            setTimeout(() => {
+              const el = mentionTextareaRef.current;
+              if (!el) return;
+              el.focus();
+              const nextSelection = window.getSelection();
+              nextSelection?.removeAllRanges();
+              nextSelection?.addRange(restoreRange);
+            }, 0);
           }
+          anchoredAddMenuKeepOpenUntilRef.current = Date.now() + 500;
           setAddMenuOpen(true);
         });
         return;
       }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        beginConversation(mentionTextareaRef.current?.innerText ?? message);
+        beginConversation(mentionTextareaRef.current ? getComposerText(mentionTextareaRef.current) : message);
       }
     },
-    [beginConversation, message]
+    [
+      addMenuOpen,
+      addMenuSuggestionMode,
+      beginConversation,
+      closeAddMenuAndRestoreComposerFocus,
+      message,
+    ]
+  );
+
+  const handleComposerKeyUp = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      saveSelection();
+      if (addMenuOpen && !addMenuSuggestionMode) {
+        const text = getComposerText(e.currentTarget);
+        if (!text.includes("@")) {
+          anchoredAddMenuKeepOpenUntilRef.current = 0;
+          closeAddMenuAndRestoreComposerFocus(e.currentTarget);
+          return;
+        }
+        const search = getPromptAnchoredMenuSearch(text);
+        if (search && !composerAddMenuHasResults(search)) {
+          closeAddMenuAndRestoreComposerFocus(e.currentTarget);
+          return;
+        }
+        setAddMenuSearch(search);
+      }
+    },
+    [
+      addMenuOpen,
+      addMenuSuggestionMode,
+      closeAddMenuAndRestoreComposerFocus,
+      composerAddMenuHasResults,
+      saveSelection,
+    ]
   );
 
   const arrivedViaChat = searchParams.get("from") === "chat";
@@ -1564,14 +2768,14 @@ export default function AgentChatPage() {
                   <div className="flex items-center gap-1 pt-2">
                     <AddMenu uploadOnly={newChatAgentApps != null} toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
                     <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
-                    <ModelMenu
-                      selectedId={selectedModelId}
-                      onSelect={setSelectedModelId}
-                      thinking={thinkingEnabled}
-                      onThinkingChange={setThinkingEnabled}
-                      side="top"
-                    />
                     <div className="ml-auto flex items-center gap-0.5">
+                      <ModelMenu
+                        selectedId={selectedModelId}
+                        onSelect={setSelectedModelId}
+                        thinking={thinkingEnabled}
+                        onThinkingChange={setThinkingEnabled}
+                        side="top"
+                      />
                       <button type="button" className={toolbarBtn} title="Voice input">
                         <MicIcon className={toolbarIcon} />
                       </button>
@@ -1623,9 +2827,30 @@ export default function AgentChatPage() {
                           suppressContentEditableWarning
                           role="textbox"
                           aria-multiline="true"
-                          data-placeholder="Ask, create, explore — use @ to mention agents and people"
-                          onInput={(e) => setMessage(e.currentTarget.innerText)}
-                          onKeyUp={saveSelection}
+                          data-placeholder="Ask, create, explore, or @ add Tools, Skills, Saved Prompts"
+                          onInput={(e) => {
+                            const text = getComposerText(e.currentTarget);
+                            setMessage(text);
+                            if (addMenuOpen && !addMenuSuggestionMode) {
+                              if (!text.includes("@")) {
+                                anchoredAddMenuKeepOpenUntilRef.current = 0;
+                                closeAddMenuAndRestoreComposerFocus(e.currentTarget);
+                                return;
+                              }
+                              const search = getPromptAnchoredMenuSearch(text);
+                              if (search && !composerAddMenuHasResults(search)) {
+                                closeAddMenuAndRestoreComposerFocus(e.currentTarget);
+                                return;
+                              }
+                              setAddMenuSearch(search);
+                              return;
+                            }
+                            if (openAddMenuForPromptMention(text, e.currentTarget)) {
+                              return;
+                            }
+                            openAddMenuForAppSearch(text, e.currentTarget);
+                          }}
+                          onKeyUp={handleComposerKeyUp}
                           onMouseUp={saveSelection}
                           onKeyDown={handleComposerKeyDown}
                           className="composer-editable min-h-[72px] w-full whitespace-pre-wrap break-words bg-transparent text-left text-sm outline-none leading-relaxed"
@@ -1633,9 +2858,17 @@ export default function AgentChatPage() {
                         <div className="flex items-center gap-1 pt-1">
                           {/* Left toolbar */}
                           <div className="flex items-center gap-0.5">
-                            <AddMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} />
-                            {/* Caret-anchored copy of the add-menu, opened by typing "@" in the composer. */}
-                            <AddMenuAnchored toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} open={addMenuOpen} onOpenChange={setAddMenuOpen} anchor={addMenuAnchor} />
+                            <AddMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} workflowSearch={workflowSearch} onWorkflowSearchChange={setWorkflowSearch} workflowTab={workflowTab} onWorkflowTabChange={setWorkflowTab} selectedWorkflowIds={selectedWorkflows.map((w) => w.id)} onSelectWorkflow={handleSelectWorkflow} onAutoSelectWorkflowChange={setAutoSelectWorkflow} />
+                            {/* Caret-anchored menu opened by typing "@" in the composer. */}
+                            {addMenuSuggestionMode ? (
+                              <AppToolSuggestionPanel
+                                anchor={addMenuAnchor}
+                                searchValue={addMenuSearch}
+                                onSelect={handleSelectAppSuggestion}
+                              />
+                            ) : (
+                              <AddMenuAnchored toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} workflowSearch={workflowSearch} onWorkflowSearchChange={setWorkflowSearch} workflowTab={workflowTab} onWorkflowTabChange={setWorkflowTab} selectedWorkflowIds={selectedWorkflows.map((w) => w.id)} onSelectWorkflow={handleSelectWorkflow} onAutoSelectWorkflowChange={setAutoSelectWorkflow} onSelectConnectorMention={handleSelectConnectorMention} onSelectKnowledgeBaseMention={handleSelectKnowledgeBaseMention} open={addMenuOpen} onOpenChange={handleAnchoredAddMenuOpenChange} anchor={addMenuAnchor} searchValue={addMenuSearch} />
+                            )}
                             <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
                             <WorkflowMentionMenu
                               search={workflowSearch}
@@ -1666,7 +2899,7 @@ export default function AgentChatPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => beginConversation(mentionTextareaRef.current?.innerText ?? message)}
+                              onClick={() => beginConversation(mentionTextareaRef.current ? getComposerText(mentionTextareaRef.current) : message)}
                               className={cn(
                                 "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
                                 message.trim()
@@ -1869,14 +3102,14 @@ export default function AgentChatPage() {
                       suppressContentEditableWarning
                       role="textbox"
                       aria-multiline="true"
-                      data-placeholder="Ask, create, explore — use @ to mention agents and people"
-                      onInput={(e) => setMessage(e.currentTarget.innerText)}
+                      data-placeholder="Ask, create, explore, or @ add Tools, Skills, Saved Prompts"
+                      onInput={(e) => setMessage(getComposerText(e.currentTarget))}
                       onKeyUp={saveSelection}
                       onMouseUp={saveSelection}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
-                          beginConversation(mentionTextareaRef.current?.innerText ?? message);
+                          beginConversation(mentionTextareaRef.current ? getComposerText(mentionTextareaRef.current) : message);
                         }
                       }}
                       className="composer-editable min-h-[72px] w-full whitespace-pre-wrap break-words bg-transparent text-left text-sm outline-none leading-relaxed"
@@ -1890,7 +3123,7 @@ export default function AgentChatPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => beginConversation(mentionTextareaRef.current?.innerText ?? message)}
+                          onClick={() => beginConversation(mentionTextareaRef.current ? getComposerText(mentionTextareaRef.current) : message)}
                           className={cn(
                             "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
                             message.trim()
