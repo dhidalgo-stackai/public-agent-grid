@@ -1,15 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Plug2Icon, CheckCircle2Icon, XCircleIcon, PlusIcon, MoreHorizontalIcon } from "lucide-react";
+import {
+  Plug2Icon,
+  CheckCircle2Icon,
+  XCircleIcon,
+  PlusIcon,
+  MoreHorizontalIcon,
+  ZapIcon,
+  ChevronRightIcon,
+} from "lucide-react";
 import { AgentSidebar } from "@/components/agent-sidebar";
 import { MoreAppsDialog } from "@/components/more-apps-dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { PageHeader, pageContainerClass, pageContentScrollClass } from "@/components/page-layout";
+import { myAutomations } from "@/lib/automations-data";
+import { AGENT_DIRECTORY } from "@/lib/agents-data";
+import { getAgentIcon } from "@/lib/agent-icons";
 import { cn } from "@/lib/utils";
 import { integrationIcons } from "@/lib/integration-icons";
 
 type ConnectionStatus = "connected" | "error" | "disconnected";
+type ConnectionUsageType = "agent" | "automation";
+
+interface ConnectionUsageItem {
+  id: string;
+  name: string;
+  type: ConnectionUsageType;
+  icon: ReactNode;
+  subtitle: string;
+}
 
 interface Connection {
   id: string;
@@ -19,7 +40,6 @@ interface Connection {
   connectedBy: string;
   connectedDate: string;
   status: ConnectionStatus;
-  usedByAgents: number;
 }
 
 const MOCK_CONNECTIONS: Connection[] = [
@@ -31,7 +51,6 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 10, 2025",
     status: "connected",
-    usedByAgents: 7,
   },
   {
     id: "2",
@@ -41,7 +60,6 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 10, 2025",
     status: "connected",
-    usedByAgents: 5,
   },
   {
     id: "3",
@@ -51,7 +69,6 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Dec 3, 2024",
     status: "connected",
-    usedByAgents: 3,
   },
   {
     id: "4",
@@ -61,7 +78,6 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Nov 20, 2024",
     status: "error",
-    usedByAgents: 2,
   },
   {
     id: "5",
@@ -71,7 +87,6 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 15, 2025",
     status: "connected",
-    usedByAgents: 4,
   },
   {
     id: "6",
@@ -81,7 +96,6 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Jan 8, 2025",
     status: "connected",
-    usedByAgents: 1,
   },
   {
     id: "7",
@@ -91,9 +105,86 @@ const MOCK_CONNECTIONS: Connection[] = [
     connectedBy: "David Hidalgo",
     connectedDate: "Dec 18, 2024",
     status: "disconnected",
-    usedByAgents: 0,
   },
 ];
+
+const USAGE_TYPE_LABEL: Record<ConnectionUsageType, string> = {
+  agent: "Agent",
+  automation: "Automation",
+};
+
+function getConnectionUsage(integration: string): ConnectionUsageItem[] {
+  const agents = AGENT_DIRECTORY.filter((agent) => agent.apps?.includes(integration)).map((agent) => ({
+    id: `agent-${agent.id}`,
+    name: agent.name,
+    type: "agent" as const,
+    icon: getAgentIcon(agent.id, "size-3.5 text-foreground/70"),
+    subtitle: USAGE_TYPE_LABEL.agent,
+  }));
+
+  const automations = myAutomations
+    .filter((automation) => automation.integrations.includes(integration))
+    .map((automation) => ({
+      id: `automation-${automation.id}`,
+      name: automation.name,
+      type: "automation" as const,
+      icon: <ZapIcon className="size-3.5 text-foreground/70" />,
+      subtitle: USAGE_TYPE_LABEL.automation,
+    }));
+
+  return [...agents, ...automations].sort((a, b) => {
+    if (a.type !== b.type) {
+      return a.type === "agent" ? -1 : 1;
+    }
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function UsageBadge({ integration }: { integration: string }) {
+  const usage = getConnectionUsage(integration);
+
+  if (usage.length === 0) {
+    return <span className="text-muted-foreground/50">—</span>;
+  }
+
+  return (
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/40 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <span>{usage.length} time{usage.length !== 1 ? "s" : ""}</span>
+          <ChevronRightIcon className="size-3 text-muted-foreground" />
+        </button>
+      </HoverCardTrigger>
+      <HoverCardContent align="start" className="w-72 p-0">
+        <div className="border-b px-3 py-2.5">
+          <div className="text-sm font-medium text-foreground">Used by</div>
+          <div className="text-xs text-muted-foreground">
+            {usage.length} item{usage.length !== 1 ? "s" : ""} depend on this connection
+          </div>
+        </div>
+        <div className="py-1.5">
+          {usage.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50"
+            >
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-background">
+                {item.icon}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium text-foreground">{item.name}</div>
+                <div className="text-xs text-muted-foreground">{item.subtitle}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
 
 function StatusBadge({ status }: { status: ConnectionStatus }) {
   if (status === "connected") {
@@ -138,6 +229,7 @@ export default function ConnectionsPage() {
         organisationName="Acme"
         userName="David Hidalgo"
         onNewChat={() => router.push("/agent/new")}
+        activeSection="connections"
         favoriteAgents={[]}
       />
 
@@ -207,13 +299,7 @@ export default function ConnectionsPage() {
                       <StatusBadge status={conn.status} />
                     </td>
                     <td className="px-4 py-3.5 text-muted-foreground">
-                      {conn.usedByAgents > 0 ? (
-                        <span>
-                          {conn.usedByAgents} agent{conn.usedByAgents !== 1 ? "s" : ""}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground/50">—</span>
-                      )}
+                      <UsageBadge integration={conn.integration} />
                     </td>
                     <td className="px-4 py-3.5">
                       <button

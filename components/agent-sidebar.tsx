@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutGridIcon,
+  WorkflowIcon,
   PlusIcon,
   SquarePenIcon,
   ChevronRightIcon,
-  FolderIcon,
+  ChevronDownIcon,
   ZapIcon,
   PanelLeftIcon,
   SearchIcon,
@@ -185,7 +185,7 @@ interface AgentSidebarProps {
   onNewChat?: () => void;
   agentMode?: boolean;
   filterAgentId?: string;
-  activeSection?: "agents" | "automations" | "knowledge-bases";
+  activeSection?: "agents" | "automations" | "knowledge-bases" | "connections";
   favoriteAgents?: { id: string; name: string }[];
   defaultCollapsed?: boolean;
 }
@@ -268,9 +268,23 @@ export function AgentSidebar({
     ? allChats.filter((c) => c.agentId === chatFilterAgentId)
     : allChats;
 
-  const isAutomations = activeSection === "automations";
-  const isKnowledgeBases = activeSection === "knowledge-bases" || pathname === "/knowledge-bases";
+  const isAutomations =
+    activeSection === "automations" || pathname.startsWith("/automations");
+  const isKnowledgeBases =
+    activeSection === "knowledge-bases" || pathname.startsWith("/knowledge-bases");
+  const isConnections =
+    activeSection === "connections" || pathname.startsWith("/connections");
   const isNewChat = pathname === "/agent/new";
+  const isAgentsActive =
+    (activeSection === "agents" ||
+      selectedCategory === "all" ||
+      teamCategories.some((cat) => cat.id === selectedCategory)) &&
+    !isAutomations &&
+    !isKnowledgeBases &&
+    !isConnections &&
+    !isNewChat &&
+    !filterAgentId &&
+    !activeChatId;
 
   const filteredChats = mergedChats.filter((c) =>
     c.label.toLowerCase().includes(chatSearch.toLowerCase())
@@ -302,12 +316,12 @@ export function AgentSidebar({
           title="All Agents"
           className={cn(
             "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
-            selectedCategory === "all" && !isAutomations && !isNewChat && !activeChatId
+            isAgentsActive
               ? "bg-black/8 text-foreground"
               : "text-foreground/60 hover:text-foreground"
           )}
         >
-          <LayoutGridIcon className="size-4" />
+          <WorkflowIcon className="size-4" />
         </button>
         <Link
           href="/automations"
@@ -455,53 +469,43 @@ export function AgentSidebar({
           <span>New Chat</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => onCategoryChange("all")}
-          className={cn(
-            "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
-            selectedCategory === "all" &&
-              !isAutomations &&
-              !isNewChat &&
-              !filterAgentId &&
-              !activeChatId
-              ? "bg-black/8 text-foreground font-medium"
-              : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
-          )}
-        >
-          <span className="flex size-5 shrink-0 items-center justify-center">
-            <LayoutGridIcon className="size-4" />
-          </span>
-          <span>All Agents</span>
-        </button>
-
         <div className="flex flex-col gap-0.5">
-          <button
-            type="button"
-            onClick={() => setCategoriesOpen((v) => !v)}
-            aria-expanded={categoriesOpen}
+          <div
             className={cn(
-              "group/categories flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
-              teamCategories.some((cat) => cat.id === selectedCategory) &&
-                !isAutomations &&
-                !isNewChat &&
-                !filterAgentId &&
-                !activeChatId
+              "group/agents relative flex w-full items-center rounded-md text-sm leading-none transition-colors",
+              isAgentsActive
                 ? "bg-black/8 text-foreground font-medium"
                 : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
             )}
           >
-            <span className="flex size-5 shrink-0 items-center justify-center">
-              <FolderIcon className="size-4" />
-            </span>
-            <span>Categories</span>
-            <ChevronRightIcon
-              className={cn(
-                "size-3 shrink-0 opacity-0 transition-all duration-150 group-hover/categories:opacity-100",
-                categoriesOpen ? "rotate-90 opacity-100" : "rotate-90"
-              )}
+            {/* Full-row navigation target */}
+            <button
+              type="button"
+              onClick={() => onCategoryChange("all")}
+              aria-label="Agents"
+              className="absolute inset-0 rounded-md"
             />
-          </button>
+            <span className="pointer-events-none flex items-center gap-2 py-1.5 pl-3 pr-1">
+              <span className="flex size-5 shrink-0 items-center justify-center">
+                <WorkflowIcon className="size-4" />
+              </span>
+              <span>Agents</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setCategoriesOpen((v) => !v)}
+              aria-expanded={categoriesOpen}
+              aria-label="Toggle categories"
+              className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-black/10"
+            >
+              <ChevronDownIcon
+                className={cn(
+                  "size-3.5 shrink-0 transition-transform duration-150",
+                  categoriesOpen && "rotate-180"
+                )}
+              />
+            </button>
+          </div>
           {categoriesOpen && (
             <div className="flex flex-col gap-0.5 pb-0.5">
               {teamCategories.map((cat) => (
@@ -510,7 +514,7 @@ export function AgentSidebar({
                   type="button"
                   onClick={() => onCategoryChange(cat.id)}
                   className={cn(
-                    "flex w-full items-center rounded-md py-1.5 pl-9 pr-3 text-left text-xs leading-none transition-colors",
+                    "flex w-full items-center rounded-md py-1.5 pl-10 pr-3 text-left text-sm leading-none transition-colors",
                     selectedCategory === cat.id &&
                       !isAutomations &&
                       !isNewChat &&
@@ -561,7 +565,7 @@ export function AgentSidebar({
           href="/connections"
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
-            pathname === "/connections"
+            isConnections
               ? "bg-black/8 text-foreground font-medium"
               : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
           )}

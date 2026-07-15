@@ -25,7 +25,7 @@ import {
   PaletteIcon,
   BookOpenIcon,
   PaperclipIcon,
-  AtSignIcon,
+  WorkflowIcon,
   MicIcon,
   UploadIcon,
   DatabaseIcon,
@@ -38,9 +38,16 @@ import {
   ExternalLinkIcon,
   CheckIcon,
   SparklesIcon,
+  PuzzleIcon,
   StarIcon,
   ListPlusIcon,
+  InfoIcon,
+  HexagonIcon,
+  AsteriskIcon,
+  GemIcon,
+  InfinityIcon,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   getChatMessages,
@@ -57,6 +64,7 @@ import { integrationIcons } from "@/lib/integration-icons";
 import { ALL_WORKFLOWS, type Workflow } from "@/lib/workflows-data";
 import { AgentSidebar } from "@/components/agent-sidebar";
 import { AgentCard } from "@/components/agent-card";
+import { ConnectionSetupModal } from "@/components/connection-setup-modal";
 import { MoreAppsDialog } from "@/components/more-apps-dialog";
 import {
   DropdownMenu,
@@ -127,143 +135,483 @@ const CONNECTOR_ITEMS = [
   { id: "outlook", label: "Outlook" },
 ];
 
-function ToolsMenu({
-  toggles,
-  onToggle,
-  connectedConnectors,
-  onConnectorChange,
-  onOpenMoreApps,
-  side = "bottom",
-  agentApps,
-  activeApps,
-}: {
+function kbIcon(iconType: string) {
+  if (iconType === "drive") {
+    return (
+      <svg className="size-4 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+      </svg>
+    );
+  }
+  if (iconType === "gmail") {
+    return (
+      <svg className="size-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.364l-6.545-4.636v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.273l8.073-5.782C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+        <path d="M0 5.457v13.909c0 .904.732 1.636 1.636 1.636h3.819V11.73L12 16.364V9.273L3.927 3.493C2.309 2.28 0 3.434 0 5.457z" fill="#34A853"/>
+        <path d="M18.545 20.998h3.819c.904 0 1.636-.732 1.636-1.636V11.73l-5.455 3.817z" fill="#4285F4"/>
+        <path d="M5.455 20.998H1.636A1.636 1.636 0 0 1 0 19.362V11.73l5.455 3.817z" fill="#FBBC05"/>
+      </svg>
+    );
+  }
+  return <DatabaseIcon className="size-4 shrink-0 text-muted-foreground" />;
+}
+
+function createKnowledgeBaseIconNode(iconType: string) {
+  const icon = document.createElement("span");
+  icon.className = "inline-flex size-3.5 shrink-0 items-center justify-center align-middle";
+
+  if (iconType === "drive") {
+    icon.innerHTML = `
+      <svg class="size-3.5 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"></path>
+        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"></path>
+        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"></path>
+        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"></path>
+        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"></path>
+        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"></path>
+      </svg>
+    `;
+    return icon;
+  }
+
+  if (iconType === "gmail") {
+    icon.innerHTML = `
+      <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.364l-6.545-4.636v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.273l8.073-5.782C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"></path>
+        <path d="M0 5.457v13.909c0 .904.732 1.636 1.636 1.636h3.819V11.73L12 16.364V9.273L3.927 3.493C2.309 2.28 0 3.434 0 5.457z" fill="#34A853"></path>
+        <path d="M18.545 20.998h3.819c.904 0 1.636-.732 1.636-1.636V11.73l-5.455 3.817z" fill="#4285F4"></path>
+        <path d="M5.455 20.998H1.636A1.636 1.636 0 0 1 0 19.362V11.73l5.455 3.817z" fill="#FBBC05"></path>
+      </svg>
+    `;
+    return icon;
+  }
+
+  icon.innerHTML = `
+    <svg class="size-3.5 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+      <path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"></path>
+      <path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"></path>
+    </svg>
+  `;
+  return icon;
+}
+
+// Shared props for the "+" add-menu that consolidates Attach, Tools, Agents and
+// Prompts. Sub-sections that used to be their own toolbar buttons are now
+// submenus; the optional Agents entry opens the anchored mention menu.
+type AddMenuProps = {
+  uploadOnly?: boolean;
   toggles: ToolToggles;
   onToggle: (key: keyof ToolToggles) => void;
   connectedConnectors: string[];
   onConnectorChange: (ids: string[]) => void;
+  onActiveAppsChange?: (ids: string[]) => void;
+  onRequestConnect?: (id: string) => void;
   onOpenMoreApps: () => void;
   side?: "top" | "bottom";
   /**
-   * When provided, the menu is scoped to a single agent's workflow: it shows
-   * only these apps and hides the generic tool toggles, "Create document" and
-   * "More apps" entries.
+   * When provided, the Tools submenu is scoped to a single agent's workflow: it
+   * shows only these apps and hides the generic tool toggles, "Create document"
+   * and "More apps" entries.
    */
   agentApps?: string[];
-  /**
-   * Apps loaded ad-hoc for this chat (e.g. from a suggested prompt) that aren't
-   * part of a scoped agent. They show as icons in the trigger with a pulsing
-   * dot until the user connects them.
-   */
+  /** Apps loaded ad-hoc for this chat (e.g. from a suggested prompt). */
   activeApps?: string[];
-}) {
-  // The menu is "scoped" to a specific set of apps either when it belongs to a
-  // named agent's workflow (agentApps) or when a suggested prompt has loaded its
-  // own apps ad-hoc (activeApps). In both cases we show only those apps and hide
-  // the generic tool toggles, "Create document" and "More apps" entries.
-  const scopedApps = agentApps ?? (activeApps && activeApps.length ? activeApps : null);
+  /** Knowledge bases currently added to the chat. */
+  selectedKnowledgeBases?: string[];
+  onKnowledgeBaseChange?: (ids: string[]) => void;
+  onSelectPrompt: (text: string) => void;
+  /**
+   * When provided, an "Agents" entry is shown; clicking it opens the anchored
+   * agent-mention menu at the supplied rect.
+   */
+  onAgentsClick?: (rect: DOMRect) => void;
+  agentsAutoSelect?: boolean;
+};
+
+// The menu body, reused by both the "+" toolbar button (AddMenu) and the
+// caret-anchored "@" menu (AddMenuAnchored). getAgentsRect supplies the anchor
+// used when opening the Agents mention menu.
+function AddMenuContent({
+  uploadOnly = false,
+  toggles,
+  onToggle,
+  connectedConnectors,
+  onConnectorChange,
+  onActiveAppsChange,
+  onRequestConnect,
+  onOpenMoreApps,
+  side = "bottom",
+  agentApps,
+  activeApps,
+  onSelectPrompt,
+  selectedKnowledgeBases = [],
+  onKnowledgeBaseChange,
+  onAgentsClick,
+  agentsAutoSelect = false,
+  getAgentsRect,
+}: AddMenuProps & { getAgentsRect: () => DOMRect | undefined }) {
+  // Only agent workflows scope the Tools submenu. Pending apps still show as
+  // toolbar chips, but the user can keep adding other tools from the full list.
+  const scopedApps = agentApps ?? null;
   const isAgentScoped = scopedApps != null;
   const connectorItems = isAgentScoped
     ? scopedApps.map((id) => ({ id, label: getAppLabel(id) }))
     : CONNECTOR_ITEMS;
-  // Tools shown in the trigger button. When scoped, show all of the scoped
-  // apps. Otherwise show connected connectors. Any shown tool lacking a
-  // connection gets a pulsing dot.
-  const triggerIds = isAgentScoped ? scopedApps : connectedConnectors;
-  const triggerTools = triggerIds.map((id) => ({ id, label: getAppLabel(id) }));
 
   const toggleConnector = (id: string) => {
+    if (!connectedConnectors.includes(id)) {
+      if (onActiveAppsChange) {
+        onActiveAppsChange(
+          activeApps?.includes(id)
+            ? activeApps.filter((existing) => existing !== id)
+            : [...(activeApps ?? []), id]
+        );
+        return;
+      }
+      onRequestConnect?.(id);
+      return;
+    }
     onConnectorChange(
-      connectedConnectors.includes(id)
-        ? connectedConnectors.filter((existing) => existing !== id)
-        : [...connectedConnectors, id]
+      connectedConnectors.filter((existing) => existing !== id)
+    );
+  };
+
+  const toggleKnowledgeBase = (id: string) => {
+    onKnowledgeBaseChange?.(
+      selectedKnowledgeBases.includes(id)
+        ? selectedKnowledgeBases.filter((existing) => existing !== id)
+        : [...selectedKnowledgeBases, id]
     );
   };
 
   return (
-    <>
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className="flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/15 hover:text-foreground transition-colors" title={triggerTools.length ? triggerTools.map((c) => (connectedConnectors.includes(c.id) ? c.label : `${c.label} (not connected)`)).join(", ") : "Tools"}>
-          {triggerTools.length ? (
-            triggerTools.map((c) => {
-              const needsConnection = !connectedConnectors.includes(c.id);
-              return (
-                <span key={c.id} className="relative flex size-4 shrink-0 items-center justify-center">
-                  {cloneElement(integrationIcons[c.id] as React.ReactElement<{ className?: string }>, { className: toolbarIcon })}
-                  {needsConnection && (
-                    <span className="absolute -right-1 -top-1 flex size-1.5">
-                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-yellow-400 opacity-75" />
-                      <span className="relative inline-flex size-1.5 rounded-full bg-yellow-400" />
-                    </span>
-                  )}
-                </span>
-              );
-            })
-          ) : (
-            <WrenchIcon className={toolbarIcon} />
-          )}
-          {!triggerTools.length && "Tools"}
-        </button>
-      </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-64 p-1">
-        {!isAgentScoped && (
-          <>
-            {TOOL_TOGGLE_ITEMS.map(({ key, label, icon: Icon }) => (
+        {/* ── Files & Knowledge ── */}
+        {uploadOnly ? (
+          <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+            <UploadIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">Upload file</span>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+              <FolderPlusIcon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-sm">Files &amp; Knowledge</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-64 p-1">
+              <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+                <UploadIcon className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-sm">Upload file</span>
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+                  <BookOpenIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm">Add Knowledge Base</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-56">
+                  {KNOWLEDGE_BASES.map((kb) => {
+                    const isSelected = selectedKnowledgeBases.includes(kb.id);
+                    return (
+                      <DropdownMenuItem
+                        key={kb.id}
+                        className="gap-2"
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={() => toggleKnowledgeBase(kb.id)}
+                      >
+                        {kbIcon(kb.iconType)}
+                        <span className="min-w-0 flex-1 truncate">{kb.name}</span>
+                        {isSelected && (
+                          <CheckIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
+                        )}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2">
+                    <PlusIcon className="size-4" />
+                    Create new
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+                  <PlugIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm">Search Connected Apps</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-56">
+                  {CONNECTED_APPS.map((app) => (
+                    <DropdownMenuItem key={app.id} className="gap-2">
+                      {integrationIcons[app.id]}
+                      {app.name}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2">
+                    <PlugIcon className="size-4" />
+                    Connect more apps
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
+        {/* ── Tools ── */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+            <WrenchIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">Tools</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-64 p-1">
+            {!isAgentScoped && (
+              <>
+                {TOOL_TOGGLE_ITEMS.map(({ key, label, icon: Icon }) => (
+                  <DropdownMenuItem
+                    key={key}
+                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                    onSelect={(e) => e.preventDefault()}
+                    onClick={() => onToggle(key)}
+                  >
+                    <Icon className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm">{label}</span>
+                    <Checkbox checked={toggles[key]} className="ml-auto" onClick={(e) => e.stopPropagation()} onCheckedChange={() => onToggle(key)} />
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
+                  <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="text-sm">Create document</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {connectorItems.map((c) => {
+              const isConnected = connectedConnectors.includes(c.id);
+              const isPending = activeApps?.includes(c.id) ?? false;
+              return (
+                <DropdownMenuItem
+                  key={c.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => toggleConnector(c.id)}
+                  title={c.label}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[c.id]}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm">{c.label}</span>
+                  {isConnected || isPending ? (
+                    <CheckIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
+                  ) : null}
+                </DropdownMenuItem>
+              );
+            })}
+            {!isAgentScoped && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground"
+                  onSelect={(e) => e.preventDefault()}
+                  onClick={() => onOpenMoreApps()}
+                >
+                  <PlusIcon className="size-4 shrink-0" />
+                  <span className="text-sm">More apps</span>
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* ── Skills ── */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+            <PuzzleIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">Skills</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-72 p-1">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Skills</div>
+            <div className="px-2 py-3 text-center text-sm text-muted-foreground">No skills yet</div>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* ── Agents ── */}
+        {onAgentsClick && (
+          <DropdownMenuItem
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+            onClick={() => {
+              const rect = getAgentsRect();
+              // Defer until the "+" menu has fully closed, otherwise Radix's
+              // close handling immediately dismisses the mention menu too.
+              if (rect) setTimeout(() => onAgentsClick(rect), 0);
+            }}
+          >
+            <WorkflowIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">Agents{agentsAutoSelect ? " (Auto)" : ""}</span>
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+
+        {/* ── Saved prompts ── */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+            <ListPlusIcon className="size-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm">Saved prompts</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-72 p-1">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Saved prompts</div>
+            {SAVED_PROMPTS.map((prompt) => (
               <DropdownMenuItem
-                key={key}
-                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-                onSelect={(e) => e.preventDefault()}
-                onClick={() => onToggle(key)}
+                key={prompt.id}
+                className="flex cursor-pointer items-center rounded-lg px-2 py-1.5"
+                onClick={() => onSelectPrompt(prompt.text)}
               >
-                <Icon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="text-sm">{label}</span>
-                <Checkbox checked={toggles[key]} className="ml-auto" onClick={(e) => e.stopPropagation()} onCheckedChange={() => onToggle(key)} />
+                <span className="text-sm font-medium">{prompt.title}</span>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5">
-              <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-              <span className="text-sm">Create document</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
-        {connectorItems.map((c) => {
-          const isConnected = connectedConnectors.includes(c.id);
-          return (
-            <DropdownMenuItem
-              key={c.id}
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-              onSelect={(e) => e.preventDefault()}
-              onClick={() => toggleConnector(c.id)}
-              title={c.label}
-            >
-              <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[c.id]}</span>
-              <span className="min-w-0 flex-1 truncate text-sm">{c.label}</span>
-              {isConnected ? (
-                <CheckIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
-              ) : (
-                <span className="ml-auto text-xs text-muted-foreground">Connect</span>
-              )}
-            </DropdownMenuItem>
-          );
-        })}
-        {!isAgentScoped && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-muted-foreground"
-              onSelect={(e) => e.preventDefault()}
-              onClick={() => onOpenMoreApps()}
-            >
-              <PlusIcon className="size-4 shrink-0" />
-              <span className="text-sm">More apps</span>
-            </DropdownMenuItem>
-          </>
-        )}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
       </DropdownMenuContent>
+  );
+}
+
+// "+" toolbar button. Opens the add-menu anchored under the button.
+function AddMenu(
+  props: AddMenuProps & { open?: boolean; onOpenChange?: (open: boolean) => void }
+) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return (
+    <DropdownMenu open={props.open} onOpenChange={props.onOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <button ref={triggerRef} type="button" className={toolbarBtn} title="Add">
+          <PlusIcon className={toolbarIcon} />
+        </button>
+      </DropdownMenuTrigger>
+      <AddMenuContent {...props} getAgentsRect={() => triggerRef.current?.getBoundingClientRect() ?? undefined} />
     </DropdownMenu>
-    </>
+  );
+}
+
+// Same menu, but anchored to an arbitrary caret position — used when the user
+// types "@" in the composer so the menu opens right next to the "@" character.
+function AddMenuAnchored({
+  open,
+  onOpenChange,
+  anchor,
+  ...props
+}: AddMenuProps & {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  anchor?: { left: number; top: number } | null;
+}) {
+  return (
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+      {/* Invisible anchor positioned at the "@" character. */}
+      <DropdownMenuTrigger asChild>
+        <span
+          aria-hidden
+          className="pointer-events-none fixed h-0 w-0"
+          style={{ left: anchor?.left ?? 0, top: anchor?.top ?? 0 }}
+        />
+      </DropdownMenuTrigger>
+      <AddMenuContent
+        {...props}
+        getAgentsRect={() =>
+          anchor ? new DOMRect(anchor.left, anchor.top, 0, 0) : undefined
+        }
+      />
+    </DropdownMenu>
+  );
+}
+
+// Row of icon chips shown right next to the "+" button for every connector the
+// user has added to the chat. Connectors loaded ad-hoc (e.g. from a suggested
+// prompt) that aren't connected yet get a pulsing dot. Connector chips open a
+// small action menu instead of removing immediately.
+function ComposerToolIcons({
+  connectedConnectors,
+  activeApps = [],
+  selectedKnowledgeBases: _selectedKnowledgeBases = [],
+  onConnectorChange,
+  onActiveAppsChange,
+  onEditConnection,
+}: {
+  connectedConnectors: string[];
+  activeApps?: string[];
+  selectedKnowledgeBases?: string[];
+  onConnectorChange: (ids: string[]) => void;
+  onActiveAppsChange?: (ids: string[]) => void;
+  onKnowledgeBaseChange?: (ids: string[]) => void;
+  onEditConnection?: (id: string) => void;
+}) {
+  const connectorIds = Array.from(new Set([...connectedConnectors, ...activeApps]));
+
+  if (!connectorIds.length) return null;
+
+  // A connector may live in connectedConnectors, activeApps, or both — drop it
+  // from wherever it appears.
+  const removeConnector = (id: string) => {
+    onConnectorChange(connectedConnectors.filter((c) => c !== id));
+    onActiveAppsChange?.(activeApps.filter((c) => c !== id));
+  };
+  return (
+    <div className="flex items-center gap-1">
+      {/* Connector tools — tightly-packed icon buttons. */}
+      {connectorIds.length > 0 && (
+        <div className="flex items-center">
+          {connectorIds.map((id) => {
+            const icon = integrationIcons[id];
+            if (!icon) return null;
+            const needsConnection = !connectedConnectors.includes(id);
+            return (
+              <DropdownMenu key={id}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
+                    title={`${getAppLabel(id)}${needsConnection ? " (not connected)" : ""}`}
+                    aria-label={`${getAppLabel(id)} options`}
+                  >
+                    <span className="relative flex size-4 shrink-0 items-center justify-center">
+                      {cloneElement(
+                        icon as React.ReactElement<{ className?: string }>,
+                        { className: toolbarIcon }
+                      )}
+                      {needsConnection && (
+                        <span className="absolute -right-1 -top-1 flex size-1.5">
+                          <span className="absolute inline-flex size-full animate-ping rounded-full bg-yellow-400 opacity-75" />
+                          <span className="relative inline-flex size-1.5 rounded-full bg-yellow-400" />
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={8}>
+                  <DropdownMenuItem
+                    onSelect={(event) => {
+                      event.preventDefault();
+                      setTimeout(() => onEditConnection?.(id), 0);
+                    }}
+                  >
+                    Edit Connection
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => removeConnector(id)}
+                  >
+                    Remove
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -280,84 +628,6 @@ const KNOWLEDGE_BASES = [
   { id: "kb3", name: "Sales Playbook", iconType: "gmail" },
   { id: "kb4", name: "Engineering Runbooks", iconType: "database" },
 ];
-
-function AttachMenu({ uploadOnly = false }: { uploadOnly?: boolean }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button type="button" className={toolbarBtn} title="Add">
-          <PaperclipIcon className={toolbarIcon} />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="start" className="w-64">
-        <DropdownMenuItem className="gap-2">
-          <UploadIcon className="size-4" />
-          Upload file
-        </DropdownMenuItem>
-        {!uploadOnly && (
-          <>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <BookOpenIcon className="size-4" />
-                Add Knowledge Base
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-56">
-                {KNOWLEDGE_BASES.map((kb) => (
-                  <DropdownMenuItem key={kb.id} className="gap-2">
-                    {kb.iconType === "drive" ? (
-                      <svg className="size-4 shrink-0" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                        <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                        <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
-                        <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
-                        <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
-                        <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
-                        <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 27h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                      </svg>
-                    ) : kb.iconType === "gmail" ? (
-                      <svg className="size-4 shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.364l-6.545-4.636v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.273l8.073-5.782C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
-                        <path d="M0 5.457v13.909c0 .904.732 1.636 1.636 1.636h3.819V11.73L12 16.364V9.273L3.927 3.493C2.309 2.28 0 3.434 0 5.457z" fill="#34A853"/>
-                        <path d="M18.545 20.998h3.819c.904 0 1.636-.732 1.636-1.636V11.73l-5.455 3.817z" fill="#4285F4"/>
-                        <path d="M5.455 20.998H1.636A1.636 1.636 0 0 1 0 19.362V11.73l5.455 3.817z" fill="#FBBC05"/>
-                      </svg>
-                    ) : (
-                      <DatabaseIcon className="size-4 shrink-0 text-muted-foreground" />
-                    )}
-                    {kb.name}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2">
-                  <PlusIcon className="size-4" />
-                  Create new
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <PlugIcon className="size-4" />
-                Search Connected Apps
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-56">
-                {CONNECTED_APPS.map((app) => (
-                  <DropdownMenuItem key={app.id} className="gap-2">
-                    {integrationIcons[app.id]}
-                    {app.name}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2">
-                  <PlugIcon className="size-4" />
-                  Connect more apps
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 const SAVED_PROMPTS: { id: string; title: string; text: string }[] = [
   {
@@ -387,38 +657,131 @@ const SAVED_PROMPTS: { id: string; title: string; text: string }[] = [
   },
 ];
 
-function PromptsMenu({
+type ModelOption = {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  region?: string;
+};
+
+// Model picker options. "Auto" lets the platform route to the best model; the
+// rest are pinned choices, each tagged with the region its data is processed in.
+const AUTO_MODEL: ModelOption = { id: "auto", name: "Auto", icon: SparklesIcon };
+const MODEL_OPTIONS: ModelOption[] = [
+  { id: "gpt-5-1", name: "GPT-5.1", icon: HexagonIcon, region: "US" },
+  { id: "claude-opus", name: "Claude Opus 4.8", icon: AsteriskIcon, region: "US" },
+  { id: "claude-sonnet", name: "Claude Sonnet 5", icon: AsteriskIcon, region: "US" },
+  { id: "gemini-3-pro", name: "Gemini 3 Pro", icon: GemIcon, region: "EU" },
+  { id: "gpt-5-mini", name: "GPT-5 Mini", icon: HexagonIcon, region: "US" },
+  { id: "llama-4", name: "Llama 4 Maverick", icon: InfinityIcon, region: "EU" },
+];
+const ALL_MODELS = [AUTO_MODEL, ...MODEL_OPTIONS];
+
+function ModelMenu({
+  selectedId,
   onSelect,
-  side = "bottom",
+  thinking,
+  onThinkingChange,
+  side = "top",
 }: {
-  onSelect: (text: string) => void;
+  selectedId: string;
+  onSelect: (id: string) => void;
+  thinking: boolean;
+  onThinkingChange: (value: boolean) => void;
   side?: "top" | "bottom";
 }) {
+  const selected = ALL_MODELS.find((m) => m.id === selectedId) ?? AUTO_MODEL;
+  const SelectedIcon = selected.icon;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors" title="Saved prompts">
-          <ListPlusIcon className={toolbarIcon} />
-          Prompts
+        <button
+          type="button"
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
+          title="Model"
+        >
+          <SelectedIcon className="size-4 shrink-0" />
+          <span className="min-w-0 truncate">{selected.name}</span>
+          <ChevronDownIcon className="size-3.5 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-72 p-1">
-        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Saved prompts</div>
-        {SAVED_PROMPTS.map((prompt) => (
-          <DropdownMenuItem
-            key={prompt.id}
-            className="flex cursor-pointer items-center rounded-lg px-2 py-1.5"
-            onClick={() => onSelect(prompt.text)}
-          >
-            <span className="text-sm font-medium">{prompt.title}</span>
-          </DropdownMenuItem>
-        ))}
+        <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-muted-foreground">
+          <span>Models</span>
+          <InfoIcon className="size-3.5" />
+        </div>
+        {/* Auto */}
+        <ModelMenuItem model={AUTO_MODEL} selected={selectedId === AUTO_MODEL.id} onSelect={onSelect} />
+        <DropdownMenuSeparator />
+        {/* Pinned models */}
+        <div className="max-h-60 overflow-y-auto">
+          {MODEL_OPTIONS.map((model) => (
+            <ModelMenuItem
+              key={model.id}
+              model={model}
+              selected={selectedId === model.id}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+        <DropdownMenuSeparator />
+        {/* Thinking toggle */}
+        <DropdownMenuItem
+          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+          onSelect={(e) => e.preventDefault()}
+          onClick={() => onThinkingChange(!thinking)}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-sm">Enable thinking</p>
+            <p className="text-xs text-muted-foreground">Best for complex tasks</p>
+          </div>
+          <Switch
+            checked={thinking}
+            onClick={(e) => e.stopPropagation()}
+            onCheckedChange={onThinkingChange}
+          />
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="cursor-pointer rounded-lg px-2 py-1.5">
+          <span className="text-sm">Edit available models</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
+function ModelMenuItem({
+  model,
+  selected,
+  onSelect,
+}: {
+  model: ModelOption;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const Icon = model.icon;
+  return (
+    <DropdownMenuItem
+      className={cn(
+        "flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5",
+        selected && "bg-muted"
+      )}
+      onClick={() => onSelect(model.id)}
+    >
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 truncate text-sm">{model.name}</span>
+      {model.region && (
+        <span className="rounded-md border border-border px-1 py-px text-[10px] font-medium text-muted-foreground">
+          {model.region}
+        </span>
+      )}
+      {selected && <CheckIcon className="size-3.5 shrink-0 text-muted-foreground" />}
+    </DropdownMenuItem>
+  );
+}
+
 const MENTION_ANCHOR_ATTR = "data-mention-anchor";
+const KNOWLEDGE_BASE_CHIP_ATTR = "data-kb-chip";
 
 function createMentionChip(workflow: Workflow, onRemove: () => void): HTMLSpanElement {
   const chip = document.createElement("span");
@@ -444,6 +807,41 @@ function createMentionChip(workflow: Workflow, onRemove: () => void): HTMLSpanEl
   // CSS-only ::before/::after pseudo-element instead (see .mention-remove-icon).
   removeBtn.className =
     "mention-remove-icon ml-1 inline-block cursor-pointer align-middle text-gray-700/50 hover:text-gray-700 dark:text-gray-300/50 dark:hover:text-gray-300";
+  removeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onRemove();
+  });
+  chip.appendChild(removeBtn);
+
+  return chip;
+}
+
+function createKnowledgeBaseChip(
+  knowledgeBase: (typeof KNOWLEDGE_BASES)[number],
+  onRemove: () => void
+): HTMLSpanElement {
+  const chip = document.createElement("span");
+  chip.contentEditable = "false";
+  chip.setAttribute(KNOWLEDGE_BASE_CHIP_ATTR, knowledgeBase.id);
+  chip.title = knowledgeBase.name;
+  chip.className =
+    "group mx-0.5 inline-block max-w-[240px] rounded-full border border-border bg-muted/50 py-0.5 pl-2 pr-1.5 align-middle text-[13px] leading-[18px] font-medium text-foreground";
+
+  const icon = createKnowledgeBaseIconNode(knowledgeBase.iconType);
+  chip.appendChild(icon);
+
+  const label = document.createElement("span");
+  label.className = "ml-1 inline-block max-w-[170px] truncate align-middle leading-[18px]";
+  label.textContent = knowledgeBase.name;
+  chip.appendChild(label);
+
+  const removeBtn = document.createElement("span");
+  removeBtn.setAttribute("data-kb-remove", "true");
+  removeBtn.setAttribute("role", "button");
+  removeBtn.setAttribute("aria-label", `Remove ${knowledgeBase.name}`);
+  removeBtn.className =
+    "mention-remove-icon ml-1 inline-block cursor-pointer align-middle text-muted-foreground/60 transition-colors group-hover:text-foreground";
   removeBtn.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -522,7 +920,6 @@ function WorkflowMentionMenu({
   onTabChange,
   selectedIds,
   onSelect,
-  onButtonTrigger,
   autoSelect,
   onAutoSelectChange,
   side = "bottom",
@@ -536,7 +933,6 @@ function WorkflowMentionMenu({
   onTabChange: (value: "recent" | "all" | "favorites") => void;
   selectedIds: string[];
   onSelect: (workflow: Workflow) => void;
-  onButtonTrigger: (rect: DOMRect) => void;
   autoSelect: boolean;
   onAutoSelectChange: (value: boolean) => void;
   side?: "top" | "bottom";
@@ -556,17 +952,7 @@ function WorkflowMentionMenu({
         onOpenChange?.(next);
       }}
     >
-      {/* Visible toolbar button — opens the menu anchored below the button. */}
-      <button
-        type="button"
-        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground transition-colors"
-        title="Agents"
-        onClick={(e) => onButtonTrigger(e.currentTarget.getBoundingClientRect())}
-      >
-        <AtSignIcon className={toolbarIcon} />
-        {autoSelect ? "Auto" : "Agents"}
-      </button>
-      {/* Invisible anchor positioned at the "@" character (or the button). */}
+      {/* Invisible anchor positioned at the "@" character (or the "+" button). */}
       <DropdownMenuTrigger asChild>
         <span
           aria-hidden
@@ -700,6 +1086,8 @@ export default function AgentChatPage() {
   const [workflowSearch, setWorkflowSearch] = useState("");
   const [workflowTab, setWorkflowTab] = useState<"recent" | "all" | "favorites">("recent");
   const [mentionMenuOpen, setMentionMenuOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [addMenuAnchor, setAddMenuAnchor] = useState<{ left: number; top: number } | null>(null);
   const [mentionAnchor, setMentionAnchor] = useState<{ left: number; top: number } | null>(null);
   const [newChatKey, setNewChatKey] = useState(0);
   const [extraRecentChats, setExtraRecentChats] = useState<ChatItem[]>([]);
@@ -712,7 +1100,13 @@ export default function AgentChatPage() {
   // Apps loaded from a suggested prompt on the blank landing — shown in the
   // Tools trigger with a pulsing dot until connected.
   const [promptApps, setPromptApps] = useState<string[]>([]);
+  // Knowledge bases the user has added to the chat via the "+" menu.
+  const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState<string[]>([]);
+  const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
+  const [connectionSetupOpen, setConnectionSetupOpen] = useState(false);
   const [moreAppsOpen, setMoreAppsOpen] = useState(false);
+  const [selectedModelId, setSelectedModelId] = useState("gpt-5-1");
+  const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [toolToggles, setToolToggles] = useState({
     webSearch: true,
     imageCreation: true,
@@ -732,16 +1126,6 @@ export default function AgentChatPage() {
     }
   }, []);
 
-  const getWorkingRange = useCallback((el: HTMLDivElement) => {
-    if (savedRangeRef.current && el.contains(savedRangeRef.current.startContainer)) {
-      return savedRangeRef.current.cloneRange();
-    }
-    const range = document.createRange();
-    range.selectNodeContents(el);
-    range.collapse(false);
-    return range;
-  }, []);
-
   const applyPrompt = useCallback((text: string) => {
     setMessage(text);
     const el = mentionTextareaRef.current;
@@ -757,44 +1141,6 @@ export default function AgentChatPage() {
       sel?.addRange(range);
     }
   }, []);
-
-  const insertMentionTrigger = useCallback(() => {
-    const el = mentionTextareaRef.current;
-    if (!el) return null;
-
-    const range = getWorkingRange(el);
-    range.deleteContents();
-    const anchor = document.createElement("span");
-    anchor.setAttribute(MENTION_ANCHOR_ATTR, "true");
-    anchor.textContent = "@";
-    range.insertNode(anchor);
-
-    const after = document.createRange();
-    after.setStartAfter(anchor);
-    after.collapse(true);
-    savedRangeRef.current = after.cloneRange();
-    setMessage(el.innerText);
-
-    requestAnimationFrame(() => {
-      el.focus();
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(after);
-    });
-
-    return anchor;
-  }, [getWorkingRange]);
-
-  // Opens the agent-mention menu anchored to the just-inserted "@" character
-  // (used when the user types "@" in the composer).
-  const openMentionMenu = useCallback(() => {
-    const anchor = insertMentionTrigger();
-    if (anchor) {
-      const rect = anchor.getBoundingClientRect();
-      setMentionAnchor({ left: rect.left, top: rect.bottom });
-    }
-    setMentionMenuOpen(true);
-  }, [insertMentionTrigger]);
 
   // Opens the agent-mention menu anchored below the toolbar "Agents" button.
   // Unlike the "@"-key path, this does not insert an "@" into the composer.
@@ -813,6 +1159,30 @@ export default function AgentChatPage() {
     chip.remove();
     setSelectedWorkflows((prev) => prev.filter((w) => w.id !== workflowId));
     setMessage(el.innerText);
+  }, []);
+
+  const removeKnowledgeBaseChip = useCallback((chip: HTMLElement, knowledgeBaseId: string) => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+    const next = chip.nextSibling;
+    if (next && next.nodeType === Node.TEXT_NODE && [" ", "\u00A0"].includes(next.textContent ?? "")) {
+      next.remove();
+    }
+    chip.remove();
+    setSelectedKnowledgeBases((prev) => prev.filter((kb) => kb !== knowledgeBaseId));
+    setMessage(el.innerText);
+  }, []);
+
+  const openConnectionSetup = useCallback((integrationId: string) => {
+    setEditingConnectionId(integrationId);
+    setConnectionSetupOpen(true);
+  }, []);
+
+  const handleConnectionSave = useCallback((integrationId: string) => {
+    setConnectedConnectors((prev) =>
+      prev.includes(integrationId) ? prev : [...prev, integrationId]
+    );
+    setPromptApps((prev) => prev.filter((id) => id !== integrationId));
   }, []);
 
   const handleSelectWorkflow = useCallback((workflow: Workflow) => {
@@ -847,6 +1217,56 @@ export default function AgentChatPage() {
       sel?.addRange(after);
     });
   }, []);
+
+  useEffect(() => {
+    const el = mentionTextareaRef.current;
+    if (!el) return;
+
+    const existingKbIds = Array.from(el.querySelectorAll<HTMLElement>(`[${KNOWLEDGE_BASE_CHIP_ATTR}]`)).map(
+      (chip) => chip.getAttribute(KNOWLEDGE_BASE_CHIP_ATTR)
+    );
+    const desiredKbIds = selectedKnowledgeBases.filter((id) =>
+      KNOWLEDGE_BASES.some((kb) => kb.id === id)
+    );
+
+    if (
+      existingKbIds.length === desiredKbIds.length &&
+      existingKbIds.every((id, index) => id === desiredKbIds[index])
+    ) {
+      return;
+    }
+
+    const remainingNodes: Node[] = [];
+    const nodes = Array.from(el.childNodes);
+    for (let i = 0; i < nodes.length; i += 1) {
+      const node = nodes[i];
+      if (
+        node instanceof HTMLElement &&
+        node.hasAttribute(KNOWLEDGE_BASE_CHIP_ATTR)
+      ) {
+        const next = nodes[i + 1];
+        if (
+          next?.nodeType === Node.TEXT_NODE &&
+          [" ", "\u00A0"].includes(next.textContent ?? "")
+        ) {
+          i += 1;
+        }
+        continue;
+      }
+      remainingNodes.push(node);
+    }
+
+    el.replaceChildren();
+    desiredKbIds.forEach((id) => {
+      const knowledgeBase = KNOWLEDGE_BASES.find((kb) => kb.id === id);
+      if (!knowledgeBase) return;
+      const chip = createKnowledgeBaseChip(knowledgeBase, () => removeKnowledgeBaseChip(chip, id));
+      el.appendChild(chip);
+      el.appendChild(document.createTextNode("\u00A0"));
+    });
+    remainingNodes.forEach((node) => el.appendChild(node));
+    setMessage(el.innerText);
+  }, [removeKnowledgeBaseChip, selectedKnowledgeBases]);
 
   useEffect(() => {
     const refresh = () => setExtraRecentChats(getExtraRecentChats());
@@ -903,8 +1323,31 @@ export default function AgentChatPage() {
   const handleComposerKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "@") {
-        e.preventDefault();
-        openMentionMenu();
+        // Let the "@" be typed into the composer as normal text, then anchor
+        // the add-menu at the caret so it opens right next to the "@".
+        requestAnimationFrame(() => {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const caret = sel.getRangeAt(0);
+            // Measure the just-typed "@" itself rather than the collapsed
+            // caret — a collapsed range can report an empty (0,0) rect.
+            let rect = caret.getBoundingClientRect();
+            if (
+              caret.startOffset > 0 &&
+              caret.startContainer.nodeType === Node.TEXT_NODE
+            ) {
+              const charRange = document.createRange();
+              charRange.setStart(caret.startContainer, caret.startOffset - 1);
+              charRange.setEnd(caret.startContainer, caret.startOffset);
+              const charRect = charRange.getBoundingClientRect();
+              if (charRect.width > 0 || charRect.height > 0) rect = charRect;
+            }
+            if (rect.left !== 0 || rect.bottom !== 0) {
+              setAddMenuAnchor({ left: rect.left, top: rect.bottom });
+            }
+          }
+          setAddMenuOpen(true);
+        });
         return;
       }
       if (e.key === "Enter" && !e.shiftKey) {
@@ -912,7 +1355,7 @@ export default function AgentChatPage() {
         beginConversation(mentionTextareaRef.current?.innerText ?? message);
       }
     },
-    [openMentionMenu, beginConversation, message]
+    [beginConversation, message]
   );
 
   const arrivedViaChat = searchParams.get("from") === "chat";
@@ -1119,9 +1562,15 @@ export default function AgentChatPage() {
                     className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
                   <div className="flex items-center gap-1 pt-2">
-                    <AttachMenu uploadOnly={newChatAgentApps != null} />
-                    <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} activeApps={promptApps} />
-                    <PromptsMenu onSelect={applyPrompt} side="top" />
+                    <AddMenu uploadOnly={newChatAgentApps != null} toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
+                    <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
+                    <ModelMenu
+                      selectedId={selectedModelId}
+                      onSelect={setSelectedModelId}
+                      thinking={thinkingEnabled}
+                      onThinkingChange={setThinkingEnabled}
+                      side="top"
+                    />
                     <div className="ml-auto flex items-center gap-0.5">
                       <button type="button" className={toolbarBtn} title="Voice input">
                         <MicIcon className={toolbarIcon} />
@@ -1184,8 +1633,10 @@ export default function AgentChatPage() {
                         <div className="flex items-center gap-1 pt-1">
                           {/* Left toolbar */}
                           <div className="flex items-center gap-0.5">
-                            <AttachMenu />
-                            <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} />
+                            <AddMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} />
+                            {/* Caret-anchored copy of the add-menu, opened by typing "@" in the composer. */}
+                            <AddMenuAnchored toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} open={addMenuOpen} onOpenChange={setAddMenuOpen} anchor={addMenuAnchor} />
+                            <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
                             <WorkflowMentionMenu
                               search={workflowSearch}
                               onSearchChange={setWorkflowSearch}
@@ -1193,7 +1644,6 @@ export default function AgentChatPage() {
                               onTabChange={setWorkflowTab}
                               selectedIds={selectedWorkflows.map((w) => w.id)}
                               onSelect={handleSelectWorkflow}
-                              onButtonTrigger={openMentionMenuFromButton}
                               autoSelect={autoSelectWorkflow}
                               onAutoSelectChange={setAutoSelectWorkflow}
                               side="bottom"
@@ -1201,10 +1651,16 @@ export default function AgentChatPage() {
                               onOpenChange={setMentionMenuOpen}
                               anchor={mentionAnchor}
                             />
-                            <PromptsMenu onSelect={applyPrompt} side="bottom" />
                           </div>
                           {/* Right toolbar */}
                           <div className="ml-auto flex items-center gap-0.5">
+                            <ModelMenu
+                              selectedId={selectedModelId}
+                              onSelect={setSelectedModelId}
+                              thinking={thinkingEnabled}
+                              onThinkingChange={setThinkingEnabled}
+                              side="bottom"
+                            />
                             <button type="button" className={toolbarBtn} title="Voice input">
                               <MicIcon className={toolbarIcon} />
                             </button>
@@ -1339,6 +1795,19 @@ export default function AgentChatPage() {
           onOpenChange={setMoreAppsOpen}
           connectedConnectors={connectedConnectors}
           onConnectorChange={setConnectedConnectors}
+          activeApps={promptApps}
+          onActiveAppsChange={setPromptApps}
+          onRequestConnect={openConnectionSetup}
+        />
+        <ConnectionSetupModal
+          open={connectionSetupOpen}
+          integrationId={editingConnectionId}
+          isConnected={editingConnectionId ? connectedConnectors.includes(editingConnectionId) : false}
+          onOpenChange={(open) => {
+            setConnectionSetupOpen(open);
+            if (!open) setEditingConnectionId(null);
+          }}
+          onSave={handleConnectionSave}
         />
       </div>
     );
@@ -1413,9 +1882,8 @@ export default function AgentChatPage() {
                       className="composer-editable min-h-[72px] w-full whitespace-pre-wrap break-words bg-transparent text-left text-sm outline-none leading-relaxed"
                     />
                     <div className="flex items-center gap-1 pt-1">
-                      <AttachMenu uploadOnly />
-                      <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" agentApps={getAgentApps(id)} />
-                      <PromptsMenu onSelect={applyPrompt} side="bottom" />
+                      <AddMenu uploadOnly toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" agentApps={getAgentApps(id)} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
+                      <ComposerToolIcons connectedConnectors={connectedConnectors} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
                       <div className="ml-auto flex items-center gap-0.5">
                         <button type="button" className={toolbarBtn} title="Voice input">
                           <MicIcon className={toolbarIcon} />
@@ -1472,9 +1940,8 @@ export default function AgentChatPage() {
                   className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
                 <div className="flex items-center gap-1 pt-2">
-                  <AttachMenu uploadOnly />
-                  <ToolsMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={getAgentApps(id)} />
-                  <PromptsMenu onSelect={applyPrompt} side="top" />
+                  <AddMenu uploadOnly toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={getAgentApps(id)} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
+                  <ComposerToolIcons connectedConnectors={connectedConnectors} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
                   <div className="ml-auto flex items-center gap-0.5">
                     <button type="button" className={toolbarBtn} title="Voice input">
                       <MicIcon className={toolbarIcon} />
@@ -1503,6 +1970,17 @@ export default function AgentChatPage() {
         onOpenChange={setMoreAppsOpen}
         connectedConnectors={connectedConnectors}
         onConnectorChange={setConnectedConnectors}
+        onRequestConnect={openConnectionSetup}
+      />
+      <ConnectionSetupModal
+        open={connectionSetupOpen}
+        integrationId={editingConnectionId}
+        isConnected={editingConnectionId ? connectedConnectors.includes(editingConnectionId) : false}
+        onOpenChange={(open) => {
+          setConnectionSetupOpen(open);
+          if (!open) setEditingConnectionId(null);
+        }}
+        onSave={handleConnectionSave}
       />
     </div>
   );

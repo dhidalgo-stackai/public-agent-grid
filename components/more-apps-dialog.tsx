@@ -28,14 +28,21 @@ export function MoreAppsDialog({
   onOpenChange,
   connectedConnectors,
   onConnectorChange,
+  activeApps,
+  onActiveAppsChange,
+  onRequestConnect,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   connectedConnectors?: string[];
   onConnectorChange?: (ids: string[]) => void;
+  activeApps?: string[];
+  onActiveAppsChange?: (ids: string[]) => void;
+  onRequestConnect?: (id: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const connected = connectedConnectors ?? [];
+  const pending = activeApps ?? [];
   const filtered = ALL_APPS.filter(
     (a) =>
       a.label.toLowerCase().includes(query.toLowerCase()) ||
@@ -77,7 +84,23 @@ export function MoreAppsDialog({
                 <button
                   key={app.id}
                   type="button"
-                  onClick={() => toggle(app.id)}
+                  onClick={() => {
+                    if (isConnected) {
+                      toggle(app.id);
+                      return;
+                    }
+                    if (onActiveAppsChange) {
+                      onActiveAppsChange(
+                        pending.includes(app.id)
+                          ? pending.filter((x) => x !== app.id)
+                          : [...pending, app.id]
+                      );
+                      onOpenChange(false);
+                      return;
+                    }
+                    onOpenChange(false);
+                    onRequestConnect?.(app.id);
+                  }}
                   className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/60 transition-colors"
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
@@ -87,8 +110,10 @@ export function MoreAppsDialog({
                     <span className="block text-sm font-medium">{app.label}</span>
                     <span className="block text-xs text-muted-foreground">{app.category}</span>
                   </span>
-                  {isConnected ? (
-                    <span className="text-xs font-medium text-foreground">Connected</span>
+                  {isConnected || pending.includes(app.id) ? (
+                    <span className="text-xs font-medium text-foreground">
+                      {isConnected ? "Connected" : "Added"}
+                    </span>
                   ) : (
                     <span className="text-xs text-muted-foreground">Connect</span>
                   )}

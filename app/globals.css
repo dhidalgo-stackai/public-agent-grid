@@ -48,7 +48,7 @@
 
 :root {
   --radius: 0.625rem;
-  --dot-color: rgba(0, 0, 0, 0.08);
+  --dot-color: rgba(0, 0, 0, 0.13);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -136,6 +136,18 @@
   background-position: -1px -1px;
   -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 80%);
   mask-image: linear-gradient(to bottom, black 0%, transparent 80%);
+}
+
+.dotted-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(255, 255, 255, 0.78) 18%,
+    rgba(255, 255, 255, 0) 54%
+  );
 }
 
 .composer-editable:empty::before {

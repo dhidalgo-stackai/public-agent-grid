@@ -124,23 +124,25 @@ export function AutomationScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit schedule</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-w-[640px] rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]">
+        <DialogHeader className="space-y-3 border-b border-border/80 px-7 pb-6 pt-7">
+          <DialogTitle className="text-2xl font-semibold">
+            Edit schedule
+          </DialogTitle>
+          <DialogDescription className="max-w-xl text-sm leading-6">
             Choose when “{automationName}” runs.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 py-2">
+        <div className="flex flex-col gap-6 px-7 py-6">
           {/* Frequency */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Frequency</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-foreground">Frequency</label>
             <Select
               value={frequency}
               onValueChange={(v) => setFrequency(v as Frequency)}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="h-10 w-full rounded-lg px-3 text-sm shadow-none hover:bg-background focus-visible:ring-ring/15">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -153,10 +155,10 @@ export function AutomationScheduleDialog({
 
           {/* Day of week — only relevant for weekly */}
           {frequency === "weekly" && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Day of week</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-foreground">Day of week</label>
               <Select value={day} onValueChange={setDay}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="h-10 w-full rounded-lg px-3 text-sm shadow-none hover:bg-background focus-visible:ring-ring/15">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -171,35 +173,35 @@ export function AutomationScheduleDialog({
           )}
 
           {/* Time */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Time</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-foreground">Time</label>
             <input
               type="time"
               value={time24}
               onChange={(e) => setTime24(e.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-none outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
             />
           </div>
 
           {/* Preview */}
-          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-3 rounded-lg border border-border/80 bg-background px-4 py-3 text-sm text-muted-foreground">
             <ClockIcon className="size-4 shrink-0" />
             <span>{preview}</span>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="border-t border-border/80 bg-muted/30 px-7 py-4 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
+            className="h-9 rounded-lg border border-border bg-background px-5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+            className="h-9 min-w-[78px] rounded-lg bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
           >
             Save schedule
           </button>
