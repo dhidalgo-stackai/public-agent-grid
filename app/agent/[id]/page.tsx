@@ -141,6 +141,31 @@ const CONNECTOR_ITEMS = [
   { id: "snowflake", label: "Snowflake" },
 ];
 
+// Keyword aliases that make apps discoverable by what they do, not just their
+// brand name — e.g. typing "email" surfaces both Gmail and Outlook. Folded into
+// every connector search so it works in the "@" menu and inline app search.
+const APP_SEARCH_ALIASES: Record<string, string> = {
+  gmail: "email mail inbox message",
+  outlook: "email mail inbox message",
+  slack: "message chat dm",
+  gdrive: "file files document storage",
+  dropbox: "file files document storage",
+  notion: "docs notes wiki",
+  github: "code repo repository pull request",
+  linear: "issue ticket bug",
+  asana: "task project",
+  snowflake: "database sql warehouse",
+};
+
+// The full searchable string for a connector: its label, id, and any aliases.
+function connectorSearchText(item: { id: string; label: string }) {
+  return `${item.label} ${item.id} ${APP_SEARCH_ALIASES[item.id] ?? ""}`;
+}
+
+// Standalone keywords the inline app search should trigger on even though they
+// aren't an app name — each resolves to the alias-matched apps in the panel.
+const APP_SEARCH_KEYWORDS = ["email", "mail", "inbox"];
+
 const DROPDOWN_OPTION_SELECTOR =
   '[data-app-tool-suggestion], [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-sub-trigger"]';
 
@@ -307,7 +332,7 @@ function hasAddMenuSearchResults({
 
   return (
     TOOL_TOGGLE_ITEMS.some((item) => matchesSearch(item.label)) ||
-    connectorItems.some((item) => matchesSearch(`${item.label} ${item.id}`)) ||
+    connectorItems.some((item) => matchesSearch(connectorSearchText(item))) ||
     KNOWLEDGE_BASES.some((kb) => matchesSearch(kb.name)) ||
     (!hideConnectedApps &&
       CONNECTED_APPS.some((app) => matchesSearch(`${app.name} ${app.id}`))) ||
@@ -385,7 +410,7 @@ function AddMenuContent({
     matchesSearch(item.label)
   );
   const searchedConnectors = connectorItems.filter((item) =>
-    matchesSearch(`${item.label} ${item.id}`)
+    matchesSearch(connectorSearchText(item))
   );
   const searchedKnowledgeBases = KNOWLEDGE_BASES.filter((kb) =>
     matchesSearch(kb.name)
@@ -985,7 +1010,7 @@ function AppToolSuggestionPanel({
   const matchesSearch = (value: string) =>
     value.toLowerCase().includes(normalizedSearch);
   const suggestions = CONNECTOR_ITEMS.filter((item) =>
-    matchesSearch(`${item.label} ${item.id}`)
+    matchesSearch(connectorSearchText(item))
   );
 
   if (!anchor || suggestions.length === 0) return null;
@@ -1117,11 +1142,17 @@ const CONNECTED_APPS = [
 
 const APP_SEARCH_TERMS = Array.from(
   new Map(
-    [...CONNECTOR_ITEMS, ...CONNECTED_APPS]
-      .flatMap((app) => [
-        [app.id, "label" in app ? app.label : app.name],
-        ["label" in app ? app.label : app.name, "label" in app ? app.label : app.name],
-      ])
+    [
+      ...[...CONNECTOR_ITEMS, ...CONNECTED_APPS].flatMap((app) => {
+        const label = "label" in app ? app.label : app.name;
+        return [
+          [app.id, label],
+          [label, label],
+        ];
+      }),
+      // Keywords like "email" resolve to their alias-matched apps in the panel.
+      ...APP_SEARCH_KEYWORDS.map((keyword) => [keyword, keyword]),
+    ]
       .map(([term, label]) => [term.toLowerCase(), { term, label }])
   ).values()
 ).sort((a, b) => b.term.length - a.term.length);
@@ -1252,7 +1283,7 @@ function hasAddMenuSearchSuggestions(searchValue: string) {
   if (!normalizedSearch) return false;
   return (
     CONNECTOR_ITEMS.some((item) =>
-      `${item.label} ${item.id}`.toLowerCase().includes(normalizedSearch)
+      connectorSearchText(item).toLowerCase().includes(normalizedSearch)
     ) ||
     KNOWLEDGE_BASES.some((kb) =>
       kb.name.toLowerCase().includes(normalizedSearch)
