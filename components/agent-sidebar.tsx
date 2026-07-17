@@ -124,7 +124,7 @@ interface AgentSidebarProps {
   onNewChat?: () => void;
   agentMode?: boolean;
   filterAgentId?: string;
-  activeSection?: "agents" | "automations" | "knowledge-bases" | "connections";
+  activeSection?: "agents" | "automations" | "knowledge-bases" | "connections" | "artifacts";
   favoriteAgents?: { id: string; name: string }[];
   defaultCollapsed?: boolean;
 }

@@ -55,6 +55,7 @@ import {
   RECENT_CHATS_EVENT,
   getExtraRecentChats,
   type ChatItem,
+  type ChatMessage,
 } from "@/lib/chats-data";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { AGENT_DIRECTORY, getAgentApps, getAppLabel } from "@/lib/agents-data";
@@ -2236,6 +2237,73 @@ function AssistantBlocks({ blocks }: { blocks: import("@/lib/chats-data").Assist
   );
 }
 
+function messageTextPreview(msg: ChatMessage): string {
+  if (msg.parts) {
+    return msg.parts
+      .map((p) => (p.type === "text" ? p.text : `@${p.chip?.name ?? ""}`))
+      .join("")
+      .trim();
+  }
+  return msg.content.trim();
+}
+
+function MessageNavigator({
+  userMessages,
+  chatId,
+}: {
+  userMessages: { index: number; text: string }[];
+  chatId: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  if (userMessages.length < 2) return null;
+  const scrollTo = (i: number) => {
+    const el = document.getElementById(`msg-${chatId}-${i}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  return (
+    <div
+      className="pointer-events-none fixed right-3 top-1/2 z-20 -translate-y-1/2"
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => {
+        setExpanded(false);
+        setHoverIdx(null);
+      }}
+    >
+      {expanded ? (
+        <div className="pointer-events-auto flex w-[280px] flex-col gap-0.5 rounded-2xl border border-white/10 bg-neutral-900/95 p-2 text-neutral-100 shadow-xl backdrop-blur">
+          {userMessages.map((m) => (
+            <button
+              key={m.index}
+              type="button"
+              onClick={() => scrollTo(m.index)}
+              onMouseEnter={() => setHoverIdx(m.index)}
+              className={cn(
+                "truncate rounded-lg px-3 py-1.5 text-left text-xs transition-colors",
+                hoverIdx === m.index
+                  ? "bg-white/10 text-white"
+                  : "text-neutral-300 hover:bg-white/5"
+              )}
+              title={m.text}
+            >
+              {m.text || "(empty message)"}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="pointer-events-auto flex flex-col items-end gap-1.5 py-1">
+          {userMessages.map((m) => (
+            <span
+              key={m.index}
+              className="block h-[2px] w-4 rounded-full bg-muted-foreground/40"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ChatThread({
   chatId,
   agentName,
@@ -2244,34 +2312,42 @@ function ChatThread({
   agentName: string;
 }) {
   const messages = getChatMessages(chatId, agentName);
+  const userMessages = messages
+    .map((msg, i) => ({ msg, i }))
+    .filter(({ msg }) => msg.role === "user")
+    .map(({ msg, i }) => ({ index: i, text: messageTextPreview(msg) }));
   return (
-    <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-4">
-      {messages.map((msg, i) => (
-        <div
-          key={i}
-          className={cn(
-            "text-sm",
-            msg.role === "user"
-              ? "max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-black/5 px-4 py-2.5 text-foreground"
-              : "w-full self-start text-foreground"
-          )}
-        >
-          {msg.role === "user" && msg.parts ? (
-            msg.parts.map((part, j) =>
-              part.type === "text" ? (
-                <React.Fragment key={j}>{part.text}</React.Fragment>
-              ) : (
-                <ChatChipInline key={j} chip={part.chip} />
+    <>
+      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-4">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            id={`msg-${chatId}-${i}`}
+            className={cn(
+              "scroll-mt-6 text-sm",
+              msg.role === "user"
+                ? "max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-black/5 px-4 py-2.5 text-foreground"
+                : "w-full self-start text-foreground"
+            )}
+          >
+            {msg.role === "user" && msg.parts ? (
+              msg.parts.map((part, j) =>
+                part.type === "text" ? (
+                  <React.Fragment key={j}>{part.text}</React.Fragment>
+                ) : (
+                  <ChatChipInline key={j} chip={part.chip} />
+                )
               )
-            )
-          ) : msg.role === "assistant" && msg.blocks ? (
-            <AssistantBlocks blocks={msg.blocks} />
-          ) : (
-            <span className="whitespace-pre-wrap">{msg.content}</span>
-          )}
-        </div>
-      ))}
-    </div>
+            ) : msg.role === "assistant" && msg.blocks ? (
+              <AssistantBlocks blocks={msg.blocks} />
+            ) : (
+              <span className="whitespace-pre-wrap">{msg.content}</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <MessageNavigator userMessages={userMessages} chatId={chatId} />
+    </>
   );
 }
 
