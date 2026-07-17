@@ -12,9 +12,9 @@ export type ChatItem = {
 };
 
 export const MOCK_RECENT_CHATS: ChatItem[] = [
-  { id: "c1", label: "Summarize Q2 report", timestamp: "2h ago", agentId: "9", agentName: "Sales Forecaster" },
-  { id: "c2", label: "Draft customer email", timestamp: "Yesterday", agentId: "11", agentName: "Customer Support Bot" },
-  { id: "c3", label: "Analyze sales data", timestamp: "2d ago", agentId: "14", agentName: "Deal Closer" },
+  { id: "c1", label: "Summarize Q2 volume report", timestamp: "2h ago", agentId: "9", agentName: "Volume Forecaster" },
+  { id: "c2", label: "Draft delay notification email", timestamp: "Yesterday", agentId: "11", agentName: "Delivery Support Bot" },
+  { id: "c3", label: "Analyze at-risk shipper accounts", timestamp: "2d ago", agentId: "14", agentName: "Contract Renewal Assistant" },
 ];
 
 const EXTRA_CHATS_KEY = "extra-recent-chats";
@@ -49,45 +49,45 @@ export function addRecentChat(chat: ChatItem): void {
 
 export const MOCK_CHAT_HISTORY: Record<string, ChatMessage[]> = {
   c1: [
-    { role: "user", content: "Can you summarize our Q2 sales report? I need the highlights for the leadership standup." },
+    { role: "user", content: "Can you summarize our Q2 shipping volume report? I need the highlights for the ops standup." },
     {
       role: "assistant",
       content:
-        "Here's a concise Q2 summary:\n\n• **Revenue**: $4.2M (+18% QoQ), driven by enterprise upsells\n• **Pipeline**: $12.8M qualified, win rate improved to 34%\n• **Top segment**: Mid-market SaaS (+26%)\n• **Risk**: Two large deals slipped to Q3 ($890K combined)\n\nWant me to format this as slides or a one-pager?",
+        "Here's a concise Q2 summary:\n\n• **Total volume**: 412M packages (+9% YoY), driven by e-commerce peak\n• **Ground**: 268M (+11%), Express: 128M (+5%), Freight: 16M (+2%)\n• **On-time**: 96.8% network-wide, best in Ground (97.4%)\n• **Risk**: MEM hub throughput dipped 3 pts in late June (weather + staffing)\n\nWant me to format this as slides or a one-pager?",
     },
     { role: "user", content: "Yes — bullet points only, under 6 lines for the slide." },
     {
       role: "assistant",
       content:
-        "• Q2 revenue $4.2M (+18% QoQ)\n• Qualified pipeline $12.8M, 34% win rate\n• Mid-market SaaS led growth (+26%)\n• Enterprise upsells were the main driver\n• $890K slipped to Q3 — flag in forecast\n• Recommend raising Q3 target by 5% on pipeline strength",
+        "• Q2 volume 412M packages (+9% YoY)\n• Ground led growth at 268M (+11%)\n• Network on-time 96.8%, Ground strongest at 97.4%\n• E-commerce peak was the main driver\n• MEM hub dipped 3 pts in late June — flag for review\n• Recommend adding surge capacity at MEM for Q3 peak",
     },
   ],
   c2: [
-    { role: "user", content: "Draft a welcome email for new customers who just completed onboarding." },
+    { role: "user", content: "Draft a proactive delay notification for shippers with packages stuck at MEM." },
     {
       role: "assistant",
       content:
-        "Subject: You're all set — here's how to get the most from Acme\n\nHi {{first_name}},\n\nWelcome aboard! Your workspace is ready. Start with **Quick Start** in the sidebar, or reply to this email if you'd like a 15-minute walkthrough.\n\n— The Acme team",
+        "Subject: Update on your FedEx shipment — revised delivery estimate\n\nHi {{first_name}},\n\nYour shipment ({{tracking_number}}) is currently held at our Memphis hub due to weather-related delays. Revised estimated delivery: **{{new_eta}}**. No action needed — we'll notify you as soon as it moves.\n\n— The FedEx team",
     },
     { role: "user", content: "Make it warmer and shorter — under 80 words." },
     {
       role: "assistant",
       content:
-        "Subject: Welcome to Acme 🎉\n\nHi {{first_name}},\n\nYou're in! Open your workspace and try **New Chat** — pick any agent and ask anything. Questions? Just reply here.\n\nHappy building,\nAcme",
+        "Subject: Quick update on your FedEx shipment\n\nHi {{first_name}},\n\nWe're holding your package ({{tracking_number}}) at our Memphis hub due to weather. New ETA: **{{new_eta}}**. We'll ping you the moment it's back on the road — no action needed on your end.\n\nThanks for your patience,\nFedEx",
     },
   ],
   c3: [
-    { role: "user", content: "Analyze our sales pipeline for deals closing this month." },
+    { role: "user", content: "Analyze our enterprise shippers with renewals closing this month." },
     {
       role: "assistant",
       content:
-        "March close forecast (from CRM snapshot):\n\n• **Commit**: 7 deals, $1.1M (high confidence)\n• **Best case**: 4 deals, $620K (needs legal/security)\n• **At risk**: 3 deals stalled >14 days in negotiation\n\nBiggest blocker: security review on Acme Corp ($240K). I can draft a follow-up for that account.",
+        "March renewal snapshot (from CRM):\n\n• **Commit**: 7 accounts, $1.1M ARR (high confidence)\n• **Best case**: 4 accounts, $620K ARR (needs pricing/legal)\n• **At risk**: 3 accounts with volume down >20% QoQ\n\nBiggest blocker: Shopify enterprise renewal ($240K) — pricing objection on Ground rates. I can draft a follow-up for that account.",
     },
     { role: "user", content: "What's the weighted forecast?" },
     {
       role: "assistant",
       content:
-        "Weighted March forecast: **$1.34M** (commit 100%, best case 60%, at-risk 20%). vs. quota $1.5M → **89% attainment** if nothing slips. Pushing Acme + Nova would close the gap.",
+        "Weighted March renewal forecast: **$1.34M ARR** (commit 100%, best case 60%, at-risk 20%). vs. quota $1.5M → **89% attainment** if nothing slips. Saving Shopify + Nova would close the gap.",
     },
   ],
 };

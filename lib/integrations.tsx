@@ -30,18 +30,18 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
       </svg>
     ),
     connections: [
-      { id: "slack-1", name: "Acme — Slack" },
-      { id: "slack-2", name: "Marketing Team — Slack" },
-      { id: "slack-3", name: "Engineering — Slack" },
+      { id: "slack-1", name: "FedEx Ops — Slack" },
+      { id: "slack-2", name: "Enterprise Accounts — Slack" },
+      { id: "slack-3", name: "Customer Service — Slack" },
     ],
     detail: {
       label: "Channel",
       options: [
-        { id: "ch-1", name: "#general" },
-        { id: "ch-2", name: "#sales-leads" },
-        { id: "ch-3", name: "#compliance" },
-        { id: "ch-4", name: "#marketing" },
-        { id: "ch-5", name: "#engineering" },
+        { id: "ch-1", name: "#hub-memphis-ops" },
+        { id: "ch-2", name: "#enterprise-sales" },
+        { id: "ch-3", name: "#dg-compliance" },
+        { id: "ch-4", name: "#customer-escalations" },
+        { id: "ch-5", name: "#network-alerts" },
       ],
     },
   },
@@ -49,15 +49,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Gmail",
     icon: integrationIcons.gmail,
     connections: [
-      { id: "gmail-1", name: "hello@acme.com" },
-      { id: "gmail-2", name: "digest@acme.com" },
+      { id: "gmail-1", name: "shipper-comms@fedex.com" },
+      { id: "gmail-2", name: "ops-digest@fedex.com" },
     ],
     detail: {
       label: "Mailbox",
       options: [
         { id: "gmail-detail-1", name: "Inbox" },
-        { id: "gmail-detail-2", name: "Customers" },
-        { id: "gmail-detail-3", name: "Newsletters" },
+        { id: "gmail-detail-2", name: "Shipper Notifications" },
+        { id: "gmail-detail-3", name: "Weekly Digests" },
       ],
     },
   },
@@ -65,15 +65,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "GitHub",
     icon: integrationIcons.github,
     connections: [
-      { id: "github-1", name: "Acme Engineering" },
-      { id: "github-2", name: "david-hidalgo" },
+      { id: "github-1", name: "FedEx Digital" },
+      { id: "github-2", name: "fedex-platform" },
     ],
     detail: {
       label: "Repository",
       options: [
-        { id: "github-repo-1", name: "public_grid" },
-        { id: "github-repo-2", name: "agent-workflows" },
-        { id: "github-repo-3", name: "customer-portal" },
+        { id: "github-repo-1", name: "tracking-service" },
+        { id: "github-repo-2", name: "rate-engine" },
+        { id: "github-repo-3", name: "shipper-portal" },
       ],
     },
   },
@@ -81,15 +81,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Linear",
     icon: integrationIcons.linear,
     connections: [
-      { id: "linear-1", name: "Acme Product" },
-      { id: "linear-2", name: "Platform Team" },
+      { id: "linear-1", name: "FedEx Digital Product" },
+      { id: "linear-2", name: "Tracking Platform" },
     ],
     detail: {
       label: "Team",
       options: [
-        { id: "linear-team-1", name: "Engineering" },
-        { id: "linear-team-2", name: "Growth" },
-        { id: "linear-team-3", name: "Support" },
+        { id: "linear-team-1", name: "Tracking" },
+        { id: "linear-team-2", name: "Shipper Portal" },
+        { id: "linear-team-3", name: "Customer Support" },
       ],
     },
   },
@@ -97,15 +97,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Asana",
     icon: integrationIcons.asana,
     connections: [
-      { id: "asana-1", name: "Acme Workspace" },
-      { id: "asana-2", name: "Marketing Ops" },
+      { id: "asana-1", name: "FedEx Ops" },
+      { id: "asana-2", name: "Peak Season Planning" },
     ],
     detail: {
       label: "Project",
       options: [
-        { id: "asana-project-1", name: "Launch Calendar" },
-        { id: "asana-project-2", name: "Roadmap" },
-        { id: "asana-project-3", name: "Customer Follow-up" },
+        { id: "asana-project-1", name: "Peak Season 2026" },
+        { id: "asana-project-2", name: "Hub Capacity" },
+        { id: "asana-project-3", name: "Shipper Onboarding" },
       ],
     },
   },
@@ -113,15 +113,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Snowflake",
     icon: integrationIcons.snowflake,
     connections: [
-      { id: "snowflake-1", name: "Acme Analytics" },
-      { id: "snowflake-2", name: "Production Warehouse" },
+      { id: "snowflake-1", name: "FedEx Enterprise Data Warehouse" },
+      { id: "snowflake-2", name: "Network Ops Warehouse" },
     ],
     detail: {
       label: "Warehouse",
       options: [
-        { id: "snowflake-wh-1", name: "COMPUTE_WH" },
-        { id: "snowflake-wh-2", name: "ANALYTICS_WH" },
-        { id: "snowflake-wh-3", name: "FINANCE_WH" },
+        { id: "snowflake-wh-1", name: "SHIPMENT_WH" },
+        { id: "snowflake-wh-2", name: "OPS_ANALYTICS_WH" },
+        { id: "snowflake-wh-3", name: "REVENUE_WH" },
       ],
     },
   },
@@ -129,15 +129,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Jira",
     icon: integrationIcons.jira,
     connections: [
-      { id: "jira-1", name: "Acme Jira" },
-      { id: "jira-2", name: "Platform Jira" },
+      { id: "jira-1", name: "FedEx IT Jira" },
+      { id: "jira-2", name: "Hub Ops Jira" },
     ],
     detail: {
       label: "Project",
       options: [
-        { id: "jira-project-1", name: "ENG" },
-        { id: "jira-project-2", name: "GROWTH" },
-        { id: "jira-project-3", name: "OPS" },
+        { id: "jira-project-1", name: "TMS" },
+        { id: "jira-project-2", name: "TRACK" },
+        { id: "jira-project-3", name: "HUB-OPS" },
       ],
     },
   },
@@ -145,15 +145,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "HubSpot",
     icon: integrationIcons.hubspot,
     connections: [
-      { id: "hubspot-1", name: "Acme CRM" },
-      { id: "hubspot-2", name: "Sales Team" },
+      { id: "hubspot-1", name: "FedEx SMB CRM" },
+      { id: "hubspot-2", name: "Enterprise Sales" },
     ],
     detail: {
       label: "Pipeline",
       options: [
-        { id: "hubspot-pipeline-1", name: "New Business" },
+        { id: "hubspot-pipeline-1", name: "New Shippers" },
         { id: "hubspot-pipeline-2", name: "Renewals" },
-        { id: "hubspot-pipeline-3", name: "Partners" },
+        { id: "hubspot-pipeline-3", name: "Reseller Partners" },
       ],
     },
   },
@@ -161,15 +161,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Salesforce",
     icon: integrationIcons.salesforce,
     connections: [
-      { id: "salesforce-1", name: "Acme Sales Cloud" },
-      { id: "salesforce-2", name: "Enterprise CRM" },
+      { id: "salesforce-1", name: "FedEx Compass (SFDC)" },
+      { id: "salesforce-2", name: "Enterprise Accounts CRM" },
     ],
     detail: {
       label: "Object",
       options: [
-        { id: "salesforce-object-1", name: "Accounts" },
-        { id: "salesforce-object-2", name: "Opportunities" },
-        { id: "salesforce-object-3", name: "Cases" },
+        { id: "salesforce-object-1", name: "Shipper Accounts" },
+        { id: "salesforce-object-2", name: "Renewal Opportunities" },
+        { id: "salesforce-object-3", name: "Support Cases" },
       ],
     },
   },
@@ -177,15 +177,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Airtable",
     icon: integrationIcons.airtable,
     connections: [
-      { id: "airtable-1", name: "Acme Base" },
-      { id: "airtable-2", name: "Content Ops" },
+      { id: "airtable-1", name: "FedEx Ops Trackers" },
+      { id: "airtable-2", name: "Peak Season Ops" },
     ],
     detail: {
       label: "Base",
       options: [
-        { id: "airtable-base-1", name: "Editorial Calendar" },
-        { id: "airtable-base-2", name: "Customer Research" },
-        { id: "airtable-base-3", name: "Vendor Tracker" },
+        { id: "airtable-base-1", name: "Hub Capacity Tracker" },
+        { id: "airtable-base-2", name: "Exception Log" },
+        { id: "airtable-base-3", name: "Carrier Partners" },
       ],
     },
   },
@@ -193,15 +193,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Confluence",
     icon: integrationIcons.confluence,
     connections: [
-      { id: "confluence-1", name: "Acme Knowledge" },
-      { id: "confluence-2", name: "Engineering Docs" },
+      { id: "confluence-1", name: "FedEx Ops Wiki" },
+      { id: "confluence-2", name: "Hub SOPs" },
     ],
     detail: {
       label: "Space",
       options: [
-        { id: "confluence-space-1", name: "Product" },
-        { id: "confluence-space-2", name: "Engineering" },
-        { id: "confluence-space-3", name: "Support" },
+        { id: "confluence-space-1", name: "Hub Operations" },
+        { id: "confluence-space-2", name: "Customer Service" },
+        { id: "confluence-space-3", name: "Safety & Compliance" },
       ],
     },
   },
@@ -209,15 +209,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Intercom",
     icon: integrationIcons.intercom,
     connections: [
-      { id: "intercom-1", name: "Acme Support" },
-      { id: "intercom-2", name: "Customer Success" },
+      { id: "intercom-1", name: "FedEx Customer Care" },
+      { id: "intercom-2", name: "Enterprise Support" },
     ],
     detail: {
       label: "Inbox",
       options: [
-        { id: "intercom-inbox-1", name: "Support" },
-        { id: "intercom-inbox-2", name: "Sales" },
-        { id: "intercom-inbox-3", name: "VIP Customers" },
+        { id: "intercom-inbox-1", name: "Delivery Support" },
+        { id: "intercom-inbox-2", name: "Shipper Onboarding" },
+        { id: "intercom-inbox-3", name: "Enterprise Accounts" },
       ],
     },
   },
@@ -225,15 +225,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Notion",
     icon: integrationIcons.notion,
     connections: [
-      { id: "notion-1", name: "Acme HQ" },
-      { id: "notion-2", name: "Product & Research" },
+      { id: "notion-1", name: "FedEx Ops Wiki" },
+      { id: "notion-2", name: "Customer Service Playbooks" },
     ],
     detail: {
       label: "Workspace",
       options: [
-        { id: "notion-ws-1", name: "Engineering Wiki" },
-        { id: "notion-ws-2", name: "Company Handbook" },
-        { id: "notion-ws-3", name: "Customer Research" },
+        { id: "notion-ws-1", name: "Hub Playbooks" },
+        { id: "notion-ws-2", name: "Driver Handbook" },
+        { id: "notion-ws-3", name: "Claims & Refunds" },
       ],
     },
   },
@@ -241,15 +241,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Dropbox",
     icon: integrationIcons.dropbox,
     connections: [
-      { id: "dropbox-1", name: "Acme Shared Drive" },
-      { id: "dropbox-2", name: "Executive Briefs" },
+      { id: "dropbox-1", name: "FedEx Enterprise Shared" },
+      { id: "dropbox-2", name: "Compliance Docs" },
     ],
     detail: {
       label: "Folder",
       options: [
-        { id: "dropbox-folder-1", name: "/Sales" },
-        { id: "dropbox-folder-2", name: "/Marketing" },
-        { id: "dropbox-folder-3", name: "/Board Updates" },
+        { id: "dropbox-folder-1", name: "/Enterprise Contracts" },
+        { id: "dropbox-folder-2", name: "/Customs Docs" },
+        { id: "dropbox-folder-3", name: "/Hub Reports" },
       ],
     },
   },
@@ -257,15 +257,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Google Drive",
     icon: integrationIcons.gdrive,
     connections: [
-      { id: "gdrive-1", name: "Acme Shared Drive" },
-      { id: "gdrive-2", name: "Leadership Docs" },
+      { id: "gdrive-1", name: "FedEx Shared Drive" },
+      { id: "gdrive-2", name: "Ops Leadership Docs" },
     ],
     detail: {
       label: "Drive",
       options: [
         { id: "gdrive-detail-1", name: "All company" },
-        { id: "gdrive-detail-2", name: "Product team" },
-        { id: "gdrive-detail-3", name: "Ops" },
+        { id: "gdrive-detail-2", name: "Hub Ops" },
+        { id: "gdrive-detail-3", name: "Enterprise Sales" },
       ],
     },
   },
@@ -273,15 +273,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Outlook",
     icon: integrationIcons.outlook,
     connections: [
-      { id: "outlook-1", name: "david@acme.com" },
-      { id: "outlook-2", name: "sales@acme.com" },
+      { id: "outlook-1", name: "david@fedex.com" },
+      { id: "outlook-2", name: "enterprise-sales@fedex.com" },
     ],
     detail: {
       label: "Mailbox",
       options: [
         { id: "outlook-detail-1", name: "Inbox" },
-        { id: "outlook-detail-2", name: "Customer Follow-up" },
-        { id: "outlook-detail-3", name: "Exec Updates" },
+        { id: "outlook-detail-2", name: "Shipper Escalations" },
+        { id: "outlook-detail-3", name: "Renewal Follow-up" },
       ],
     },
   },
@@ -289,15 +289,15 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Figma",
     icon: integrationIcons.figma,
     connections: [
-      { id: "figma-1", name: "Acme Design" },
-      { id: "figma-2", name: "Growth Studio" },
+      { id: "figma-1", name: "FedEx Design" },
+      { id: "figma-2", name: "Tracking Studio" },
     ],
     detail: {
       label: "Project",
       options: [
         { id: "figma-project-1", name: "Design System" },
-        { id: "figma-project-2", name: "Marketing Site" },
-        { id: "figma-project-3", name: "Mobile App" },
+        { id: "figma-project-2", name: "Tracking Page" },
+        { id: "figma-project-3", name: "FedEx Mobile" },
       ],
     },
   },
@@ -309,8 +309,8 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
       </svg>
     ),
     connections: [
-      { id: "conn-1", name: "Acme API" },
-      { id: "conn-2", name: "Internal Webhook" },
+      { id: "conn-1", name: "FedEx Tracking API" },
+      { id: "conn-2", name: "TMS Webhook" },
     ],
   },
   excel: {
@@ -321,8 +321,8 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
       </svg>
     ),
     connections: [
-      { id: "excel-1", name: "Acme Workbook" },
-      { id: "excel-2", name: "Q3 Forecast.xlsx" },
+      { id: "excel-1", name: "Weekly SLA Workbook" },
+      { id: "excel-2", name: "Peak Volume Forecast.xlsx" },
     ],
   },
 };

@@ -23,12 +23,12 @@ import { AgentGrid, AgentSection } from "@/components/agent-grid";
 const allAgents = [
   {
     id: "1",
-    name: "Compliance Checker",
+    name: "Customs Docs Checker",
     description:
-      "Automatically reviews LTV, DSCR, borrower history, and geographic flags. Validates compliance requirements and generates detailed audit reports.",
+      "Automatically reviews HS codes, commercial invoices, and dangerous goods paperwork for international shipments. Flags missing documents before pickup.",
     category: ["recent", "favorites", "work", "all", "your-agents"],
-    integrations: ["slack", "gmail", "figma"],
-    labels: ["Compliance", "Finance", "Audit"],
+    integrations: ["teams", "outlook", "salesforce"],
+    labels: ["Compliance", "Customs", "International"],
     interfaceType: "Chat" as const,
     icon: <ShieldCheck className="size-5" />,
     authorName: "Alex Chen",
@@ -39,11 +39,11 @@ const allAgents = [
   },
   {
     id: "2",
-    name: "Document Verifier",
+    name: "Bill of Lading Verifier",
     description:
-      "Detects forged files and fake borrower data with document-level AI analysis. Uses advanced ML to identify anomalies and inconsistencies.",
+      "Validates bills of lading against manifests and shipper submissions. Uses ML to flag mismatched weights, addresses, and hazmat declarations.",
     category: ["recent", "favorites", "work", "all", "your-agents"],
-    integrations: ["gmail", "connector", "excel"],
+    integrations: ["outlook", "connector", "excel"],
     labels: [],
     interfaceType: "Chat" as const,
     icon: <ScanLine className="size-5" />,
@@ -55,11 +55,11 @@ const allAgents = [
   },
   {
     id: "3",
-    name: "Memo Generator",
+    name: "Shipper Notice Generator",
     description:
-      "Turns messy borrower data into polished investment memos and term sheets. Automates document generation with customizable templates.",
+      "Turns raw exception data into polished shipper notices — delays, address corrections, customs holds. Uses customizable templates by service and language.",
     category: ["favorites", "work", "all", "your-agents", "automations"],
-    integrations: ["slack", "figma", "gmail"],
+    integrations: ["teams", "salesforce", "outlook"],
     labels: [],
     interfaceType: "Automation" as const,
     icon: <ScrollText className="size-5" />,
@@ -71,12 +71,12 @@ const allAgents = [
   },
   {
     id: "4",
-    name: "File Scanner",
+    name: "Manifest Scanner",
     description:
-      "This agent scans closing folders, detects outdated or missing files. Ensures document completeness before deal finalization.",
+      "This agent scans inbound manifests, detects missing or mismatched packages, and confirms hub-level intake completeness before dispatch.",
     category: ["work", "all", "your-agents", "automations"],
-    integrations: ["connector", "gmail", "excel", "slack"],
-    labels: ["Validation", "Ops", "Closing", "Checklist"],
+    integrations: ["connector", "outlook", "excel", "teams"],
+    labels: ["Validation", "Ops", "Hub", "Checklist"],
     interfaceType: "Automation" as const,
     icon: <FolderSearch className="size-5" />,
     authorName: "Morgan Taylor",
@@ -87,12 +87,12 @@ const allAgents = [
   },
   {
     id: "5",
-    name: "Campaign Writer",
+    name: "Peak Season Comms Writer",
     description:
-      "Creates compelling marketing copy and campaigns tailored to your audience. Generates multi-channel content with brand voice consistency.",
+      "Creates coordinated peak-season shipper and consumer communications — capacity notices, cutoff dates, service updates — in FedEx brand voice.",
     category: ["marketing", "all", "your-agents"],
-    integrations: ["slack", "figma"],
-    labels: ["Marketing", "Content", "Copy", "Campaigns", "Brand"],
+    integrations: ["teams", "salesforce"],
+    labels: ["Comms", "Peak", "Content", "Brand"],
     interfaceType: "Chat" as const,
     icon: <Megaphone className="size-5" />,
     authorName: "Casey Kim",
@@ -103,11 +103,11 @@ const allAgents = [
   },
   {
     id: "6",
-    name: "Blog Generator",
+    name: "Service Alert Writer",
     description:
-      "Generates blog posts, social media content, and email newsletters. Optimizes content for engagement and SEO performance.",
+      "Generates service alerts, weekly ops digests, and internal broadcasts. Distills TMS metrics into readable summaries for leadership and hub teams.",
     category: ["marketing", "all", "your-agents", "favorites"],
-    integrations: ["gmail", "slack"],
+    integrations: ["outlook", "teams"],
     labels: [],
     interfaceType: "Form" as const,
     icon: <Newspaper className="size-5" />,
@@ -119,12 +119,12 @@ const allAgents = [
   },
   {
     id: "7",
-    name: "SEO Analyzer",
+    name: "Route Efficiency Analyzer",
     description:
-      "Analyzes and improves your content for better search engine rankings. Provides keyword suggestions and technical SEO recommendations.",
+      "Analyzes ground and express route performance across a hub or region. Surfaces bottlenecks, idle miles, and staffing gaps with cost impact.",
     category: ["marketing", "all", "your-agents"],
     integrations: ["connector", "excel"],
-    labels: ["SEO", "Analytics"],
+    labels: ["Ops", "Analytics"],
     interfaceType: "Batch" as const,
     icon: <TrendingUp className="size-5" />,
     authorName: "Quinn Davis",
@@ -135,12 +135,12 @@ const allAgents = [
   },
   {
     id: "8",
-    name: "LinkedIn Scraper",
+    name: "Shipper Account Enricher",
     description:
-      "Identifies and qualifies potential leads from various data sources. Scrapes, finds leads, and sends personalized messages on LinkedIn.",
+      "Identifies and qualifies new enterprise shipper signups. Enriches accounts with industry, volume estimates, and buying-committee contacts.",
     category: ["sales", "all"],
-    integrations: ["slack", "connector", "gmail"],
-    labels: ["Scraping", "Sales", "LinkedIn", "Leads"],
+    integrations: ["teams", "connector", "outlook"],
+    labels: ["Enrichment", "Sales", "Enterprise", "Leads"],
     interfaceType: "Form" as const,
     icon: <UserSearch className="size-5" />,
     authorName: "Jamie Foster",
@@ -151,12 +151,12 @@ const allAgents = [
   },
   {
     id: "9",
-    name: "Sales Forecaster",
+    name: "Volume Forecaster",
     description:
-      "Evaluates sales opportunities and provides win probability scores. Analyzes historical data to predict deal outcomes.",
+      "Forecasts weekly and seasonal package volume by service and lane. Uses historical shipment data plus macro signals to guide capacity planning.",
     category: ["sales", "all"],
-    integrations: ["gmail", "figma", "notion"],
-    labels: ["Analytics", "Sales"],
+    integrations: ["outlook", "salesforce", "sharepoint"],
+    labels: ["Analytics", "Ops"],
     interfaceType: "Chat" as const,
     icon: <BarChart2 className="size-5" />,
     authorName: "Skyler Brooks",
@@ -167,11 +167,11 @@ const allAgents = [
   },
   {
     id: "10",
-    name: "Proposal Builder",
+    name: "Enterprise RFP Builder",
     description:
-      "Generates customized sales pitches based on prospect profiles. Creates personalized presentations and proposal documents.",
+      "Generates customized shipper RFP responses using contract templates, service capabilities, and volume-based pricing tiers.",
     category: ["sales", "all"],
-    integrations: ["slack", "gmail"],
+    integrations: ["teams", "outlook"],
     labels: [],
     interfaceType: "Form" as const,
     icon: <Presentation className="size-5" />,
@@ -183,12 +183,12 @@ const allAgents = [
   },
   {
     id: "11",
-    name: "Customer Support Bot",
+    name: "Delivery Support Bot",
     description:
-      "Handles customer inquiries and provides instant, accurate responses. Uses knowledge base to resolve issues autonomously.",
+      "Handles shipper and consignee questions on tracking, ETAs, exceptions, and claims. Resolves the majority of tickets autonomously via TMS lookups.",
     category: ["support", "all"],
-    integrations: ["slack", "connector", "notion"],
-    labels: ["Support", "Chat", "Helpdesk", "Knowledge base"],
+    integrations: ["teams", "connector", "sharepoint"],
+    labels: ["Support", "Chat", "Tracking", "Claims"],
     interfaceType: "Chat" as const,
     icon: <Headphones className="size-5" />,
     authorName: "Drew Hayes",
@@ -199,11 +199,11 @@ const allAgents = [
   },
   {
     id: "12",
-    name: "Ticket Router",
+    name: "Exception Router",
     description:
-      "Automatically categorizes and prioritizes support tickets. Routes issues to appropriate teams based on urgency and type.",
+      "Automatically categorizes and prioritizes shipment exceptions. Routes to the right hub team based on service, SLA risk, and shipper tier.",
     category: ["support", "all", "automations"],
-    integrations: ["gmail", "notion"],
+    integrations: ["outlook", "sharepoint"],
     labels: ["Support", "Ops"],
     interfaceType: "Automation" as const,
     icon: <GitBranch className="size-5" />,
@@ -215,12 +215,12 @@ const allAgents = [
   },
   {
     id: "13",
-    name: "Ad Copy Optimizer",
+    name: "Tracking Page Optimizer",
     description:
-      "A/B tests ad headlines and copy across channels. Suggests variants and tracks performance to improve conversion rates.",
+      "A/B tests tracking-page copy, status states, and exception messaging. Suggests variants and tracks self-service resolution rates.",
     category: ["marketing", "all"],
-    integrations: ["slack", "figma"],
-    labels: ["Marketing", "Ads", "Optimization"],
+    integrations: ["teams", "salesforce"],
+    labels: ["Digital", "UX", "Optimization"],
     interfaceType: "Form" as const,
     icon: <Wand2 className="size-5" />,
     authorName: "Morgan Blake",
@@ -231,12 +231,12 @@ const allAgents = [
   },
   {
     id: "14",
-    name: "Deal Closer",
+    name: "Contract Renewal Assistant",
     description:
-      "Tracks deal stages and suggests next steps. Sends reminders for follow-ups and prepares closing checklists for won opportunities.",
+      "Tracks enterprise renewal stages and suggests next steps. Sends reminders, prepares talking points, and drafts renewal packets for account managers.",
     category: ["sales", "all"],
-    integrations: ["gmail", "slack", "notion"],
-    labels: ["Sales", "Pipeline", "Follow-up"],
+    integrations: ["outlook", "teams", "sharepoint"],
+    labels: ["Sales", "Renewals", "Enterprise"],
     interfaceType: "Chat" as const,
     icon: <Handshake className="size-5" />,
     authorName: "Jordan Reese",
@@ -250,7 +250,7 @@ const allAgents = [
 function isScheduledAutomation(agent: (typeof allAgents)[0]) {
   return (
     agent.interfaceType === "Automation" &&
-    !agent.integrations.includes("slack")
+    !agent.integrations.includes("teams")
   );
 }
 
@@ -503,12 +503,12 @@ function AgentLibraryPageContent() {
         selectedCategory={selectedCategory}
         onCategoryChange={handleCategoryChange}
         categories={[
-          { id: "work", label: "Engineering" },
-          { id: "marketing", label: "Growth" },
-          { id: "sales", label: "Revenue" },
+          { id: "work", label: "Hub Ops" },
+          { id: "marketing", label: "Customer Service" },
+          { id: "sales", label: "Enterprise Sales" },
         ]}
-        organisationName="Acme"
-        userName="David Hidalgo"
+        organisationName="FedEx"
+        userName="Fred Smith"
         onNewChat={() => router.push("/agent/new")}
         favoriteAgents={favoriteAgents}
       />

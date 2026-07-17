@@ -612,7 +612,7 @@ function AutomationDetailPageContent() {
 
   const fallbackName = searchParams.get("name") ?? "Automation";
   const fallbackDescription = searchParams.get("description") ?? "";
-  const fallbackAuthorName = searchParams.get("authorName") ?? "David Hidalgo";
+  const fallbackAuthorName = searchParams.get("authorName") ?? "Fred Smith";
   const fallbackLabels = searchParams.get("labels")?.split(",").filter(Boolean) ?? [];
   const fallbackTriggerType = (searchParams.get("triggerType") as "slack" | "schedule" | null) ?? "schedule";
 
@@ -623,12 +623,12 @@ function AutomationDetailPageContent() {
         router.push(cat === "all" ? "/agents" : `/agents?category=${cat}`);
       }}
       categories={[
-        { id: "work", label: "Engineering" },
-        { id: "marketing", label: "Growth" },
-        { id: "sales", label: "Revenue" },
+        { id: "work", label: "Hub Ops" },
+        { id: "marketing", label: "Customer Service" },
+        { id: "sales", label: "Enterprise Sales" },
       ]}
-      organisationName="Acme"
-      userName="David Hidalgo"
+      organisationName="FedEx"
+      userName="Fred Smith"
       onNewChat={() => router.push("/agent/new")}
       activeSection={automation ? "automations" : undefined}
     />
@@ -716,7 +716,7 @@ function AutomationDetailPageContent() {
                     labels={fallbackLabels}
                     triggerType={fallbackTriggerType}
                     schedule={searchParams.get("schedule") ?? undefined}
-                    integrations={["gmail", "slack"]}
+                    integrations={["outlook", "slack"]}
                   />
 
                   <section className={sectionDividerClass}>

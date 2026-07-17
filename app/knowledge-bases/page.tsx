@@ -50,7 +50,7 @@ interface KnowledgeBase {
 const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   {
     id: "kb-1",
-    name: "brightspace",
+    name: "FedEx Service Guide (Ground / Express / Freight)",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -58,7 +58,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-2",
-    name: "Healthcare Docs - Acme",
+    name: "International Customs & HS Code Handbook",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -66,7 +66,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-3",
-    name: "Acme Website",
+    name: "fedex.com marketing site",
     connectionProvider: "website",
     connectionStatus: "none",
     connectionName: null,
@@ -74,7 +74,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-4",
-    name: "test-multi",
+    name: "Hub SOPs — Memphis",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -82,7 +82,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-5",
-    name: "Shani",
+    name: "Dangerous Goods (IATA / 49 CFR) Reference",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -90,7 +90,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-6",
-    name: 'Documents for "[prod] FullE2ERun..."',
+    name: "Enterprise Contract Templates",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -114,7 +114,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-9",
-    name: 'Documents for "citations" 2',
+    name: "Claims & Refund Playbook",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -122,7 +122,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-10",
-    name: "Khushal's Sharepoint",
+    name: "Enterprise Accounts — SharePoint",
     connectionProvider: "sharepoint",
     connectionStatus: "error",
     connectionName: "SharePoint",
@@ -130,7 +130,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-11",
-    name: "test",
+    name: "Driver Handbook & Debrief SOPs",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -138,7 +138,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-12",
-    name: 'Documents for "ElevenLabs" 2',
+    name: "Peak Season Playbooks — 2025",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -146,7 +146,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-13",
-    name: 'Documents for "ElevenLabs"',
+    name: "Customer Comms Templates",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -154,7 +154,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-14",
-    name: "test-mcp",
+    name: "TMS Data Dictionary & Field Reference",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -162,7 +162,7 @@ const MOCK_KNOWLEDGE_BASES: KnowledgeBase[] = [
   },
   {
     id: "kb-15",
-    name: "test",
+    name: "Weekly SLA Breach Archive",
     connectionProvider: null,
     connectionStatus: "none",
     connectionName: null,
@@ -318,8 +318,8 @@ export default function KnowledgeBasesPage() {
       <AgentSidebar
         selectedCategory="all"
         onCategoryChange={() => {}}
-        organisationName="Acme"
-        userName="David Hidalgo"
+        organisationName="FedEx"
+        userName="Fred Smith"
         onNewChat={() => router.push("/agent/new")}
         activeSection="knowledge-bases"
       />

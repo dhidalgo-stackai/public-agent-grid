@@ -20,6 +20,8 @@ import {
   Plug2Icon,
   CheckIcon,
   MoreHorizontalIcon,
+  GlobeIcon,
+  UserIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,6 +41,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 
 function ChatSidebarLink({
@@ -127,10 +132,10 @@ export function AgentSidebar({
   selectedCategory,
   onCategoryChange,
   categories = [],
-  organisationName = "Acme",
-  organisationLogoUrl = "/acme-logo.svg",
-  userName = "David Hidalgo",
-  userEmail = "dhidalgo@stack-ai.com",
+  organisationName = "FedEx",
+  organisationLogoUrl = "/fedex-logo.png",
+  userName = "Fred Smith",
+  userEmail = "fred.smith@fedex.com",
   userAvatarUrl,
   recentChats = MOCK_RECENT_CHATS,
   activeChatId = null,
@@ -164,14 +169,18 @@ export function AgentSidebar({
   const [chatFilterAgentId, setChatFilterAgentId] = useState<string | null>(
     !!filterAgentId && !activeChatId ? filterAgentId : null
   );
+  const [chatFilterInterface, setChatFilterInterface] = useState<
+    "chat" | "form" | "batch" | null
+  >(null);
+  const hasActiveFilter = !!chatFilterAgentId || !!chatFilterInterface;
 
   const teamCategories =
     categories.length > 0
       ? categories
       : [
-          { id: "work", label: "Engineering" },
-          { id: "marketing", label: "Growth" },
-          { id: "sales", label: "Revenue" },
+          { id: "work", label: "Hub Ops" },
+          { id: "marketing", label: "Customer Service" },
+          { id: "sales", label: "Enterprise Sales" },
         ];
 
   useEffect(() => {
@@ -216,25 +225,31 @@ export function AgentSidebar({
 
   // Combined "Recents" list — chats, forms, and batch interfaces in one stream.
   const recentItems: { key: string; node: ReactNode }[] = [
-    ...mergedChats.map((item) => ({
-      key: `chat-${item.id}`,
-      node: (
-        <ChatSidebarLink
-          key={`chat-${item.id}`}
-          item={item}
-          activeChatId={activeChatId}
-          fallbackAgentId={filterAgentId}
-        />
-      ),
-    })),
-    ...MOCK_FORM_RUNS.map((item) => ({
-      key: `form-${item.id}`,
-      node: <RunSidebarLink key={`form-${item.id}`} item={item} basePath="/form" />,
-    })),
-    ...MOCK_BATCH_RUNS.map((item) => ({
-      key: `batch-${item.id}`,
-      node: <RunSidebarLink key={`batch-${item.id}`} item={item} basePath="/batch" />,
-    })),
+    ...(chatFilterInterface && chatFilterInterface !== "chat"
+      ? []
+      : mergedChats.map((item) => ({
+          key: `chat-${item.id}`,
+          node: (
+            <ChatSidebarLink
+              key={`chat-${item.id}`}
+              item={item}
+              activeChatId={activeChatId}
+              fallbackAgentId={filterAgentId}
+            />
+          ),
+        }))),
+    ...(chatFilterInterface && chatFilterInterface !== "form"
+      ? []
+      : MOCK_FORM_RUNS.map((item) => ({
+          key: `form-${item.id}`,
+          node: <RunSidebarLink key={`form-${item.id}`} item={item} basePath="/form" />,
+        }))),
+    ...(chatFilterInterface && chatFilterInterface !== "batch"
+      ? []
+      : MOCK_BATCH_RUNS.map((item) => ({
+          key: `batch-${item.id}`,
+          node: <RunSidebarLink key={`batch-${item.id}`} item={item} basePath="/batch" />,
+        }))),
   ];
 
   const isAutomations =
@@ -260,7 +275,7 @@ export function AgentSidebar({
   );
 
   const railPanel = (
-    <div className="flex h-full w-14 flex-col border-r border-black/5 bg-background">
+    <div className="flex h-full w-14 flex-col border-r border-black/5 bg-muted">
       <div className="flex flex-col items-center gap-1 px-2 py-3">
         <Avatar className="size-7 rounded-md border border-black/10">
           {organisationLogoUrl && (
@@ -281,7 +296,13 @@ export function AgentSidebar({
         </button>
         <button
           type="button"
-          onClick={() => onCategoryChange("all")}
+          onClick={() => {
+            if (isAutomations || isKnowledgeBases || isConnections) {
+              router.push("/agents");
+            } else {
+              onCategoryChange("all");
+            }
+          }}
           title="All Agents"
           className={cn(
             "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
@@ -301,6 +322,36 @@ export function AgentSidebar({
           )}
         >
           <ZapIcon className="size-4" />
+        </Link>
+        <Link
+          href="/artifacts"
+          title="Artifacts"
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
+            pathname.startsWith("/artifacts") ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
+          )}
+        >
+          <AsteriskIcon className="size-4" />
+        </Link>
+        <Link
+          href="/knowledge-bases"
+          title="Knowledge Bases"
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
+            isKnowledgeBases ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
+          )}
+        >
+          <BookOpenIcon className="size-4" />
+        </Link>
+        <Link
+          href="/connections"
+          title="Connections"
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
+            isConnections ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
+          )}
+        >
+          <Plug2Icon className="size-4" />
         </Link>
       </div>
 
@@ -438,8 +489,7 @@ export function AgentSidebar({
           <span>New Chat</span>
           <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground/70 opacity-0 transition-opacity group-hover/newchat:opacity-100">
             <kbd className="font-sans">⌘</kbd>
-            <kbd className="font-sans">⇧</kbd>
-            <kbd className="font-sans">O</kbd>
+            <kbd className="font-sans">K</kbd>
           </span>
         </button>
 
@@ -455,7 +505,13 @@ export function AgentSidebar({
             {/* Full-row navigation target */}
             <button
               type="button"
-              onClick={() => onCategoryChange("all")}
+              onClick={() => {
+                if (isAutomations || isKnowledgeBases || isConnections) {
+                  router.push("/agents");
+                } else {
+                  onCategoryChange("all");
+                }
+              }}
               aria-label="Agents"
               className="absolute inset-0 rounded-md"
             />
@@ -597,60 +653,106 @@ export function AgentSidebar({
             )}
           />
           <span className="flex-1" />
-          {filterableAgents.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  onClick={(e) => e.stopPropagation()}
-                  className={cn(
-                    "relative shrink-0 rounded p-0.5 outline-none transition-colors hover:bg-black/5",
-                    chatFilterAgentId
-                      ? "text-foreground"
-                      : "text-muted-foreground/50 hover:text-muted-foreground"
-                  )}
-                  aria-label="Filter chats by agent"
-                >
-                  <ListFilterIcon className="size-3.5" />
-                  {chatFilterAgentId && (
-                    <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-52"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
                 onClick={(e) => e.stopPropagation()}
-                onCloseAutoFocus={(e) => e.preventDefault()}
+                className={cn(
+                  "relative shrink-0 rounded p-0.5 outline-none transition-colors hover:bg-black/5",
+                  hasActiveFilter
+                    ? "text-foreground"
+                    : "text-muted-foreground/50 hover:text-muted-foreground"
+                )}
+                aria-label="Filter recents"
               >
-                <DropdownMenuLabel className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                  Filter by agent
-                </DropdownMenuLabel>
-                {filterableAgents.map((agent) => (
-                  <DropdownMenuItem
-                    key={agent.id}
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      setChatFilterAgentId((prev) => (prev === agent.id ? null : agent.id));
-                      setChatsOpen(true);
-                    }}
-                  >
-                    <span className="flex-1">{agent.name}</span>
-                    {chatFilterAgentId === agent.id && (
-                      <CheckIcon className="size-4 shrink-0" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  disabled={!chatFilterAgentId}
-                  onSelect={() => setChatFilterAgentId(null)}
+                <ListFilterIcon className="size-3.5" />
+                {hasActiveFilter && (
+                  <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-48"
+              onClick={(e) => e.stopPropagation()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              <DropdownMenuLabel className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                Filter by
+              </DropdownMenuLabel>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <GlobeIcon className="size-4" />
+                  <span className="flex-1">Interface</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-40">
+                  {(
+                    [
+                      { id: "chat", label: "Chat" },
+                      { id: "form", label: "Form" },
+                      { id: "batch", label: "Batch" },
+                    ] as const
+                  ).map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.id}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setChatFilterInterface((prev) =>
+                          prev === opt.id ? null : opt.id
+                        );
+                        setChatsOpen(true);
+                      }}
+                    >
+                      <span className="flex-1">{opt.label}</span>
+                      {chatFilterInterface === opt.id && (
+                        <CheckIcon className="size-4 shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger
+                  disabled={filterableAgents.length === 0}
                 >
-                  Reset
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                  <UserIcon className="size-4" />
+                  <span className="flex-1">Agent</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-52">
+                  {filterableAgents.map((agent) => (
+                    <DropdownMenuItem
+                      key={agent.id}
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setChatFilterAgentId((prev) =>
+                          prev === agent.id ? null : agent.id
+                        );
+                        setChatsOpen(true);
+                      }}
+                    >
+                      <span className="flex-1">{agent.name}</span>
+                      {chatFilterAgentId === agent.id && (
+                        <CheckIcon className="size-4 shrink-0" />
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={!hasActiveFilter}
+                onSelect={() => {
+                  setChatFilterAgentId(null);
+                  setChatFilterInterface(null);
+                }}
+                className="text-red-500 focus:text-red-500 data-[disabled]:text-red-500/40"
+              >
+                <XIcon className="size-4" />
+                <span>Clear all filters</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             type="button"
             onClick={(e) => {
@@ -722,14 +824,14 @@ export function AgentSidebar({
         <div
           className={cn(
             "relative h-full overflow-hidden transition-[width] duration-300 ease-in-out",
-            collapsed ? "w-14" : "w-64"
+            collapsed && !peeking ? "w-14" : "w-64"
           )}
         >
           {/* Rail (icon) layer — crossfades in when collapsing. */}
           <div
             className={cn(
               "absolute inset-y-0 left-0 w-14 transition-opacity duration-200 ease-in-out",
-              collapsed ? "opacity-100 delay-150" : "pointer-events-none opacity-0"
+              collapsed && !peeking ? "opacity-100 delay-200" : "pointer-events-none opacity-0"
             )}
           >
             {railPanel}
@@ -738,23 +840,11 @@ export function AgentSidebar({
           <div
             className={cn(
               "absolute inset-y-0 left-0 w-64 transition-opacity duration-200 ease-in-out",
-              collapsed ? "pointer-events-none opacity-0" : "opacity-100 delay-150"
+              collapsed && !peeking ? "pointer-events-none opacity-0" : "opacity-100 delay-200"
             )}
           >
             {expandedPanel}
           </div>
-        </div>
-
-        {/* Peek overlay: slides in over the rail on hover while collapsed. */}
-        <div
-          className={cn(
-            "absolute left-0 top-0 z-50 h-full transition-all duration-200 ease-out",
-            collapsed && peeking
-              ? "translate-x-0 opacity-100 shadow-xl"
-              : "pointer-events-none -translate-x-3 opacity-0"
-          )}
-        >
-          {expandedPanel}
         </div>
       </div>
     </>

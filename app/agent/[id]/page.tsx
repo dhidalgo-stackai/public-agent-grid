@@ -86,11 +86,11 @@ const DEFAULT_DESCRIPTION =
   "What does your application do? How does it behave? How should the user interact with it?";
 
 const MOCK_CONVERSATIONS = [
-  { id: "conv1", title: "Summarize the Q2 report", time: "2h ago" },
-  { id: "conv2", title: "Draft a customer onboarding email", time: "Yesterday" },
-  { id: "conv3", title: "Analyze sales pipeline data", time: "2d ago" },
-  { id: "conv4", title: "Explain our pricing tiers", time: "3d ago" },
-  { id: "conv5", title: "Compare competitor features", time: "Last week" },
+  { id: "conv1", title: "Summarize the Q2 volume report", time: "2h ago" },
+  { id: "conv2", title: "Draft a delivery delay notification", time: "Yesterday" },
+  { id: "conv3", title: "Analyze at-risk shipper accounts", time: "2d ago" },
+  { id: "conv4", title: "Explain our Ground vs. Express pricing", time: "3d ago" },
+  { id: "conv5", title: "Compare carrier SLA performance", time: "Last week" },
 ];
 
 const MOCK_SUGGESTIONS = [
@@ -100,11 +100,11 @@ const MOCK_SUGGESTIONS = [
 ];
 
 const HOME_PROMPT_EXAMPLES: { icon: React.ReactNode; text: string; app?: string; badge?: number; agentId?: string }[] = [
-  { icon: integrationIcons.notion, text: "Analyze our Notion documentation", app: "notion" },
-  { icon: integrationIcons.dropbox, text: "Analyze the pitch deck in my Dropbox", app: "dropbox" },
-  { icon: <LineChartIcon className="size-4 text-muted-foreground" />, text: "Create a financial analysis and plot data in graphs", agentId: "wf-3" },
-  { icon: <GlobeIcon className="size-4 text-muted-foreground" />, text: "Browse the web and write a newsletter" },
-  { icon: integrationIcons.outlook, text: "Reply to an email in my Outlook", app: "outlook", badge: 31 },
+  { icon: integrationIcons.sharepoint, text: "Summarize the Memphis hub SOPs in SharePoint", app: "sharepoint" },
+  { icon: integrationIcons.salesforce, text: "Pull at-risk shipper accounts from Salesforce", app: "salesforce" },
+  { icon: <LineChartIcon className="size-4 text-muted-foreground" />, text: "Forecast next week's package volume by lane", agentId: "wf-3" },
+  { icon: integrationIcons.teams, text: "Draft a weekly service alert for the ops channel in Teams", app: "teams" },
+  { icon: integrationIcons.outlook, text: "Reply to a shipper escalation in my Outlook", app: "outlook", badge: 31 },
 ];
 
 const toolbarBtn =
@@ -1820,6 +1820,17 @@ function AgentPickerContent({
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
+      <div className="p-1">
+        <DropdownMenuItem
+          className="gap-2"
+          onSelect={(e) => { e.preventDefault(); onAutoSelectChange(!autoSelect); }}
+        >
+          <SparklesIcon className="size-4" />
+          <span className="flex-1">Auto-select agent</span>
+          {autoSelect && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
+        </DropdownMenuItem>
+      </div>
+      <DropdownMenuSeparator />
       <div className="px-3 pt-2 pb-1">
         <Tabs value={tab} onValueChange={(v) => onTabChange(v as "recent" | "all" | "favorites")}>
           <TabsList className="w-full">
@@ -1861,15 +1872,6 @@ function AgentPickerContent({
       </div>
       <DropdownMenuSeparator />
       <div className="p-1">
-        <DropdownMenuItem
-          className="gap-2"
-          onSelect={(e) => { e.preventDefault(); onAutoSelectChange(!autoSelect); }}
-        >
-          <SparklesIcon className="size-4" />
-          <span className="flex-1">Auto-select agent</span>
-          {autoSelect && <CheckIcon className="size-3.5 text-muted-foreground shrink-0" />}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem className="gap-2" asChild>
           <Link href="/agents">
             <ExternalLinkIcon className="size-4" />
@@ -2794,7 +2796,7 @@ export default function AgentChatPage() {
       <div className={cn("flex w-full flex-col gap-6", centered ? "max-w-[48rem] items-center text-center" : "")}>
         {centered && (
           <h2 className="text-2xl font-medium leading-none">
-            Hey David, how can I help?
+            Hey Fred, how can I help?
           </h2>
         )}
         <div className={cn("w-full", centered ? "" : "px-4 pb-4 pt-2")}>
@@ -2841,9 +2843,9 @@ export default function AgentChatPage() {
   const recentChats = [...extraRecentChats, ...MOCK_RECENT_CHATS];
 
   const FAVOURITE_CHAT_AGENTS = [
-    { id: "5", name: "Campaign Writer", description: "Creates compelling marketing copy tailored to your audience.", labels: ["Marketing", "Content"], integrations: ["slack", "figma"], runsCount: 1532 },
-    { id: "9", name: "Sales Forecaster", description: "Evaluates opportunities and provides win probability scores.", labels: ["Analytics", "Sales"], integrations: ["gmail", "figma", "notion"], runsCount: 1024 },
-    { id: "11", name: "Customer Support Bot", description: "Handles inquiries and provides instant, accurate responses.", labels: ["Support", "Chat"], integrations: ["slack", "connector", "notion"], runsCount: 1893 },
+    { id: "5", name: "Peak Season Comms Writer", description: "Creates coordinated peak-season shipper and consumer communications.", labels: ["Comms", "Peak"], integrations: ["teams", "salesforce"], runsCount: 1532 },
+    { id: "9", name: "Volume Forecaster", description: "Forecasts weekly and seasonal package volume by service and lane.", labels: ["Analytics", "Ops"], integrations: ["outlook", "salesforce", "sharepoint"], runsCount: 1024 },
+    { id: "11", name: "Delivery Support Bot", description: "Handles shipper and consignee questions on tracking and claims.", labels: ["Support", "Tracking"], integrations: ["teams", "connector", "sharepoint"], runsCount: 1893 },
   ];
 
   /* ── New Chat ── */
@@ -2854,12 +2856,12 @@ export default function AgentChatPage() {
           selectedCategory="all"
           onCategoryChange={() => router.push("/agents")}
           categories={[
-            { id: "work", label: "Engineering" },
-            { id: "marketing", label: "Growth" },
-            { id: "sales", label: "Revenue" },
+            { id: "work", label: "Hub Ops" },
+            { id: "marketing", label: "Customer Service" },
+            { id: "sales", label: "Enterprise Sales" },
           ]}
-          organisationName="Acme"
-          userName="David Hidalgo"
+          organisationName="FedEx"
+          userName="Fred Smith"
           onNewChat={handleNewChat}
           activeChatId={conversationId}
         />
@@ -2949,17 +2951,17 @@ export default function AgentChatPage() {
           ) : (
             /* ── Before first message: scrollable landing ── */
             <>
+              <div className="relative flex flex-1 flex-col overflow-y-auto gap-6">
               <div
                 aria-hidden
-                className="dotted-backdrop pointer-events-none absolute inset-0"
+                className="dotted-backdrop pointer-events-none absolute inset-x-0 top-0 h-full"
               />
-              <div className="relative flex flex-1 flex-col overflow-y-auto gap-6">
               {/* Greeting + composer */}
               <div className="flex w-full shrink-0 flex-col items-center px-4 pt-[24vh] pb-10">
                 <div className="mx-auto w-full max-w-[48rem] flex flex-col items-center gap-10 text-center">
                   <div className="flex flex-col gap-1.5">
                     <h1 className="text-[2rem] font-bold tracking-tight leading-none text-foreground">
-                      Hey David, what can I help with?
+                      Hey Fred, <span className="text-foreground/60">what can I help with?</span>
                     </h1>
                   </div>
                   <div className="w-full">
@@ -3066,17 +3068,17 @@ export default function AgentChatPage() {
                     {/* Unlock tools banner */}
                     <div className="-mt-3 flex cursor-pointer items-center gap-3 rounded-b-xl border-x border-b border-black/5 bg-muted/40 px-4 pb-2.5 pt-5 hover:bg-muted/60 transition-colors" onClick={() => setMoreAppsOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setMoreAppsOpen(true)}>
                       <span className="text-xs text-muted-foreground shrink-0">Unlock more by connecting your tools</span>
-                      <div className="flex items-center gap-1.5 ml-auto">
-                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Google Drive">
-                          <svg viewBox="0 0 87.3 78" className="size-3.5"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25 29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.5c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H60l5.85 11.65z" fill="#ea4335"/><path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.1.45-4.5 1.2z" fill="#00832d"/><path d="M60.1 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.1-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5l-12.6-21.8c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.45 28H87.3c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>
+                      <div className="flex items-center -space-x-1.5 ml-auto">
+                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="SharePoint">
+                          {integrationIcons.sharepoint}
                         </div>
-                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Slack">
-                          <svg viewBox="0 0 124 124" className="size-3.5"><path d="M26.3 78.9c0 7.2-5.8 13-13 13S.3 86.1.3 78.9s5.8-13 13-13h13v13z" fill="#e01e5a"/><path d="M32.8 78.9c0-7.2 5.8-13 13-13s13 5.8 13 13v32.5c0 7.2-5.8 13-13 13s-13-5.8-13-13V78.9z" fill="#e01e5a"/><path d="M45.8 26.4c-7.2 0-13-5.8-13-13s5.8-13 13-13 13 5.8 13 13v13h-13z" fill="#36c5f0"/><path d="M45.8 32.9c7.2 0 13 5.8 13 13s-5.8 13-13 13H13.3c-7.2 0-13-5.8-13-13s5.8-13 13-13h32.5z" fill="#36c5f0"/><path d="M98.3 45.9c0-7.2 5.8-13 13-13s13 5.8 13 13-5.8 13-13 13h-13v-13z" fill="#2eb67d"/><path d="M91.8 45.9c0 7.2-5.8 13-13 13s-13-5.8-13-13V13.4c0-7.2 5.8-13 13-13s13 5.8 13 13v32.5z" fill="#2eb67d"/><path d="M78.8 98.4c7.2 0 13 5.8 13 13s-5.8 13-13 13-13-5.8-13-13v-13h13z" fill="#ecb22e"/><path d="M78.8 91.9c-7.2 0-13-5.8-13-13s5.8-13 13-13h32.5c7.2 0 13 5.8 13 13s-5.8 13-13 13H78.8z" fill="#ecb22e"/></svg>
+                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Teams">
+                          {integrationIcons.teams}
                         </div>
-                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Notion">
-                          {integrationIcons.notion}
+                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Outlook">
+                          {integrationIcons.outlook}
                         </div>
-                        <button type="button" className="ml-1 text-muted-foreground/50 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" className="!ml-3 text-muted-foreground/50 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                           <XIcon className="size-3.5" />
                         </button>
                       </div>
@@ -3193,12 +3195,12 @@ export default function AgentChatPage() {
         selectedCategory="all"
         onCategoryChange={() => router.push("/agents")}
         categories={[
-          { id: "work", label: "Engineering" },
-          { id: "marketing", label: "Growth" },
-          { id: "sales", label: "Revenue" },
+          { id: "work", label: "Hub Ops" },
+          { id: "marketing", label: "Customer Service" },
+          { id: "sales", label: "Enterprise Sales" },
         ]}
-        organisationName="Acme"
-        userName="David Hidalgo"
+        organisationName="FedEx"
+        userName="Fred Smith"
         onNewChat={handleNewChat}
         activeChatId={conversationId}
         filterAgentId={id}

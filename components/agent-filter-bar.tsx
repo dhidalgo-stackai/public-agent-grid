@@ -19,9 +19,9 @@ import { cn } from "@/lib/utils";
 export const ORG_TAGS = [
   { id: "chat-assistants", label: "Chat Assistants" },
   { id: "automation", label: "Automation" },
-  { id: "engineering", label: "Engineering" },
+  { id: "hub-ops", label: "Hub Ops" },
   { id: "analytics", label: "Analytics" },
-  { id: "customer-success", label: "Customer Success" },
+  { id: "customer-service", label: "Customer Service" },
 ] as const;
 
 const SORT_OPTIONS = [

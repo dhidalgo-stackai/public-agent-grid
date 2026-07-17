@@ -25,16 +25,16 @@ interface AutomationRun {
 }
 
 const MOCK_RUNS: AutomationRun[] = [
-  { id: "r1",  automationId: "auto-2", title: "Lead enrichment in progress",   status: "running", startedAt: "Just now",    duration: "—",      steps: 4 },
-  { id: "r2",  automationId: "auto-1", title: "Weekly digest generated",        status: "success", startedAt: "2 days ago",  duration: "1m 42s", steps: 7 },
-  { id: "r3",  automationId: "auto-2", title: "Lead profiles enriched",         status: "success", startedAt: "4 hours ago", duration: "3m 08s", steps: 7 },
-  { id: "r4",  automationId: "auto-4", title: "SEO audit completed",            status: "success", startedAt: "6 days ago",  duration: "5m 21s", steps: 7 },
-  { id: "r5",  automationId: "auto-2", title: "Lead enrichment failed",         status: "failed",  startedAt: "1 day ago",   duration: "0m 54s", steps: 3 },
-  { id: "r6",  automationId: "auto-1", title: "Weekly digest generated",        status: "success", startedAt: "9 days ago",  duration: "1m 55s", steps: 7 },
-  { id: "r7",  automationId: "auto-3", title: "Compliance report generated",    status: "success", startedAt: "9 days ago",  duration: "4m 12s", steps: 7 },
-  { id: "r8",  automationId: "auto-4", title: "SEO audit completed",            status: "success", startedAt: "13 days ago", duration: "5m 03s", steps: 7 },
-  { id: "r9",  automationId: "auto-2", title: "Lead profiles enriched",         status: "success", startedAt: "2 days ago",  duration: "2m 47s", steps: 7 },
-  { id: "r10", automationId: "auto-1", title: "Weekly digest failed",           status: "failed",  startedAt: "16 days ago", duration: "0m 31s", steps: 2 },
+  { id: "r1",  automationId: "auto-2", title: "Shipper enrichment in progress",  status: "running", startedAt: "Just now",    duration: "—",      steps: 4 },
+  { id: "r2",  automationId: "auto-1", title: "Hub digest generated",             status: "success", startedAt: "2 days ago",  duration: "1m 42s", steps: 7 },
+  { id: "r3",  automationId: "auto-2", title: "New shippers enriched",            status: "success", startedAt: "4 hours ago", duration: "3m 08s", steps: 7 },
+  { id: "r4",  automationId: "auto-4", title: "Tracking page audit completed",    status: "success", startedAt: "6 days ago",  duration: "5m 21s", steps: 7 },
+  { id: "r5",  automationId: "auto-2", title: "Shipper enrichment failed",        status: "failed",  startedAt: "1 day ago",   duration: "0m 54s", steps: 3 },
+  { id: "r6",  automationId: "auto-1", title: "Hub digest generated",             status: "success", startedAt: "9 days ago",  duration: "1m 55s", steps: 7 },
+  { id: "r7",  automationId: "auto-3", title: "DG compliance report generated",   status: "success", startedAt: "9 days ago",  duration: "4m 12s", steps: 7 },
+  { id: "r8",  automationId: "auto-4", title: "Tracking page audit completed",    status: "success", startedAt: "13 days ago", duration: "5m 03s", steps: 7 },
+  { id: "r9",  automationId: "auto-2", title: "New shippers enriched",            status: "success", startedAt: "2 days ago",  duration: "2m 47s", steps: 7 },
+  { id: "r10", automationId: "auto-1", title: "Hub digest failed",                status: "failed",  startedAt: "16 days ago", duration: "0m 31s", steps: 2 },
 ];
 
 function AutomationsContent() {
@@ -87,12 +87,12 @@ function AutomationsContent() {
           router.push(cat === "all" ? "/agents" : `/agents?category=${cat}`);
         }}
         categories={[
-          { id: "work", label: "Engineering" },
-          { id: "marketing", label: "Growth" },
-          { id: "sales", label: "Revenue" },
+          { id: "work", label: "Hub Ops" },
+          { id: "marketing", label: "Customer Service" },
+          { id: "sales", label: "Enterprise Sales" },
         ]}
-        organisationName="Acme"
-        userName="David Hidalgo"
+        organisationName="FedEx"
+        userName="Fred Smith"
         onNewChat={() => router.push("/agent/new")}
         activeSection="automations"
       />

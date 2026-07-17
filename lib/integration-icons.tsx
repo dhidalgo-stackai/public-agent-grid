@@ -101,8 +101,18 @@ export const integrationIcons: Record<string, React.ReactNode> = {
     </svg>
   ),
   excel: (
-    <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2 5 5h-5V4zM8 17v-2h4v2H8zm0-4v-2h8v2H8zm0-4v-2h8v2H8z"/>
+    <svg className="size-3.5" viewBox="0 0 32 32">
+      <path d="M19.581 15.35 8.512 13.4V27.809a1.192 1.192 0 0 0 1.192 1.191h20.1A1.192 1.192 0 0 0 31 27.809V22.5Z" fill="#185C37"/>
+      <path d="M19.581 3H9.704a1.192 1.192 0 0 0-1.192 1.191V9.5L19.581 16l5.861 1.95L31 16V9.5Z" fill="#21A366"/>
+      <path d="M8.512 9.5h11.069V16H8.512Z" fill="#107C41"/>
+      <path opacity=".2" d="M16.434 8.2H8.512v16.25h7.922a1.2 1.2 0 0 0 1.194-1.191V9.391A1.2 1.2 0 0 0 16.434 8.2Z"/>
+      <path opacity=".1" d="M15.783 8.85H8.512V25.1h7.271a1.2 1.2 0 0 0 1.194-1.191V10.041a1.2 1.2 0 0 0-1.194-1.191Z"/>
+      <path opacity=".2" d="M15.783 8.85H8.512V23.8h7.271a1.2 1.2 0 0 0 1.194-1.191V10.041a1.2 1.2 0 0 0-1.194-1.191Z"/>
+      <path opacity=".1" d="M15.132 8.85H8.512V23.8h6.62a1.2 1.2 0 0 0 1.194-1.191V10.041a1.2 1.2 0 0 0-1.194-1.191Z"/>
+      <path d="M2.192 8.85h12.94a1.191 1.191 0 0 1 1.192 1.191v12.918a1.191 1.191 0 0 1-1.192 1.191H2.192A1.192 1.192 0 0 1 1 22.959V10.041A1.192 1.192 0 0 1 2.192 8.85Z" fill="#107C41"/>
+      <path d="m4.906 20.351 2.722-4.216-2.493-4.192H7.14l1.36 2.681c.126.254.213.443.259.568h.018c.09-.204.183-.402.281-.594l1.454-2.655h1.842l-2.557 4.168 2.622 4.24h-1.96l-1.571-2.943a2.475 2.475 0 0 1-.187-.392H8.677a1.858 1.858 0 0 1-.182.379l-1.617 2.956Z" fill="#FFF"/>
+      <path d="M29.809 3h-10.23v6.5H31V4.191A1.192 1.192 0 0 0 29.809 3Z" fill="#33C481"/>
+      <path d="M19.581 16H31v6.5H19.581Z" fill="#107C41"/>
     </svg>
   ),
   dropbox: (
@@ -118,6 +128,25 @@ export const integrationIcons: Record<string, React.ReactNode> = {
       <path fill="#FFBA00" d="M7.71 3.5h8.58L12 9.6 7.71 3.5Z"/>
       <path fill="#00832D" d="M13.26 15H4.68L9.72 15h3.54Z"/>
       <path fill="#2684FC" d="M20.85 15 16.29 3.5l-4 6.1L16.29 15h4.56Z"/>
+    </svg>
+  ),
+  sharepoint: (
+    <svg className="size-3.5" viewBox="0 0 24 24">
+      <circle cx="8" cy="8" r="6" fill="#036C70"/>
+      <circle cx="15" cy="12" r="5" fill="#1A9BA1"/>
+      <circle cx="12" cy="17.5" r="4" fill="#37C6D0"/>
+      <path fill="#03787C" d="M11.5 5.5H4.2A6 6 0 0 0 8 14a6 6 0 0 0 5.9-5c-.1-2-1.1-3.5-2.4-3.5Z" opacity=".5"/>
+      <rect width="10" height="10" x="1" y="7" fill="#03787C" rx="1"/>
+      <text x="6" y="14.5" fill="#fff" fontSize="7" fontWeight="700" textAnchor="middle" fontFamily="Arial">S</text>
+    </svg>
+  ),
+  teams: (
+    <svg className="size-3.5" viewBox="0 0 24 24">
+      <path fill="#5059C9" d="M17 8h5a1 1 0 0 1 1 1v6.5a3.5 3.5 0 0 1-7 0V9a1 1 0 0 1 1-1Z"/>
+      <circle cx="19.5" cy="5.5" r="2.5" fill="#5059C9"/>
+      <rect width="14" height="14" x="1" y="5" fill="#7B83EB" rx="2"/>
+      <circle cx="12" cy="4" r="3" fill="#7B83EB"/>
+      <path fill="#fff" d="M4 8.5h7v1.5H8.75v5.5h-1.5V10H4z"/>
     </svg>
   ),
   outlook: (
