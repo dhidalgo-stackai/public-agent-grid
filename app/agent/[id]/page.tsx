@@ -34,8 +34,6 @@ import {
   FlaskConicalIcon,
   FileTextIcon,
   LineChartIcon,
-  MoreHorizontalIcon,
-  ArrowRightIcon,
   ExternalLinkIcon,
   CheckIcon,
   SparklesIcon,
@@ -48,7 +46,6 @@ import {
   GemIcon,
   InfinityIcon,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   getChatMessages,
@@ -121,12 +118,7 @@ type ToolToggles = {
   deepResearch: boolean;
 };
 
-const TOOL_TOGGLE_ITEMS: { key: keyof ToolToggles; label: string; icon: React.ElementType }[] = [
-  { key: "webSearch", label: "Web Search", icon: GlobeIcon },
-  { key: "imageCreation", label: "Image Creation", icon: ImageIcon },
-  { key: "artifacts", label: "Canvas", icon: LayoutGrid },
-  { key: "deepResearch", label: "Deep Research", icon: FlaskConicalIcon },
-];
+const TOOL_TOGGLE_ITEMS: { key: keyof ToolToggles; label: string; icon: React.ElementType }[] = [];
 
 const CONNECTOR_ITEMS = [
   { id: "slack", label: "Slack" },
@@ -386,6 +378,7 @@ function AddMenuContent({
   getAgentsRect,
 }: AddMenuProps & { getAgentsRect: () => DOMRect | undefined }) {
   const [menuSearch, setMenuSearch] = useState("");
+  const [autoSelectSkill, setAutoSelectSkill] = useState(false);
   const menuSearchRef = useRef<HTMLInputElement>(null);
   const menuContentRef = useRef<HTMLDivElement>(null);
 
@@ -793,36 +786,6 @@ function AddMenuContent({
             <span className="text-sm">Tools</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-64 p-1">
-            {!isAgentScoped && (
-              <>
-                {TOOL_TOGGLE_ITEMS.map(({ key, label, icon: Icon }) => (
-                  <DropdownMenuItem
-                    key={key}
-                    className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={() => runAction(() => onToggle(key))}
-                  >
-                    <Icon className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="text-sm">{label}</span>
-                    <Checkbox
-                      checked={toggles[key]}
-                      className="ml-auto"
-                      onClick={(e) => e.stopPropagation()}
-                      onCheckedChange={() => runAction(() => onToggle(key))}
-                    />
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-                  onClick={() => closeAfterAction()}
-                >
-                  <FileTextIcon className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm">Create document</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
             {connectorItems.map((c) => {
               const isSelected =
                 !hideConnectorSelectedState &&
@@ -869,6 +832,21 @@ function AddMenuContent({
           <DropdownMenuSubContent className="w-72 p-1">
             <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Skills</div>
             <div className="px-2 py-3 text-center text-sm text-muted-foreground">No skills yet</div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+              onSelect={(e) => e.preventDefault()}
+              onClick={() => setAutoSelectSkill((v) => !v)}
+            >
+              <SparklesIcon className="size-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate text-sm">Auto select skill</span>
+              <Checkbox
+                checked={autoSelectSkill}
+                className="ml-auto"
+                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={() => setAutoSelectSkill((v) => !v)}
+              />
+            </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
@@ -938,6 +916,103 @@ function AddMenuContent({
           </>
         )}
       </DropdownMenuContent>
+  );
+}
+
+// Paperclip button next to "+" — opens the OS file picker via a hidden input.
+function FileAttachButton({ onFiles }: { onFiles?: (files: File[]) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        className={toolbarBtn}
+        title="Attach file"
+        aria-label="Attach file"
+        onClick={() => inputRef.current?.click()}
+      >
+        <PaperclipIcon className={toolbarIcon} />
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) onFiles?.(files);
+          if (inputRef.current) inputRef.current.value = "";
+        }}
+      />
+    </>
+  );
+}
+
+type AttachedFile = { id: string; file: File; previewUrl?: string };
+
+function AttachedFilesRow({
+  files,
+  onRemove,
+}: {
+  files: AttachedFile[];
+  onRemove: (id: string) => void;
+}) {
+  if (!files.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2 pb-2">
+      {files.map((f) => {
+        const isImage = f.file.type.startsWith("image/");
+        if (isImage && f.previewUrl) {
+          return (
+            <div
+              key={f.id}
+              className="group relative size-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted"
+              title={f.file.name}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={f.previewUrl}
+                alt={f.file.name}
+                className="size-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => onRemove(f.id)}
+                className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-foreground/70 text-background hover:bg-foreground"
+                aria-label={`Remove ${f.file.name}`}
+              >
+                <XIcon className="size-3" />
+              </button>
+            </div>
+          );
+        }
+        return (
+          <div
+            key={f.id}
+            className="group relative flex h-14 min-w-0 max-w-64 shrink-0 items-center gap-2 rounded-lg border border-border bg-background pl-2 pr-6"
+            title={f.file.name}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-red-500 text-white">
+              <FileTextIcon className="size-5" />
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-medium">{f.file.name}</span>
+              <span className="text-xs uppercase text-muted-foreground">
+                {(f.file.name.split(".").pop() || "file").slice(0, 4)}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onRemove(f.id)}
+              className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-foreground/70 text-background hover:bg-foreground"
+              aria-label={`Remove ${f.file.name}`}
+            >
+              <XIcon className="size-3" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1053,6 +1128,7 @@ function ComposerToolIcons({
   onConnectorChange,
   onActiveAppsChange,
   onEditConnection,
+  showConnectionPulse = true,
 }: {
   connectedConnectors: string[];
   activeApps?: string[];
@@ -1061,6 +1137,7 @@ function ComposerToolIcons({
   onActiveAppsChange?: (ids: string[]) => void;
   onKnowledgeBaseChange?: (ids: string[]) => void;
   onEditConnection?: (id: string) => void;
+  showConnectionPulse?: boolean;
 }) {
   const connectorIds = Array.from(new Set([...connectedConnectors, ...activeApps]));
 
@@ -1074,13 +1151,14 @@ function ComposerToolIcons({
   };
   return (
     <div className="flex items-center gap-1">
+      <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
       {/* Connector tools — tightly-packed icon buttons. */}
       {connectorIds.length > 0 && (
         <div className="flex items-center">
           {connectorIds.map((id) => {
             const icon = integrationIcons[id];
             if (!icon) return null;
-            const needsConnection = !connectedConnectors.includes(id);
+            const needsConnection = showConnectionPulse && !connectedConnectors.includes(id);
             return (
               <DropdownMenu key={id}>
                 <DropdownMenuTrigger asChild>
@@ -1185,10 +1263,14 @@ function findLastTextNodeBeforeRange(range: Range): { node: Text; offset: number
     : null;
 }
 
+function lastMentionTriggerIndex(text: string) {
+  return Math.max(text.lastIndexOf("@"), text.lastIndexOf("/"));
+}
+
 function findMentionTriggerRange(el: HTMLElement, preferredRange: Range | null) {
   const createRangeFromTextNode = (node: Text, offset: number) => {
     const beforeCaret = (node.textContent ?? "").slice(0, offset);
-    const atIndex = beforeCaret.lastIndexOf("@");
+    const atIndex = lastMentionTriggerIndex(beforeCaret);
     if (atIndex < 0 || /\s/.test(beforeCaret.slice(atIndex + 1))) return null;
 
     const range = document.createRange();
@@ -1211,7 +1293,7 @@ function findMentionTriggerRange(el: HTMLElement, preferredRange: Range | null) 
   while (node) {
     const textNode = node as Text;
     const text = textNode.textContent ?? "";
-    const atIndex = text.lastIndexOf("@");
+    const atIndex = lastMentionTriggerIndex(text);
     if (atIndex >= 0 && !/\s/.test(text.slice(atIndex + 1))) {
       const range = document.createRange();
       range.setStart(textNode, atIndex);
@@ -1273,7 +1355,7 @@ function replaceSearchedAppTextWithChip(el: HTMLElement, chip: HTMLElement, save
 }
 
 function getPromptAnchoredMenuSearch(text: string) {
-  const atIndex = text.lastIndexOf("@");
+  const atIndex = lastMentionTriggerIndex(text);
   if (atIndex < 0) return "";
   return text.slice(atIndex + 1).trimStart();
 }
@@ -1350,14 +1432,10 @@ const ALL_MODELS = [AUTO_MODEL, ...MODEL_OPTIONS];
 function ModelMenu({
   selectedId,
   onSelect,
-  thinking,
-  onThinkingChange,
   side = "top",
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
-  thinking: boolean;
-  onThinkingChange: (value: boolean) => void;
   side?: "top" | "bottom";
 }) {
   const selected = ALL_MODELS.find((m) => m.id === selectedId) ?? AUTO_MODEL;
@@ -1394,23 +1472,6 @@ function ModelMenu({
             />
           ))}
         </div>
-        <DropdownMenuSeparator />
-        {/* Thinking toggle */}
-        <DropdownMenuItem
-          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
-          onSelect={(e) => e.preventDefault()}
-          onClick={() => onThinkingChange(!thinking)}
-        >
-          <div className="min-w-0 flex-1">
-            <p className="text-sm">Enable thinking</p>
-            <p className="text-xs text-muted-foreground">Best for complex tasks</p>
-          </div>
-          <Switch
-            checked={thinking}
-            onClick={(e) => e.stopPropagation()}
-            onCheckedChange={onThinkingChange}
-          />
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer rounded-lg px-2 py-1.5">
           <span className="text-sm">Edit available models</span>
@@ -1920,6 +1981,36 @@ export default function AgentChatPage() {
   const description = searchParams.get("description") ?? DEFAULT_DESCRIPTION;
   const isNewChat = !name || id === "new";
 
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const dragDepthRef = useRef(0);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const addAttachedFiles = useCallback((files: File[]) => {
+    setAttachedFiles((prev) => [
+      ...prev,
+      ...files.map((file) => ({
+        id: `${file.name}-${file.size}-${prev.length + Math.floor(Math.random() * 1e9)}`,
+        file,
+        previewUrl: file.type.startsWith("image/")
+          ? URL.createObjectURL(file)
+          : undefined,
+      })),
+    ]);
+  }, []);
+  const removeAttachedFile = useCallback((id: string) => {
+    setAttachedFiles((prev) => {
+      const found = prev.find((f) => f.id === id);
+      if (found?.previewUrl) URL.revokeObjectURL(found.previewUrl);
+      return prev.filter((f) => f.id !== id);
+    });
+  }, []);
+  useEffect(() => {
+    return () => {
+      attachedFiles.forEach((f) => {
+        if (f.previewUrl) URL.revokeObjectURL(f.previewUrl);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -1953,7 +2044,6 @@ export default function AgentChatPage() {
   const [connectionSetupOpen, setConnectionSetupOpen] = useState(false);
   const [moreAppsOpen, setMoreAppsOpen] = useState(false);
   const [selectedModelId, setSelectedModelId] = useState("gpt-5-1");
-  const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [toolToggles, setToolToggles] = useState({
     webSearch: true,
     imageCreation: true,
@@ -2512,9 +2602,9 @@ export default function AgentChatPage() {
         closeAddMenuAndRestoreComposerFocus(e.currentTarget);
         return;
       }
-      if (e.key === "@") {
-        // Let the "@" be typed into the composer as normal text, then anchor
-        // the add-menu at the caret so it opens right next to the "@".
+      if (e.key === "@" || e.key === "/") {
+        // Let the trigger character be typed into the composer as normal text,
+        // then anchor the add-menu at the caret so it opens right next to it.
         requestAnimationFrame(() => {
           setAddMenuSearch("");
           setAddMenuSuggestionMode(false);
@@ -2571,7 +2661,7 @@ export default function AgentChatPage() {
       saveSelection();
       if (addMenuOpen && !addMenuSuggestionMode) {
         const text = getComposerText(e.currentTarget);
-        if (!text.includes("@")) {
+        if (!text.includes("@") && !text.includes("/")) {
           anchoredAddMenuKeepOpenUntilRef.current = 0;
           closeAddMenuAndRestoreComposerFocus(e.currentTarget);
           return;
@@ -2602,14 +2692,11 @@ export default function AgentChatPage() {
     setWorkflowSearch("");
     if (mentionTextareaRef.current) mentionTextareaRef.current.textContent = "";
     savedRangeRef.current = null;
-    if (id !== "new") {
-      // No `chat` param → showChat stays false so the empty composer shows
-      // instead of the conversation bubbles. beginConversation mints the id
-      // once the first message is sent.
-      pendingChatIdRef.current = null;
-      router.push(`/agent/${id}?name=${encodeURIComponent(name || "")}&from=chat`);
-    } else {
+    pendingChatIdRef.current = null;
+    if (id === "new") {
       router.replace("/agent/new");
+    } else {
+      router.push("/agent/new");
     }
     setNewChatKey((k) => k + 1);
   }, [id, name, router]);
@@ -2779,7 +2866,40 @@ export default function AgentChatPage() {
         <div
           key={newChatKey}
           className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background"
+          onDragEnter={(e) => {
+            if (!e.dataTransfer?.types.includes("Files")) return;
+            e.preventDefault();
+            dragDepthRef.current += 1;
+            setIsDraggingFiles(true);
+          }}
+          onDragOver={(e) => {
+            if (!e.dataTransfer?.types.includes("Files")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(e) => {
+            if (!e.dataTransfer?.types.includes("Files")) return;
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) setIsDraggingFiles(false);
+          }}
+          onDrop={(e) => {
+            if (!e.dataTransfer?.types.includes("Files")) return;
+            e.preventDefault();
+            dragDepthRef.current = 0;
+            setIsDraggingFiles(false);
+            const files = Array.from(e.dataTransfer.files ?? []);
+            if (files.length) addAttachedFiles(files);
+          }}
         >
+          {isDraggingFiles && (
+            <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-foreground/30 bg-background/60 px-10 py-8 text-center">
+                <UploadIcon className="size-8 text-muted-foreground" />
+                <div className="text-sm font-medium">Drop files to upload</div>
+                <div className="text-xs text-muted-foreground">Release to attach them to this chat</div>
+              </div>
+            </div>
+          )}
           {showChat ? (
             /* ── After first message: chat view ── */
             <>
@@ -2789,6 +2909,7 @@ export default function AgentChatPage() {
               </div>
               <div className="shrink-0 px-4 pb-4 pt-2">
                 <div className="mx-auto max-w-[48rem] flex flex-col rounded-xl border border-border bg-background px-3 pt-3 pb-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/30">
+                  <AttachedFilesRow files={attachedFiles} onRemove={removeAttachedFile} />
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -2797,14 +2918,12 @@ export default function AgentChatPage() {
                     className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
                   <div className="flex items-center gap-1 pt-2">
-                    <AddMenu uploadOnly={newChatAgentApps != null} toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
-                    <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
+                    <FileAttachButton onFiles={addAttachedFiles} /><AddMenu uploadOnly={newChatAgentApps != null} toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={newChatAgentApps} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
+                    <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} showConnectionPulse={false} />
                     <div className="ml-auto flex items-center gap-0.5">
                       <ModelMenu
                         selectedId={selectedModelId}
                         onSelect={setSelectedModelId}
-                        thinking={thinkingEnabled}
-                        onThinkingChange={setThinkingEnabled}
                         side="top"
                       />
                       <button type="button" className={toolbarBtn} title="Voice input">
@@ -2852,6 +2971,7 @@ export default function AgentChatPage() {
                       }}
                     >
                       <div className="px-4 pt-4 pb-3">
+                        <AttachedFilesRow files={attachedFiles} onRemove={removeAttachedFile} />
                         <div
                           ref={mentionTextareaRef}
                           contentEditable
@@ -2863,7 +2983,7 @@ export default function AgentChatPage() {
                             const text = getComposerText(e.currentTarget);
                             setMessage(text);
                             if (addMenuOpen && !addMenuSuggestionMode) {
-                              if (!text.includes("@")) {
+                              if (!text.includes("@") && !text.includes("/")) {
                                 anchoredAddMenuKeepOpenUntilRef.current = 0;
                                 closeAddMenuAndRestoreComposerFocus(e.currentTarget);
                                 return;
@@ -2889,7 +3009,7 @@ export default function AgentChatPage() {
                         <div className="flex items-center gap-1 pt-1">
                           {/* Left toolbar */}
                           <div className="flex items-center gap-0.5">
-                            <AddMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} workflowSearch={workflowSearch} onWorkflowSearchChange={setWorkflowSearch} workflowTab={workflowTab} onWorkflowTabChange={setWorkflowTab} selectedWorkflowIds={selectedWorkflows.map((w) => w.id)} onSelectWorkflow={handleSelectWorkflow} onAutoSelectWorkflowChange={setAutoSelectWorkflow} />
+                            <FileAttachButton onFiles={addAttachedFiles} /><AddMenu toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} workflowSearch={workflowSearch} onWorkflowSearchChange={setWorkflowSearch} workflowTab={workflowTab} onWorkflowTabChange={setWorkflowTab} selectedWorkflowIds={selectedWorkflows.map((w) => w.id)} onSelectWorkflow={handleSelectWorkflow} onAutoSelectWorkflowChange={setAutoSelectWorkflow} />
                             {/* Caret-anchored menu opened by typing "@" in the composer. */}
                             {addMenuSuggestionMode ? (
                               <AppToolSuggestionPanel
@@ -2900,7 +3020,7 @@ export default function AgentChatPage() {
                             ) : (
                               <AddMenuAnchored toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} onAgentsClick={openMentionMenuFromButton} agentsAutoSelect={autoSelectWorkflow} workflowSearch={workflowSearch} onWorkflowSearchChange={setWorkflowSearch} workflowTab={workflowTab} onWorkflowTabChange={setWorkflowTab} selectedWorkflowIds={selectedWorkflows.map((w) => w.id)} onSelectWorkflow={handleSelectWorkflow} onAutoSelectWorkflowChange={setAutoSelectWorkflow} onSelectConnectorMention={handleSelectConnectorMention} onSelectKnowledgeBaseMention={handleSelectKnowledgeBaseMention} open={addMenuOpen} onOpenChange={handleAnchoredAddMenuOpenChange} anchor={addMenuAnchor} searchValue={addMenuSearch} />
                             )}
-                            <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
+                            <ComposerToolIcons connectedConnectors={connectedConnectors} activeApps={promptApps} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onActiveAppsChange={setPromptApps} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} showConnectionPulse={false} />
                             <WorkflowMentionMenu
                               search={workflowSearch}
                               onSearchChange={setWorkflowSearch}
@@ -2921,8 +3041,6 @@ export default function AgentChatPage() {
                             <ModelMenu
                               selectedId={selectedModelId}
                               onSelect={setSelectedModelId}
-                              thinking={thinkingEnabled}
-                              onThinkingChange={setThinkingEnabled}
                               side="bottom"
                             />
                             <button type="button" className={toolbarBtn} title="Voice input">
@@ -2994,15 +3112,6 @@ export default function AgentChatPage() {
                         <span className="truncate">{example.text}</span>
                       </button>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => router.push("/agents")}
-                      className="flex w-full items-center gap-3 border-t border-border/60 px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                    >
-                      <MoreHorizontalIcon className="size-4 shrink-0" />
-                      <span className="flex-1 truncate">Explore all agents in your organization</span>
-                      <ArrowRightIcon className="size-3.5 shrink-0" />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -3096,7 +3205,42 @@ export default function AgentChatPage() {
       />
 
       {/* Chat panel */}
-      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background">
+      <div
+        className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-background"
+        onDragEnter={(e) => {
+          if (!e.dataTransfer?.types.includes("Files")) return;
+          e.preventDefault();
+          dragDepthRef.current += 1;
+          setIsDraggingFiles(true);
+        }}
+        onDragOver={(e) => {
+          if (!e.dataTransfer?.types.includes("Files")) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }}
+        onDragLeave={(e) => {
+          if (!e.dataTransfer?.types.includes("Files")) return;
+          dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+          if (dragDepthRef.current === 0) setIsDraggingFiles(false);
+        }}
+        onDrop={(e) => {
+          if (!e.dataTransfer?.types.includes("Files")) return;
+          e.preventDefault();
+          dragDepthRef.current = 0;
+          setIsDraggingFiles(false);
+          const files = Array.from(e.dataTransfer.files ?? []);
+          if (files.length) addAttachedFiles(files);
+        }}
+      >
+        {isDraggingFiles && (
+          <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-foreground/30 bg-background/60 px-10 py-8 text-center">
+              <UploadIcon className="size-8 text-muted-foreground" />
+              <div className="text-sm font-medium">Drop files to upload</div>
+              <div className="text-xs text-muted-foreground">Release to attach them to this chat</div>
+            </div>
+          </div>
+        )}
         {!showChat && (
           <div
             aria-hidden
@@ -3127,6 +3271,7 @@ export default function AgentChatPage() {
 
                 <div className="w-full">
                   <div className="flex flex-col rounded-2xl border border-border bg-background px-4 pt-4 pb-3 shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] transition-shadow focus-within:shadow-[0_4px_16px_rgba(0,0,0,0.1),0_1px_4px_rgba(0,0,0,0.06)]">
+                    <AttachedFilesRow files={attachedFiles} onRemove={removeAttachedFile} />
                     <div
                       ref={mentionTextareaRef}
                       contentEditable
@@ -3146,7 +3291,7 @@ export default function AgentChatPage() {
                       className="composer-editable min-h-[72px] w-full whitespace-pre-wrap break-words bg-transparent text-left text-sm outline-none leading-relaxed"
                     />
                     <div className="flex items-center gap-1 pt-1">
-                      <AddMenu uploadOnly toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" agentApps={getAgentApps(id)} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
+                      <FileAttachButton onFiles={addAttachedFiles} /><AddMenu uploadOnly toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="bottom" agentApps={getAgentApps(id)} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
                       <ComposerToolIcons connectedConnectors={connectedConnectors} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
                       <div className="ml-auto flex items-center gap-0.5">
                         <button type="button" className={toolbarBtn} title="Voice input">
@@ -3196,6 +3341,7 @@ export default function AgentChatPage() {
           {showChat && (
             <div className="shrink-0 px-4 pb-4 pt-2">
               <div className="mx-auto max-w-[48rem] flex flex-col rounded-xl border border-border bg-background px-3 pt-3 pb-2 shadow-sm focus-within:ring-2 focus-within:ring-ring/30">
+                <AttachedFilesRow files={attachedFiles} onRemove={removeAttachedFile} />
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -3204,7 +3350,7 @@ export default function AgentChatPage() {
                   className="min-h-[72px] w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 />
                 <div className="flex items-center gap-1 pt-2">
-                  <AddMenu uploadOnly toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={getAgentApps(id)} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
+                  <FileAttachButton onFiles={addAttachedFiles} /><AddMenu uploadOnly toggles={toolToggles} onToggle={(key) => setToolToggles((prev) => ({ ...prev, [key]: !prev[key] }))} connectedConnectors={connectedConnectors} onConnectorChange={setConnectedConnectors} onRequestConnect={openConnectionSetup} onOpenMoreApps={() => setMoreAppsOpen(true)} side="top" agentApps={getAgentApps(id)} selectedKnowledgeBases={selectedKnowledgeBases} onKnowledgeBaseChange={setSelectedKnowledgeBases} onSelectPrompt={applyPrompt} />
                   <ComposerToolIcons connectedConnectors={connectedConnectors} selectedKnowledgeBases={selectedKnowledgeBases} onConnectorChange={setConnectedConnectors} onKnowledgeBaseChange={setSelectedKnowledgeBases} onEditConnection={openConnectionSetup} />
                   <div className="ml-auto flex items-center gap-0.5">
                     <button type="button" className={toolbarBtn} title="Voice input">
