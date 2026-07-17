@@ -4,7 +4,7 @@ import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, SlackIcon, ClockIcon, CheckCircle2Icon, XCircleIcon, LoaderCircleIcon, ListChecksIcon } from "lucide-react";
+import { CalendarIcon, SlackIcon, ClockIcon, CheckCircle2Icon, XCircleIcon, LoaderCircleIcon, ListChecksIcon, AlertTriangleIcon } from "lucide-react";
 
 export interface AutomationRunItem {
   id: string;
@@ -27,6 +27,7 @@ interface AutomationRunsListProps {
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   success:   { label: "Completed", icon: CheckCircle2Icon,   className: "text-emerald-600" },
+  warning:   { label: "Completed with warning", icon: AlertTriangleIcon, className: "text-amber-600" },
   failed:    { label: "Failed",    icon: XCircleIcon,        className: "text-red-500" },
   running:   { label: "Running",   icon: LoaderCircleIcon,   className: "text-blue-500" },
   pending:   { label: "Pending",   icon: ClockIcon,          className: "text-muted-foreground" },

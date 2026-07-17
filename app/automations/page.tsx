@@ -18,23 +18,23 @@ interface AutomationRun {
   id: string;
   automationId: string;
   title: string;
-  status: "success" | "failed" | "running";
+  status: "success" | "failed" | "running" | "warning";
   startedAt: string;
   duration: string;
   steps: number;
 }
 
 const MOCK_RUNS: AutomationRun[] = [
-  { id: "r1",  automationId: "auto-2", title: "Shipper enrichment in progress",  status: "running", startedAt: "Just now",    duration: "—",      steps: 4 },
-  { id: "r2",  automationId: "auto-1", title: "Hub digest generated",             status: "success", startedAt: "2 days ago",  duration: "1m 42s", steps: 7 },
-  { id: "r3",  automationId: "auto-2", title: "New shippers enriched",            status: "success", startedAt: "4 hours ago", duration: "3m 08s", steps: 7 },
-  { id: "r4",  automationId: "auto-4", title: "Tracking page audit completed",    status: "success", startedAt: "6 days ago",  duration: "5m 21s", steps: 7 },
-  { id: "r5",  automationId: "auto-2", title: "Shipper enrichment failed",        status: "failed",  startedAt: "1 day ago",   duration: "0m 54s", steps: 3 },
-  { id: "r6",  automationId: "auto-1", title: "Hub digest generated",             status: "success", startedAt: "9 days ago",  duration: "1m 55s", steps: 7 },
-  { id: "r7",  automationId: "auto-3", title: "DG compliance report generated",   status: "success", startedAt: "9 days ago",  duration: "4m 12s", steps: 7 },
-  { id: "r8",  automationId: "auto-4", title: "Tracking page audit completed",    status: "success", startedAt: "13 days ago", duration: "5m 03s", steps: 7 },
-  { id: "r9",  automationId: "auto-2", title: "New shippers enriched",            status: "success", startedAt: "2 days ago",  duration: "2m 47s", steps: 7 },
-  { id: "r10", automationId: "auto-1", title: "Hub digest failed",                status: "failed",  startedAt: "16 days ago", duration: "0m 31s", steps: 2 },
+  { id: "r1",  automationId: "auto-1", title: "18 exceptions reviewed · 5 priority actions identified", status: "success", startedAt: "Today, 7:00 AM",     duration: "0m 48s", steps: 7 },
+  { id: "r2",  automationId: "auto-2", title: "ETA change detected on watched shipment",                status: "success", startedAt: "22 min ago",         duration: "0m 12s", steps: 6 },
+  { id: "r3",  automationId: "auto-4", title: "Handoff summary posted to incoming team",                status: "success", startedAt: "Yesterday, 5:30 PM", duration: "1m 04s", steps: 7 },
+  { id: "r4",  automationId: "auto-1", title: "12 exceptions reviewed · 3 priority actions identified", status: "success", startedAt: "Yesterday, 7:00 AM", duration: "0m 41s", steps: 7 },
+  { id: "r5",  automationId: "auto-2", title: "Customs hold detected on watched shipment",              status: "success", startedAt: "3 hours ago",        duration: "0m 09s", steps: 6 },
+  { id: "r6",  automationId: "auto-3", title: "Draft delay update prepared for my review",              status: "success", startedAt: "2 days ago",         duration: "0m 22s", steps: 7 },
+  { id: "r7",  automationId: "auto-1", title: "Outlook unavailable · Brief delivered to Teams",         status: "warning", startedAt: "July 15, 7:00 AM",   duration: "1m 12s", steps: 7 },
+  { id: "r8",  automationId: "auto-4", title: "Handoff summary posted to incoming team",                status: "success", startedAt: "2 days ago",         duration: "1m 02s", steps: 7 },
+  { id: "r9",  automationId: "auto-2", title: "Missed scan alert sent",                                 status: "success", startedAt: "5 hours ago",        duration: "0m 11s", steps: 6 },
+  { id: "r10", automationId: "auto-1", title: "Brief delivery failed · retry scheduled",                status: "failed",  startedAt: "July 10, 7:00 AM",   duration: "0m 08s", steps: 3 },
 ];
 
 function AutomationsContent() {

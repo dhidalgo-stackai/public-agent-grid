@@ -103,6 +103,7 @@ function RunSidebarLink({ item, basePath }: { item: RunItem; basePath: string })
 // toggle to reveal the rest only appears when a list exceeds the threshold.
 const RUNS_SHOW_MORE_THRESHOLD = 5;
 const RUNS_COLLAPSED_COUNT = 2;
+const RECENTS_COLLAPSED_COUNT = 10;
 
 interface Category {
   id: string;
@@ -358,7 +359,7 @@ export function AgentSidebar({
       <div className="mt-auto border-t border-black/5 p-2 pb-3 flex justify-center">
         <Avatar className="size-6 rounded-full">
           {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={userName} />}
-          <AvatarFallback className="text-[10px]">{userInitials}</AvatarFallback>
+          <AvatarFallback className="text-[10px] bg-neutral-200 text-neutral-700">{userInitials}</AvatarFallback>
         </Avatar>
       </div>
     </div>
@@ -423,7 +424,7 @@ export function AgentSidebar({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+        <div className="no-scrollbar flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
           {filteredChats.length === 0 ? (
             <p className="px-3 py-2 text-xs text-muted-foreground/50">No conversations found</p>
           ) : (
@@ -445,7 +446,7 @@ export function AgentSidebar({
           >
             <Avatar className="size-8 rounded-full">
               {userAvatarUrl && <AvatarImage src={userAvatarUrl} alt={userName} />}
-              <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+              <AvatarFallback className="text-xs bg-neutral-200 text-neutral-700">{userInitials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">{userName}</p>
@@ -477,7 +478,7 @@ export function AgentSidebar({
       </div>
 
       {/* Nav */}
-      <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+      <div className="no-scrollbar flex flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
         <button
           type="button"
           onClick={onNewChat}
@@ -767,10 +768,10 @@ export function AgentSidebar({
         </div>
         {chatsOpen && (
           <div className="flex flex-col gap-0.5 pb-0.5">
-            {(chatsShowAll ? recentItems : recentItems.slice(0, RUNS_COLLAPSED_COUNT)).map(
+            {(chatsShowAll ? recentItems : recentItems.slice(0, RECENTS_COLLAPSED_COUNT)).map(
               (entry) => entry.node
             )}
-            {recentItems.length > RUNS_SHOW_MORE_THRESHOLD && (
+            {recentItems.length > RECENTS_COLLAPSED_COUNT && (
               <button
                 type="button"
                 onClick={() => setChatsShowAll((v) => !v)}
@@ -779,7 +780,7 @@ export function AgentSidebar({
                 <span className="flex size-5 shrink-0 items-center justify-center">
                   <MoreHorizontalIcon className="size-4" />
                 </span>
-                {chatsShowAll ? "Show less" : `Show ${recentItems.length - RUNS_COLLAPSED_COUNT} more`}
+                {chatsShowAll ? "Show less" : `Show ${recentItems.length - RECENTS_COLLAPSED_COUNT} more`}
               </button>
             )}
           </div>

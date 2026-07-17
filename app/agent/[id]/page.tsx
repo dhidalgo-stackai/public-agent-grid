@@ -76,6 +76,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
@@ -131,6 +132,16 @@ const CONNECTOR_ITEMS = [
   { id: "linear", label: "Linear" },
   { id: "asana", label: "Asana" },
   { id: "snowflake", label: "Snowflake" },
+  { id: "excel", label: "Excel" },
+  { id: "sharepoint", label: "SharePoint" },
+  { id: "teams", label: "Microsoft Teams" },
+  { id: "hubspot", label: "HubSpot" },
+  { id: "salesforce", label: "Salesforce" },
+  { id: "jira", label: "Jira" },
+  { id: "airtable", label: "Airtable" },
+  { id: "confluence", label: "Confluence" },
+  { id: "intercom", label: "Intercom" },
+  { id: "figma", label: "Figma" },
 ];
 
 // Keyword aliases that make apps discoverable by what they do, not just their
@@ -140,13 +151,23 @@ const APP_SEARCH_ALIASES: Record<string, string> = {
   gmail: "email mail inbox message",
   outlook: "email mail inbox message",
   slack: "message chat dm",
-  gdrive: "file files document storage",
+  gdrive: "file files document storage google drive",
   dropbox: "file files document storage",
   notion: "docs notes wiki",
   github: "code repo repository pull request",
   linear: "issue ticket bug",
   asana: "task project",
   snowflake: "database sql warehouse",
+  excel: "spreadsheet xlsx microsoft",
+  sharepoint: "microsoft file files docs",
+  teams: "microsoft chat message meeting",
+  hubspot: "crm sales marketing",
+  salesforce: "crm sales sfdc",
+  jira: "issue ticket bug atlassian",
+  airtable: "database spreadsheet base",
+  confluence: "wiki docs atlassian",
+  intercom: "support chat customer",
+  figma: "design",
 };
 
 // The full searchable string for a connector: its label, id, and any aliases.
@@ -1415,27 +1436,74 @@ type ModelOption = {
   id: string;
   name: string;
   icon: React.ElementType;
+  description?: string;
 };
+
+type EffortLevel = "low" | "medium" | "high" | "max";
+const EFFORT_LABELS: Record<EffortLevel, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  max: "Max",
+};
+
+function OpenAILogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.783-2.759a4.5 4.5 0 0 1 6.68 4.66zM8.309 12.863l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.141.08L8.706 5.46a.795.795 0 0 0-.392.681zm1.097-2.365 2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z" />
+    </svg>
+  );
+}
+
+function AnthropicLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+    </svg>
+  );
+}
+
+function GeminiLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 2c.3 4.55 1.95 6.2 6.5 6.5 0 0 3.5.2 3.5.5s-3.5.5-3.5.5C13.95 9.8 12.3 11.45 12 16c0 0-.2 6-.5 6s-.5-6-.5-6c-.3-4.55-1.95-6.2-6.5-6.5 0 0-3.5-.2-3.5-.5s3.5-.5 3.5-.5C9.05 8.2 10.7 6.55 11 2c0 0 .2-.5.5-.5s.5.5.5.5z" />
+    </svg>
+  );
+}
+
+function MetaLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M6.3 4.5c2.02 0 3.72 1.16 5.7 3.87 1.98-2.71 3.68-3.87 5.7-3.87 3.2 0 5.8 2.83 5.8 7.24 0 4.15-2.44 7.76-5.4 7.76-1.83 0-3.13-.95-5.05-4.03l-1.05-1.72-1.05 1.72c-1.92 3.08-3.22 4.03-5.05 4.03-2.96 0-5.4-3.6-5.4-7.76 0-4.41 2.6-7.24 5.8-7.24zm-.05 2.35c-1.87 0-3.35 1.8-3.35 4.85 0 2.85 1.28 5.05 3.15 5.05 1.02 0 1.85-.5 3.25-2.75l-.7-1.1c-1.25-1.98-2.15-2.85-3.05-2.85-.53 0-.95.25-1.3.7zm11.5 0c-.9 0-1.8.87-3.05 2.85l-.7 1.1c1.4 2.25 2.23 2.75 3.25 2.75 1.87 0 3.15-2.2 3.15-5.05 0-3.05-1.48-4.85-3.35-4.85-.53 0-.95.25-1.3.7z" />
+    </svg>
+  );
+}
 
 // Model picker options. "Auto" lets the platform route to the best model.
 const AUTO_MODEL: ModelOption = { id: "auto", name: "Auto", icon: SparklesIcon };
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "gpt-5-1", name: "GPT-5.1", icon: HexagonIcon },
-  { id: "claude-opus", name: "Claude Opus 4.8", icon: AsteriskIcon },
-  { id: "claude-sonnet", name: "Claude Sonnet 5", icon: AsteriskIcon },
-  { id: "gemini-3-pro", name: "Gemini 3 Pro", icon: GemIcon },
-  { id: "gpt-5-mini", name: "GPT-5 Mini", icon: HexagonIcon },
-  { id: "llama-4", name: "Llama 4 Maverick", icon: InfinityIcon },
+  { id: "claude-opus", name: "Opus 4.8", icon: AnthropicLogo, description: "For complex tasks" },
+  { id: "claude-sonnet", name: "Sonnet 5", icon: AnthropicLogo, description: "Most efficient for everyday tasks" },
+  { id: "claude-haiku", name: "Haiku 4.5", icon: AnthropicLogo, description: "Fastest for quick answers" },
+  { id: "gpt-5-1", name: "GPT-5.1", icon: OpenAILogo, description: "OpenAI's most capable model" },
 ];
 const ALL_MODELS = [AUTO_MODEL, ...MODEL_OPTIONS];
 
 function ModelMenu({
   selectedId,
   onSelect,
+  effort,
+  onEffortChange,
+  thinking,
+  onThinkingChange,
   side = "top",
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
+  effort: EffortLevel;
+  onEffortChange: (e: EffortLevel) => void;
+  thinking: boolean;
+  onThinkingChange: (v: boolean) => void;
   side?: "top" | "bottom";
 }) {
   const selected = ALL_MODELS.find((m) => m.id === selectedId) ?? AUTO_MODEL;
@@ -1450,31 +1518,26 @@ function ModelMenu({
         >
           <SelectedIcon className="size-4 shrink-0" />
           <span className="min-w-0 truncate">{selected.name}</span>
+          <span className="text-sm text-muted-foreground/70">{EFFORT_LABELS[effort]}</span>
           <ChevronDownIcon className="size-3.5 shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side={side} align="start" className="w-72 p-1">
-        <div className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-muted-foreground">
-          <span>Models</span>
-          <InfoIcon className="size-3.5" />
-        </div>
-        {/* Auto */}
         <ModelMenuItem model={AUTO_MODEL} selected={selectedId === AUTO_MODEL.id} onSelect={onSelect} />
         <DropdownMenuSeparator />
-        {/* Pinned models */}
-        <div className="max-h-60 overflow-y-auto">
-          {MODEL_OPTIONS.map((model) => (
-            <ModelMenuItem
-              key={model.id}
-              model={model}
-              selected={selectedId === model.id}
-              onSelect={onSelect}
-            />
-          ))}
-        </div>
+        {MODEL_OPTIONS.map((model) => (
+          <ModelMenuItem
+            key={model.id}
+            model={model}
+            selected={selectedId === model.id}
+            onSelect={onSelect}
+          />
+        ))}
         <DropdownMenuSeparator />
+        <EffortSubMenu effort={effort} onEffortChange={onEffortChange} thinking={thinking} onThinkingChange={onThinkingChange} />
         <DropdownMenuItem className="cursor-pointer rounded-lg px-2 py-1.5">
-          <span className="text-sm">Edit available models</span>
+          <span className="text-sm">More models</span>
+          <ChevronRightIcon className="ml-auto size-3.5 text-muted-foreground" />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1500,9 +1563,71 @@ function ModelMenuItem({
       onClick={() => onSelect(model.id)}
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 truncate text-sm">{model.name}</span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-sm">{model.name}</span>
+        {model.description && (
+          <span className="truncate text-xs text-muted-foreground">{model.description}</span>
+        )}
+      </div>
       {selected && <CheckIcon className="size-3.5 shrink-0 text-muted-foreground" />}
     </DropdownMenuItem>
+  );
+}
+
+function EffortSubMenu({
+  effort,
+  onEffortChange,
+  thinking,
+  onThinkingChange,
+}: {
+  effort: EffortLevel;
+  onEffortChange: (e: EffortLevel) => void;
+  thinking: boolean;
+  onThinkingChange: (v: boolean) => void;
+}) {
+  const levels: EffortLevel[] = ["low", "medium", "high", "max"];
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger className="gap-2 rounded-lg px-2 py-1.5">
+        <span className="flex-1 text-sm">Effort</span>
+        <span className="text-xs text-muted-foreground">{EFFORT_LABELS[effort]}</span>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className="w-72 p-1">
+        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+          Higher effort means more thorough responses, but takes longer and uses your limits faster.
+        </div>
+        {levels.map((level) => (
+          <DropdownMenuItem
+            key={level}
+            className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+            onClick={() => onEffortChange(level)}
+          >
+            <span className="text-sm">{EFFORT_LABELS[level]}</span>
+            {level === "low" && (
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">Default</span>
+            )}
+            {level === "max" && <InfoIcon className="size-3.5 text-muted-foreground" />}
+            <span className="ml-auto">
+              {effort === level && <CheckIcon className="size-3.5 text-primary" />}
+            </span>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <div
+          className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
+          onClick={(e) => {
+            e.preventDefault();
+            onThinkingChange(!thinking);
+          }}
+        >
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="text-sm">Thinking</span>
+            <span className="text-xs text-muted-foreground">Can think for more complex tasks</span>
+          </div>
+          <Switch checked={thinking} onCheckedChange={onThinkingChange} />
+        </div>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
   );
 }
 
@@ -1626,7 +1751,7 @@ function createMentionChip(workflow: Workflow, onRemove: () => void): HTMLSpanEl
   // inline-block (not flex) so the browser's innerText serialization doesn't
   // inject line breaks around the chip's content or its children.
   chip.className =
-    "mx-0.5 inline-block max-w-[240px] rounded-md align-middle bg-gray-500/10 py-0.5 pl-1.5 pr-1 text-[13px] leading-[18px] font-medium text-gray-700 dark:bg-gray-400/10 dark:text-gray-300";
+    "mx-0.5 inline-block max-w-[240px] rounded-md align-baseline bg-gray-500/10 py-0.5 pl-1.5 pr-1 text-[13px] leading-[18px] font-medium text-gray-700 dark:bg-gray-400/10 dark:text-gray-300";
 
   chip.appendChild(createWorkflowIconNode(workflow));
 
@@ -1664,7 +1789,7 @@ function createToolMentionChip(
   chip.setAttribute(TOOL_MENTION_CHIP_ATTR, id);
   chip.title = labelText;
   chip.className =
-    "group mx-0.5 inline-block max-w-[240px] rounded-md border border-border bg-white py-0.5 pl-1.5 pr-1 align-middle text-[13px] leading-[18px] font-medium text-foreground dark:bg-background";
+    "group mx-0.5 inline-block max-w-[240px] rounded-md border border-border bg-white py-0.5 pl-1.5 pr-1 align-baseline text-[13px] leading-[18px] font-medium text-foreground dark:bg-background";
 
   const icon = createIntegrationIconNode(id);
   if (icon) {
@@ -1701,7 +1826,7 @@ function createKnowledgeBaseChip(
   chip.setAttribute(KNOWLEDGE_BASE_CHIP_ATTR, knowledgeBase.id);
   chip.title = knowledgeBase.name;
   chip.className =
-    "group mx-0.5 inline-block max-w-[240px] rounded-full border border-border bg-muted/50 py-0.5 pl-2 pr-1.5 align-middle text-[13px] leading-[18px] font-medium text-foreground";
+    "group mx-0.5 inline-block max-w-[240px] rounded-full border border-border bg-muted/50 py-0.5 pl-2 pr-1.5 align-baseline text-[13px] leading-[18px] font-medium text-foreground";
 
   const icon = createKnowledgeBaseIconNode(knowledgeBase.iconType);
   chip.appendChild(icon);
@@ -1946,6 +2071,171 @@ function WorkflowMentionMenu({
   );
 }
 
+function ChatChipInline({ chip }: { chip: import("@/lib/chats-data").ChatChip }) {
+  const icon = chip.kind === "prompt" ? null : integrationIcons[chip.iconId];
+  const base =
+    "mx-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[13px] leading-[18px] font-medium align-middle";
+  const variant =
+    chip.kind === "integration"
+      ? "bg-gray-500/10 text-gray-700 dark:bg-gray-400/10 dark:text-gray-300"
+      : chip.kind === "knowledge"
+      ? "bg-gray-500/10 text-gray-700 dark:bg-gray-400/10 dark:text-gray-300"
+      : "bg-primary/10 text-primary";
+  return (
+    <span className={cn(base, variant)}>
+      {icon && <span className="inline-flex size-3.5 shrink-0 items-center justify-center">{icon}</span>}
+      <span className="max-w-[200px] truncate">{chip.label}</span>
+    </span>
+  );
+}
+
+function ToolFileCard({ data }: { data: import("@/lib/chats-data").ToolFileBlock }) {
+  const icon = integrationIcons[data.iconId];
+  const actionLabel =
+    data.action === "search" ? "Searching" : data.action === "write" ? "Writing" : "Reading";
+  return (
+    <div className="my-1 inline-flex max-w-full items-center gap-2.5 rounded-xl border border-border bg-background px-3 py-2 shadow-sm">
+      <div className="relative flex size-7 shrink-0 items-center justify-center rounded-lg border border-border bg-white dark:bg-background">
+        {icon && <span className="inline-flex size-4 items-center justify-center">{icon}</span>}
+      </div>
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-[13px] font-medium leading-tight">{data.fileName}</span>
+        <span className="truncate text-[11px] text-muted-foreground">
+          {actionLabel}
+          {data.subtitle ? ` · ${data.subtitle}` : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StatGrid({ tiles }: { tiles: import("@/lib/chats-data").StatTile[] }) {
+  return (
+    <div className="my-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {tiles.map((t, i) => (
+        <div key={i} className="rounded-xl border border-border bg-background px-3 py-2.5">
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{t.label}</div>
+          <div className="mt-0.5 text-base font-semibold leading-tight">{t.value}</div>
+          {t.delta && (
+            <div
+              className={cn(
+                "mt-0.5 text-[11px] font-medium",
+                t.trend === "down"
+                  ? "text-red-600 dark:text-red-400"
+                  : t.trend === "up"
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-muted-foreground"
+              )}
+            >
+              {t.delta}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BarChart({
+  title,
+  unit,
+  bars,
+}: {
+  title?: string;
+  unit?: string;
+  bars: { label: string; value: number; hint?: string }[];
+}) {
+  const max = Math.max(...bars.map((b) => b.value));
+  return (
+    <div className="my-2 rounded-xl border border-border bg-background p-3">
+      {title && (
+        <div className="mb-2 flex items-baseline justify-between">
+          <div className="text-[13px] font-medium">{title}</div>
+          {unit && <div className="text-[11px] text-muted-foreground">{unit}</div>}
+        </div>
+      )}
+      <div className="flex h-32 items-end gap-1">
+        {bars.map((b, i) => {
+          const h = Math.max(4, Math.round((b.value / max) * 100));
+          const isDip = b.value < max * 0.9;
+          return (
+            <div key={i} className="flex flex-1 flex-col items-center gap-1" title={b.hint}>
+              <div className="w-full text-center text-[10px] text-muted-foreground">
+                {b.value.toFixed(1)}
+              </div>
+              <div
+                className={cn(
+                  "w-full rounded-t-sm",
+                  isDip ? "bg-red-500/70" : "bg-primary/70"
+                )}
+                style={{ height: `${h}%` }}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-1 flex gap-1">
+        {bars.map((b, i) => (
+          <div key={i} className="flex-1 truncate text-center text-[10px] text-muted-foreground">
+            {b.label.replace("Jun ", "")}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DataTable({ data }: { data: import("@/lib/chats-data").TableBlock }) {
+  return (
+    <div className="my-2 overflow-hidden rounded-xl border border-border bg-background">
+      <table className="w-full text-[13px]">
+        <thead className="bg-muted/40">
+          <tr>
+            {data.headers.map((h, i) => (
+              <th key={i} className="px-3 py-2 text-left font-medium text-muted-foreground">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.rows.map((row, i) => (
+            <tr key={i} className="border-t border-border">
+              {row.map((cell, j) => (
+                <td key={j} className="px-3 py-2 tabular-nums">
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AssistantBlocks({ blocks }: { blocks: import("@/lib/chats-data").AssistantBlock[] }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {blocks.map((block, i) => {
+        if (block.type === "text") {
+          return (
+            <div key={i} className="whitespace-pre-wrap text-sm">
+              {block.text}
+            </div>
+          );
+        }
+        if (block.type === "tool-file") return <ToolFileCard key={i} data={block.data} />;
+        if (block.type === "stat-grid") return <StatGrid key={i} tiles={block.tiles} />;
+        if (block.type === "bar-chart")
+          return <BarChart key={i} title={block.title} unit={block.unit} bars={block.bars} />;
+        if (block.type === "table") return <DataTable key={i} data={block.data} />;
+        return null;
+      })}
+    </div>
+  );
+}
+
 function ChatThread({
   chatId,
   agentName,
@@ -1960,13 +2250,25 @@ function ChatThread({
         <div
           key={i}
           className={cn(
-            "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap",
+            "text-sm",
             msg.role === "user"
-              ? "self-end bg-primary text-primary-foreground"
-              : "self-start bg-muted text-foreground"
+              ? "max-w-[85%] self-end whitespace-pre-wrap rounded-2xl bg-black/5 px-4 py-2.5 text-foreground"
+              : "w-full self-start text-foreground"
           )}
         >
-          {msg.content}
+          {msg.role === "user" && msg.parts ? (
+            msg.parts.map((part, j) =>
+              part.type === "text" ? (
+                <React.Fragment key={j}>{part.text}</React.Fragment>
+              ) : (
+                <ChatChipInline key={j} chip={part.chip} />
+              )
+            )
+          ) : msg.role === "assistant" && msg.blocks ? (
+            <AssistantBlocks blocks={msg.blocks} />
+          ) : (
+            <span className="whitespace-pre-wrap">{msg.content}</span>
+          )}
         </div>
       ))}
     </div>
@@ -2045,7 +2347,9 @@ export default function AgentChatPage() {
   const [editingConnectionId, setEditingConnectionId] = useState<string | null>(null);
   const [connectionSetupOpen, setConnectionSetupOpen] = useState(false);
   const [moreAppsOpen, setMoreAppsOpen] = useState(false);
-  const [selectedModelId, setSelectedModelId] = useState("gpt-5-1");
+  const [selectedModelId, setSelectedModelId] = useState("claude-sonnet");
+  const [effort, setEffort] = useState<EffortLevel>("low");
+  const [thinking, setThinking] = useState(false);
   const [toolToggles, setToolToggles] = useState({
     webSearch: true,
     imageCreation: true,
@@ -2719,71 +3023,77 @@ export default function AgentChatPage() {
     ? Array.from(new Set(newChatWorkflows.flatMap((w) => w.apps)))
     : undefined;
 
-  const currentAgentName =
+  const activeAgent =
     id === "new"
       ? newChatWorkflows.length === 1
-        ? newChatWorkflows[0].name
+        ? { id: newChatWorkflows[0].id, name: newChatWorkflows[0].name }
         : newChatWorkflows.length > 1
-          ? `${newChatWorkflows[0].name} +${newChatWorkflows.length - 1}`
-          : "New conversation"
-      : name || "Select an agent";
-  const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== id);
+          ? {
+              id: newChatWorkflows[0].id,
+              name: `${newChatWorkflows[0].name} +${newChatWorkflows.length - 1}`,
+            }
+          : null
+      : name
+        ? { id, name }
+        : null;
+  const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== activeAgent?.id);
 
   const renderChatHeader = () => (
     <header className="flex h-12 shrink-0 items-center gap-1 px-3">
-      <div className="flex min-w-0 items-center">
-        <Link
-          href={isNewChat ? "/agent/new" : "/agents"}
-          className="flex min-w-0 items-center gap-1.5 rounded-lg py-1 pl-1 pr-2 text-sm text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
-        >
-          <span className="flex size-6 shrink-0 items-center justify-center">
-            <ChevronLeftIcon className="size-4 shrink-0" />
-          </span>
-          <span className="min-w-0 truncate">Back</span>
-        </Link>
-        <span className="mx-1 h-5 w-px shrink-0 bg-border" />
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
-          >
-            {!isNewChat && name && (
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
-                {getAgentIcon(id, "size-4 shrink-0 text-muted-foreground")}
-              </span>
-            )}
-            <span className="min-w-0 truncate">{currentAgentName}</span>
-            <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" className="w-64">
-          <div className="max-h-72 overflow-y-auto py-1">
-            {otherAgents.map((agent) => (
-              <DropdownMenuItem
-                key={agent.id}
-                onClick={() =>
-                  router.push(`/agent/${agent.id}?name=${encodeURIComponent(agent.name)}`)
-                }
-                className="flex items-center gap-2"
-              >
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
-                  {getAgentIcon(agent.id, "size-4 shrink-0 text-muted-foreground")}
+      <Link
+        href={isNewChat ? "/" : "/agents"}
+        aria-label="Back"
+        className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
+      >
+        <ChevronLeftIcon className="size-4 shrink-0" />
+      </Link>
+      {activeAgent && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="group/agent flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
+            >
+              <span className="relative flex size-5 shrink-0 items-center justify-center">
+                <span className="flex size-5 items-center justify-center transition-opacity group-hover/agent:opacity-0">
+                  {getAgentIcon(activeAgent.id, "size-4 shrink-0 text-muted-foreground")}
                 </span>
-                <span className="truncate">{agent.name}</span>
-                {agent.favorite && (
-                  <StarIcon className="ml-auto size-3.5 shrink-0 fill-amber-400 text-amber-400" />
-                )}
-              </DropdownMenuItem>
-            ))}
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/agents")} className="flex items-center gap-2">
-            <span>Browse more agents</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                <ChevronDownIcon className="absolute size-4 text-muted-foreground opacity-0 transition-opacity group-hover/agent:opacity-100" />
+              </span>
+              <span className="min-w-0 truncate">{activeAgent.name}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-64">
+            <div className="max-h-72 overflow-y-auto py-1">
+              {otherAgents.map((agent) => (
+                <DropdownMenuItem
+                  key={agent.id}
+                  onClick={() =>
+                    router.push(`/agent/${agent.id}?name=${encodeURIComponent(agent.name)}`)
+                  }
+                  className="flex items-center gap-2"
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
+                    {getAgentIcon(agent.id, "size-4 shrink-0 text-muted-foreground")}
+                  </span>
+                  <span className="truncate">{agent.name}</span>
+                  {agent.favorite && (
+                    <StarIcon className="ml-auto size-3.5 shrink-0 fill-amber-400 text-amber-400" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/agents")} className="flex items-center gap-2">
+              <span>Browse more agents</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      {activeAgent && <span className="shrink-0 text-sm text-muted-foreground/50">/</span>}
+      <span className="min-w-0 max-w-[24rem] truncate text-sm text-muted-foreground">
+        {conversationTitle}
+      </span>
     </header>
   );
 
@@ -2926,6 +3236,10 @@ export default function AgentChatPage() {
                       <ModelMenu
                         selectedId={selectedModelId}
                         onSelect={setSelectedModelId}
+                        effort={effort}
+                        onEffortChange={setEffort}
+                        thinking={thinking}
+                        onThinkingChange={setThinking}
                         side="top"
                       />
                       <button type="button" className={toolbarBtn} title="Voice input">
@@ -2960,8 +3274,8 @@ export default function AgentChatPage() {
               <div className="flex w-full shrink-0 flex-col items-center px-4 pt-[24vh] pb-10">
                 <div className="mx-auto w-full max-w-[48rem] flex flex-col items-center gap-10 text-center">
                   <div className="flex flex-col gap-1.5">
-                    <h1 className="text-[2rem] font-bold tracking-tight leading-none text-foreground">
-                      Hey Fred, <span className="text-foreground/60">what can I help with?</span>
+                    <h1 className="text-[2rem] font-bold tracking-tight leading-none text-black dark:text-white">
+                      Hey Fred, <span className="text-foreground/75">what can I help with?</span>
                     </h1>
                   </div>
                   <div className="w-full">
@@ -3043,6 +3357,10 @@ export default function AgentChatPage() {
                             <ModelMenu
                               selectedId={selectedModelId}
                               onSelect={setSelectedModelId}
+                              effort={effort}
+                              onEffortChange={setEffort}
+                              thinking={thinking}
+                              onThinkingChange={setThinking}
                               side="bottom"
                             />
                             <button type="button" className={toolbarBtn} title="Voice input">
@@ -3087,6 +3405,7 @@ export default function AgentChatPage() {
 
                   {/* Prompt examples */}
                   <div className="mt-6 w-full">
+                    <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Suggested Prompts</div>
                     {HOME_PROMPT_EXAMPLES.map((example, i) => (
                       <button
                         key={i}

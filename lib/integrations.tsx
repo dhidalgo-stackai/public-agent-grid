@@ -16,6 +16,8 @@ export interface IntegrationMeta {
     label: string;
     options: IntegrationConnection[];
   };
+  /** System integrations aren't user-configured and don't appear in the Connections section. */
+  isSystem?: boolean;
 }
 
 export const integrationMeta: Record<string, IntegrationMeta> = {
@@ -273,17 +275,49 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
     label: "Outlook",
     icon: integrationIcons.outlook,
     connections: [
-      { id: "outlook-1", name: "david@fedex.com" },
-      { id: "outlook-2", name: "enterprise-sales@fedex.com" },
+      { id: "outlook-1", name: "jordan.lee@example.com" },
+      { id: "outlook-2", name: "jordan.lee.ops@example.com" },
     ],
     detail: {
       label: "Mailbox",
       options: [
         { id: "outlook-detail-1", name: "Inbox" },
-        { id: "outlook-detail-2", name: "Shipper Escalations" },
-        { id: "outlook-detail-3", name: "Renewal Follow-up" },
+        { id: "outlook-detail-2", name: "Morning Briefs" },
+        { id: "outlook-detail-3", name: "Exceptions" },
       ],
     },
+  },
+  teams: {
+    label: "Microsoft Teams",
+    icon: integrationIcons.teams,
+    connections: [
+      { id: "teams-1", name: "Jordan Lee" },
+      { id: "teams-2", name: "Memphis Hub Ops (Team)" },
+    ],
+    detail: {
+      label: "Destination",
+      options: [
+        { id: "teams-dest-1", name: "Direct message to Jordan Lee" },
+        { id: "teams-dest-2", name: "Memphis Hub Ops — Morning Brief" },
+        { id: "teams-dest-3", name: "Exception Watch — Priority" },
+      ],
+    },
+  },
+  "shipment-visibility": {
+    label: "Shipment Visibility",
+    icon: integrationIcons["shipment-visibility"],
+    connections: [
+      { id: "sv-1", name: "Shipment Visibility (Memphis Hub)" },
+    ],
+    isSystem: true,
+  },
+  "case-management": {
+    label: "Case Management",
+    icon: integrationIcons["case-management"],
+    connections: [
+      { id: "cm-1", name: "Case Management (Ops Handoff)" },
+    ],
+    isSystem: true,
   },
   figma: {
     label: "Figma",

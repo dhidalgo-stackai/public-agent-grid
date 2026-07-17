@@ -174,7 +174,7 @@ export function AutomationCard({ automation, onToggle, onClick, onUpdateSchedule
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="border border-border bg-background px-2 py-1 shadow-md">
-                            <span className="text-xs font-medium text-foreground capitalize">{integration}</span>
+                            <span className="text-xs font-medium text-foreground">{integrationMeta[integration]?.label ?? integration}</span>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

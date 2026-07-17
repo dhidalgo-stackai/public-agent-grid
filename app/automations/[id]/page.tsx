@@ -37,7 +37,8 @@ import {
   pageContainerClass,
 } from "@/components/page-layout";
 import type { AutomationStep, AutomationTool } from "@/lib/automations-data";
-import { IntegrationIcon, TriggerIcon } from "@/lib/integration-icons";
+import { IntegrationIcon, TriggerIcon, integrationIcons } from "@/lib/integration-icons";
+import { integrationMeta } from "@/lib/integrations";
 import {
   Tooltip,
   TooltipContent,
@@ -61,6 +62,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "file-spreadsheet": <FileSpreadsheetIcon className="size-4" />,
   filter: <FilterIcon className="size-4" />,
   "list-checks": <ListChecksIcon className="size-4" />,
+  teams: <span className="[&_svg]:size-4">{integrationIcons.teams}</span>,
   slack: (
     <svg className="size-4" viewBox="0 0 24 24" fill="none">
       <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#36C5F0"/>
@@ -232,6 +234,7 @@ function WorkflowCanvas({
                 ? getTriggerStepLabel(triggerType, schedule)
                 : step.label;
             const description =
+              step.description ??
               tool?.description ??
               (isTriggerStep && triggerType === "schedule"
                 ? "Starts the workflow on this schedule"
@@ -312,12 +315,14 @@ function WorkflowCanvas({
 
 function MetadataRow({
   createdBy,
+  personalizedBy,
   labels = [],
   triggerType,
   schedule,
   integrations,
 }: {
   createdBy: string;
+  personalizedBy?: string;
   labels?: string[];
   triggerType?: "schedule" | "slack";
   schedule?: string;
@@ -329,6 +334,13 @@ function MetadataRow({
         <span className="text-xs text-muted-foreground">Created by</span>
         <span className="text-sm font-normal text-foreground">{createdBy}</span>
       </div>
+
+      {personalizedBy && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-muted-foreground">Personalized by</span>
+          <span className="text-sm font-normal text-foreground">{personalizedBy}</span>
+        </div>
+      )}
 
       {labels.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -381,8 +393,8 @@ function MetadataRow({
                     side="bottom"
                     className="border border-border bg-background px-2 py-1 shadow-md"
                   >
-                    <span className="text-xs font-medium text-foreground capitalize">
-                      {integration}
+                    <span className="text-xs font-medium text-foreground">
+                      {integrationMeta[integration]?.label ?? integration}
                     </span>
                   </TooltipContent>
                 </Tooltip>
@@ -395,17 +407,30 @@ function MetadataRow({
   );
 }
 
-const MOCK_RUNS = [
-  { id: "r1", title: "Weekly digest generated", time: "6h ago" },
-  { id: "r2", title: "Content summarized and formatted", time: "yesterday" },
-  { id: "r3", title: "Weekly digest generated", time: "2d ago" },
-  { id: "r4", title: "Articles fetched and filtered", time: "3d ago" },
-  { id: "r5", title: "Digest posted to Slack", time: "4d ago" },
-  { id: "r6", title: "Subscriber emails sent", time: "5d ago" },
-  { id: "r7", title: "Weekly digest generated", time: "6d ago" },
-  { id: "r8", title: "Content summarized and formatted", time: "7d ago" },
-  { id: "r9", title: "Weekly digest generated", time: "8d ago" },
-  { id: "r10", title: "Digest review completed", time: "9d ago" },
+const MOCK_RUNS: {
+  id: string;
+  title: string;
+  time: string;
+  status: "success" | "warning";
+}[] = [
+  {
+    id: "r1",
+    title: "18 exceptions reviewed · 5 priority actions identified",
+    time: "Today, 7:00 AM",
+    status: "success",
+  },
+  {
+    id: "r2",
+    title: "12 exceptions reviewed · 3 priority actions identified",
+    time: "Yesterday, 7:00 AM",
+    status: "success",
+  },
+  {
+    id: "r3",
+    title: "Outlook unavailable · Brief delivered to Microsoft Teams",
+    time: "July 15, 7:00 AM",
+    status: "warning",
+  },
 ];
 
 function BackButton({ onClick }: { onClick: () => void }) {
@@ -452,7 +477,7 @@ function RunsPanel() {
   const runs = MOCK_RUNS.map((run) => ({
     id: run.id,
     title: run.title,
-    status: "success" as const,
+    status: run.status,
     time: run.time,
     duration: "—",
     steps: 0,
@@ -537,7 +562,7 @@ function AgentsSection({
   if (agents.length === 0) return null;
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-muted-foreground">AI Agents in this Workflow</p>
+      <p className="text-xs text-muted-foreground">Capabilities used in this automation</p>
       <div className="grid grid-cols-2 gap-2">
         {agents.map((agent) => (
           <AgentCard key={agent.id} {...agent} />
@@ -559,11 +584,15 @@ function OverviewPanel({
       <section>
         <MetadataRow
           createdBy={automation.authorName}
+          personalizedBy={automation.personalizedBy}
           labels={automation.labels}
           triggerType={automation.triggerType}
           schedule={automation.schedule}
           integrations={automation.integrations}
         />
+        {automation.governanceNote && (
+          <p className="mt-3 text-xs text-muted-foreground">{automation.governanceNote}</p>
+        )}
       </section>
 
       {automation.steps && automation.steps.length > 0 && (
@@ -588,6 +617,19 @@ function OverviewPanel({
               description: tool.description,
             }))}
           />
+        </section>
+      )}
+
+      {automation.permissions && automation.permissions.length > 0 && (
+        <section className={sectionDividerClass}>
+          <div className="rounded-lg border border-border/80 bg-background p-4">
+            <p className="text-sm font-semibold text-foreground">Permissions</p>
+            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+              {automation.permissions.map((p) => (
+                <li key={p}>· {p}</li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
     </div>
@@ -678,7 +720,7 @@ function AutomationDetailPageContent() {
                   onClick={() => setModalOpen(true)}
                   className="rounded-lg px-4 py-2 text-sm font-medium border border-border bg-background hover:bg-muted/60 transition-colors"
                 >
-                  Edit
+                  Edit preferences
                 </button>
               </>
             ) : (
@@ -806,7 +848,7 @@ function AutomationDetailPageContent() {
               onClick={() => setModalOpen(true)}
               className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
             >
-              Edit
+              Edit preferences
             </button>
           </PageHeader>
 

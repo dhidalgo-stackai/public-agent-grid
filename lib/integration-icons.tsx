@@ -149,6 +149,20 @@ export const integrationIcons: Record<string, React.ReactNode> = {
       <path fill="#fff" d="M4 8.5h7v1.5H8.75v5.5h-1.5V10H4z"/>
     </svg>
   ),
+  "shipment-visibility": (
+    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="#4D148C" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
+  ),
+  "case-management": (
+    <svg className="size-3.5" viewBox="0 0 24 24" fill="none" stroke="#FF6600" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16v13H4z" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+      <path d="m9 13 2 2 4-4" />
+    </svg>
+  ),
   outlook: (
     <svg className="size-3.5" viewBox="0 0 24 24">
       <path fill="#0A2767" d="M24 5.5v13a1 1 0 0 1-1 1H10V4.5h13a1 1 0 0 1 1 1Z"/>
