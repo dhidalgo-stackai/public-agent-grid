@@ -254,7 +254,8 @@ export function AgentSidebar({
   ];
 
   const isAutomations =
-    activeSection === "automations" || pathname.startsWith("/automations");
+    activeSection === "automations" ||
+    (activeSection === undefined && pathname.startsWith("/automations"));
   const isKnowledgeBases =
     activeSection === "knowledge-bases" || pathname.startsWith("/knowledge-bases");
   const isConnections =

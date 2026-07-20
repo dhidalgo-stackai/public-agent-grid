@@ -2256,6 +2256,34 @@ function MessageNavigator({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const [activeIdx, setActiveIdx] = useState<number | null>(
+    userMessages[0]?.index ?? null
+  );
+  useEffect(() => {
+    if (userMessages.length < 2) return;
+    const els = userMessages
+      .map((m) => document.getElementById(`msg-${chatId}-${m.index}`))
+      .filter((el): el is HTMLElement => !!el);
+    if (els.length === 0) return;
+    const update = () => {
+      const anchor = window.innerHeight * 0.3;
+      let best = els[0];
+      for (const el of els) {
+        if (el.getBoundingClientRect().top <= anchor) best = el;
+      }
+      const idx = Number(best.id.split("-").pop());
+      setActiveIdx(idx);
+    };
+    update();
+    const scroller =
+      els[0].closest<HTMLElement>(".overflow-y-auto") ?? window;
+    scroller.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [userMessages, chatId]);
   if (userMessages.length < 2) return null;
   const scrollTo = (i: number) => {
     const el = document.getElementById(`msg-${chatId}-${i}`);
@@ -2263,7 +2291,7 @@ function MessageNavigator({
   };
   return (
     <div
-      className="pointer-events-none fixed right-3 top-1/2 z-20 -translate-y-1/2"
+      className="pointer-events-none fixed right-6 top-1/2 z-20 -translate-y-1/2"
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => {
         setExpanded(false);
@@ -2271,7 +2299,7 @@ function MessageNavigator({
       }}
     >
       {expanded ? (
-        <div className="pointer-events-auto flex w-[280px] flex-col gap-0.5 rounded-2xl border border-white/10 bg-neutral-900/95 p-2 text-neutral-100 shadow-xl backdrop-blur">
+        <div className="pointer-events-auto flex w-[280px] flex-col gap-0.5 rounded-2xl border border-border bg-background p-2 text-foreground shadow-xl">
           {userMessages.map((m) => (
             <button
               key={m.index}
@@ -2281,8 +2309,10 @@ function MessageNavigator({
               className={cn(
                 "truncate rounded-lg px-3 py-1.5 text-left text-xs transition-colors",
                 hoverIdx === m.index
-                  ? "bg-white/10 text-white"
-                  : "text-neutral-300 hover:bg-white/5"
+                  ? "bg-muted text-foreground"
+                  : activeIdx === m.index
+                    ? "bg-muted font-semibold text-foreground"
+                    : "text-muted-foreground hover:bg-muted/60"
               )}
               title={m.text}
             >
@@ -2295,7 +2325,12 @@ function MessageNavigator({
           {userMessages.map((m) => (
             <span
               key={m.index}
-              className="block h-[2px] w-4 rounded-full bg-muted-foreground/40"
+              className={cn(
+                "block h-[3px] rounded-full transition-all",
+                activeIdx === m.index
+                  ? "w-4 bg-foreground"
+                  : "w-3 bg-muted-foreground/60"
+              )}
             />
           ))}
         </div>
@@ -3351,7 +3386,7 @@ export default function AgentChatPage() {
                 <div className="mx-auto w-full max-w-[48rem] flex flex-col items-center gap-10 text-center">
                   <div className="flex flex-col gap-1.5">
                     <h1 className="text-[2rem] font-bold tracking-tight leading-none text-black dark:text-white">
-                      Hey Fred, <span className="text-foreground/75">what can I help with?</span>
+                      Hey Fred, <span className="text-foreground/85">what can I help with?</span>
                     </h1>
                   </div>
                   <div className="w-full">
@@ -3480,7 +3515,7 @@ export default function AgentChatPage() {
                   </div>
 
                   {/* Prompt examples */}
-                  <div className="mt-6 w-full">
+                  <div className="mt-6 w-full text-left">
                     <div className="px-3 py-2 text-xs font-medium text-muted-foreground">Suggested Prompts</div>
                     {HOME_PROMPT_EXAMPLES.map((example, i) => (
                       <button

@@ -1,8 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CalendarIcon, ClockIcon, CheckCircle2, PlusIcon, PlayIcon, XIcon, LockIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon, CheckCircle2, CheckIcon, PlusIcon, PlayIcon, XIcon, LockIcon, MailIcon, SparklesIcon, DatabaseIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { integrationIcons } from "@/lib/integration-icons";
+
+const OutlookStepIcon = () => (
+  <span className="flex size-5 items-center justify-center rounded-sm bg-white [&_svg]:size-4">
+    {integrationIcons.outlook}
+  </span>
+);
+const ExcelStepIcon = () => (
+  <span className="flex size-5 items-center justify-center rounded-sm bg-white [&_svg]:size-4">
+    {integrationIcons.excel}
+  </span>
+);
+const AnthropicStepIcon = () => (
+  <span className="flex size-5 items-center justify-center rounded-sm bg-[#181818] text-white">
+    <svg viewBox="0 0 24 24" fill="currentColor" className="size-3" aria-hidden="true">
+      <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+    </svg>
+  </span>
+);
 import {
   Dialog,
   DialogClose,
@@ -22,6 +41,20 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Automation } from "@/lib/automations-data";
 import { integrationMeta } from "@/lib/integrations";
+
+function StaticField({ label, icon, value }: { label: string; icon: React.ReactNode; value: string }) {
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+        {label}
+      </label>
+      <div className="flex items-center gap-2 text-sm text-foreground">
+        <span className="flex size-5 items-center justify-center [&_svg]:size-4">{icon}</span>
+        <span>{value}</span>
+      </div>
+    </div>
+  );
+}
 
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const FREQUENCIES = ["Daily", "Weekdays", "Weekly", "Monthly", "Custom"];
@@ -44,6 +77,7 @@ export function AutomationSetupModal({
   onSave,
 }: AutomationSetupModalProps) {
   const isSlackTrigger = automation?.triggerType === "slack";
+  const isFedexEmailLog = !!automation?.id?.includes("auto-fedex-exception-log");
 
   // The trigger connection (Slack) is configured in the Trigger section; every
   // other integration the automation touches is bound in the Connections section.
@@ -78,6 +112,17 @@ export function AutomationSetupModal({
   });
   const [minSeverity, setMinSeverity] = useState("Medium and above");
   const [outlookAddress, setOutlookAddress] = useState("jordan.lee@example.com");
+  const [emailFolder, setEmailFolder] = useState("Inbox");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [configOpen, setConfigOpen] = useState(true);
+  const [outlookAccount, setOutlookAccount] = useState("");
+  const [excelAccount, setExcelAccount] = useState("");
+  const [selectedNodeId, setSelectedNodeId] = useState<"trigger" | "category" | "append">("trigger");
+  const [excelWorkbook, setExcelWorkbook] = useState("FedEx Ops / Exception Log.xlsx");
+  const [excelSheet, setExcelSheet] = useState("Exceptions");
+  const [excelTable, setExcelTable] = useState("ExceptionsTable");
+  const [emailCategory, setEmailCategory] = useState("");
+  const [categoryMessageId, setCategoryMessageId] = useState("{{trigger.message.id}}");
   // Selected account per integration key. Slack trigger uses the "slack" key too.
   const [connections, setConnections] = useState<Record<string, string>>({});
   const [details, setDetails] = useState<Record<string, string>>({});
@@ -92,6 +137,7 @@ export function AutomationSetupModal({
         initial.teams = integrationMeta.teams.connections[0]?.id ?? "";
       }
       setConnections(initial);
+      setSelectedNodeId("trigger");
       setDetails(
         isSlackTrigger
           ? { slack: integrationMeta.slack.detail?.options[1].id ?? "" }
@@ -109,7 +155,10 @@ export function AutomationSetupModal({
   const triggerReady = !isSlackTrigger || !!connections.slack;
   const connectionsReady = connectionIntegrations.every((i) => !!connections[i]);
   const hasException = Object.values(exceptions).some(Boolean);
-  const allConnected = triggerReady && connectionsReady && hasException;
+  const fedexReady = !!outlookAccount && !!excelAccount;
+  const allConnected = isFedexEmailLog
+    ? fedexReady
+    : triggerReady && connectionsReady && hasException;
 
   const handleActivate = () => {
     setIsLoading(true);
@@ -120,7 +169,9 @@ export function AutomationSetupModal({
   };
 
   const slackChannels = integrationMeta.slack.detail?.options ?? [];
-  const triggerLabel = isSlackTrigger
+  const triggerLabel = isFedexEmailLog
+    ? "When a new email arrives in Outlook"
+    : isSlackTrigger
     ? slackChannels.find((c) => c.id === details.slack)?.name ?? "#channel"
     : frequency === "Daily"
     ? `Every day at ${time}`
@@ -201,7 +252,7 @@ export function AutomationSetupModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent hideX className="max-w-[640px] overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]">
+      <DialogContent hideX className={cn("overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]", isFedexEmailLog ? "max-w-[880px]" : "max-w-[640px]")}>
         <DialogClose className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
@@ -209,27 +260,346 @@ export function AutomationSetupModal({
 
         {/* Header */}
         <DialogHeader className="space-y-4 border-b border-border/80 px-7 pb-6 pt-7 pr-16 text-left">
-          <DialogTitle className="text-2xl font-semibold text-foreground">
+          <DialogTitle className="text-lg font-semibold text-foreground">
             {automation.setupTitle ?? automation.name}
           </DialogTitle>
-          {(automation.setupDescription ?? automation.description) && (
-            <DialogDescription className="max-w-xl text-sm leading-6 text-muted-foreground">
-              {automation.setupDescription ?? automation.description}
-            </DialogDescription>
-          )}
-
-          <div className="rounded-lg border border-border/80 bg-background px-4 py-3">
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <CalendarIcon className="size-4 shrink-0" />
-              <p>
-                Runs <span className="font-semibold text-foreground">{triggerLabel}</span>
-              </p>
-            </div>
-          </div>
         </DialogHeader>
 
         {/* Body */}
-        <div className="max-h-[440px] space-y-6 overflow-y-auto px-7 py-6">
+        <div className={cn("overflow-y-auto", isFedexEmailLog ? "flex h-[520px] p-0" : "h-[520px] space-y-6 px-7 py-6")}>
+          {isFedexEmailLog ? (
+            <>
+              {/* Left rail: node list */}
+              <div className="w-[220px] shrink-0 border-r border-border/80 bg-muted/30 py-4">
+                <p className="px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Needs configuration
+                </p>
+                <div className="space-y-0.5 px-2">
+                  {[
+                    { id: "trigger" as const, label: "Watch inbox", icon: <OutlookStepIcon />, status: outlookAccount ? "done" : "needs" },
+                    { id: "category" as const, label: "Set email category", icon: <OutlookStepIcon />, status: emailCategory ? "done" : "needs" },
+                    { id: "append" as const, label: "Append to Excel", icon: <ExcelStepIcon />, status: excelAccount ? "done" : "needs" },
+                  ].map((node) => (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                        selectedNodeId === node.id
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/80"
+                          : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn("flex size-6 items-center justify-center rounded-md", selectedNodeId === node.id ? "text-foreground" : "text-muted-foreground")}>
+                        {node.icon}
+                      </span>
+                      <span className="flex-1 truncate font-medium">{node.label}</span>
+                      {node.status === "done" && (
+                        <CheckIcon className="size-3.5 text-muted-foreground" />
+                      )}
+                      {node.status === "needs" && (
+                        <span className="size-1.5 rounded-full bg-amber-500" />
+                      )}
+                      {node.status === "auto" && (
+                        <CheckIcon className="size-3.5 text-muted-foreground" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right pane: selected node config */}
+              <div className="flex-1 space-y-6 overflow-y-auto px-7 py-6">
+              {selectedNodeId === "trigger" && (
+              <div className="space-y-5">
+                {/* General */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
+                  <StaticField label="Trigger" icon={integrationIcons.outlook} value="On Email Received" />
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+                      Connection
+                    </label>
+                    <Select value={outlookAccount} onValueChange={setOutlookAccount}>
+                      <SelectTrigger className={fieldClassName}>
+                        <SelectValue placeholder="Select an Outlook connection" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(integrationMeta.outlook?.connections ?? []).map((conn) => (
+                          <SelectItem key={conn.id} value={conn.id}>
+                            {conn.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="underline decoration-dotted underline-offset-2">Your credentials are encrypted and can be removed at any time</span>. You can manage all your connections <span className="underline decoration-dotted underline-offset-2">here</span>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Configuration */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setConfigOpen((v) => !v)}
+                    className="flex w-full items-center justify-between py-3 text-left"
+                  >
+                    <span className="text-sm font-semibold text-foreground">
+                      Configuration
+                    </span>
+                  </button>
+                  {configOpen && (
+                    <div className="space-y-4 py-2">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-sm text-foreground">
+                            <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Inbox Folder</span>
+                          </span>
+                          <span className="text-xs text-muted-foreground">string</span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={emailFolder}
+                            onChange={(e) => setEmailFolder(e.target.value)}
+                            className="h-9 w-full rounded-md border border-input bg-background px-3 pr-8 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                          />
+                          {emailFolder && (
+                            <button
+                              type="button"
+                              onClick={() => setEmailFolder("")}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              aria-label="Clear"
+                            >
+                              <XIcon className="size-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1.5 text-sm text-foreground">
+                            <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Sender Email</span>
+                            <span className="text-xs text-muted-foreground">(optional)</span>
+                          </span>
+                          <span className="text-xs text-muted-foreground">string</span>
+                        </div>
+                        <div>
+                          <input
+                            type="email"
+                            value={senderEmail}
+                            onChange={(e) => setSenderEmail(e.target.value)}
+                            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              )}
+
+              {/* Set email category */}
+              {selectedNodeId === "category" && (
+              <div className="space-y-5">
+                {/* General */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
+                  <StaticField label="Action" icon={integrationIcons.outlook} value="Set Email Category" />
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+                      Connection
+                    </label>
+                    <Select value={outlookAccount} onValueChange={setOutlookAccount}>
+                      <SelectTrigger className={fieldClassName}>
+                        <SelectValue placeholder="Select an Outlook connection" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(integrationMeta.outlook?.connections ?? []).map((conn) => (
+                          <SelectItem key={conn.id} value={conn.id}>
+                            {conn.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="underline decoration-dotted underline-offset-2">Your credentials are encrypted and can be removed at any time</span>. You can manage all your connections <span className="underline decoration-dotted underline-offset-2">here</span>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Configuration */}
+                <div>
+                  <div className="flex items-center gap-2 py-3">
+                    <span className="text-sm font-semibold text-foreground">Configuration</span>
+                  </div>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm text-foreground">
+                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Category</span>
+                          <span className="text-red-500">*</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">string</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select value={emailCategory} onValueChange={setEmailCategory}>
+                          <SelectTrigger className={fieldClassName}>
+                            <SelectValue placeholder="Select..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Not an exception", "Follow-up", "Reviewed", "Archived"].map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {emailCategory && (
+                          <button
+                            type="button"
+                            onClick={() => setEmailCategory("")}
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label="Clear"
+                          >
+                            <XIcon className="size-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm text-foreground">
+                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Message ID</span>
+                          <span className="text-red-500">*</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">string</span>
+                      </div>
+                      <textarea
+                        value={categoryMessageId}
+                        onChange={(e) => setCategoryMessageId(e.target.value)}
+                        placeholder="AAMkADEzYWFmYT..."
+                        rows={2}
+                        className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {/* Destination: Excel */}
+              {selectedNodeId === "append" && (
+              <div className="space-y-5">
+                {/* General */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <StaticField label="Provider" icon={integrationIcons.excel} value="Excel on SharePoint" />
+                  <StaticField label="Action" icon={integrationIcons.excel} value="Append Row to Table" />
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+                      Connection
+                    </label>
+                    <Select value={excelAccount} onValueChange={setExcelAccount}>
+                      <SelectTrigger className={fieldClassName}>
+                        <SelectValue placeholder="Select an Excel account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(integrationMeta.excel?.connections ?? []).map((conn) => (
+                          <SelectItem key={conn.id} value={conn.id}>
+                            {conn.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      <span className="underline decoration-dotted underline-offset-2">Your credentials are encrypted and can be removed at any time</span>. You can manage all your connections <span className="underline decoration-dotted underline-offset-2">here</span>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Configuration */}
+                <div>
+                  <div className="flex items-center gap-2 py-3">
+                    <span className="text-sm font-semibold text-foreground">Configuration</span>
+                  </div>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm text-foreground">
+                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Workbook</span>
+                          <span className="text-red-500">*</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">string</span>
+                      </div>
+                      <Select value={excelWorkbook} onValueChange={setExcelWorkbook}>
+                        <SelectTrigger className={fieldClassName}>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            "FedEx Ops / Exception Log.xlsx",
+                            "FedEx Ops / Daily Alerts.xlsx",
+                            "Shared / Exception Archive.xlsx",
+                          ].map((w) => (
+                            <SelectItem key={w} value={w}>{w}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm text-foreground">
+                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Sheet</span>
+                          <span className="text-red-500">*</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">string</span>
+                      </div>
+                      <Select value={excelSheet} onValueChange={setExcelSheet}>
+                        <SelectTrigger className={fieldClassName}>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["Exceptions", "Archive", "Sandbox"].map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-sm text-foreground">
+                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Table</span>
+                          <span className="text-red-500">*</span>
+                        </span>
+                        <span className="text-xs text-muted-foreground">string</span>
+                      </div>
+                      <Select value={excelTable} onValueChange={setExcelTable}>
+                        <SelectTrigger className={fieldClassName}>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["ExceptionsTable", "ArchiveTable"].map((t) => (
+                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              </div>
+            </>
+          ) : (
+          <>
           {/* Schedule section */}
           <div className="space-y-3">
             <div className="space-y-1">
@@ -427,20 +797,17 @@ export function AutomationSetupModal({
             </div>
           </div>
 
-          {/* Managed workflow info */}
-          <div className="rounded-lg border border-border/80 bg-muted/40 p-4">
-            <p className="text-sm font-semibold text-foreground">Managed workflow</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              The Enterprise Automation Team controls workflow logic, data access, prompts, and safety policies. Your preferences only control which approved results you receive.
-            </p>
-          </div>
+          </>
+          )}
         </div>
 
         {/* Footer */}
         <DialogFooter className="border-t border-border/80 bg-muted/30 px-7 py-4 sm:flex-row sm:items-center sm:justify-between">
           {!allConnected ? (
             <p className="w-full text-sm text-muted-foreground sm:w-auto">
-              Connect required accounts and select at least one exception to continue
+              {isFedexEmailLog
+                ? "Connect Outlook and Excel to continue"
+                : "Connect required accounts and select at least one exception to continue"}
             </p>
           ) : (
             <div />

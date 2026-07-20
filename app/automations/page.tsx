@@ -41,7 +41,9 @@ function AutomationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") === "runs" ? "runs" : "list";
-  const [automations, setAutomations] = useState(myAutomations);
+  const [automations, setAutomations] = useState(
+    myAutomations.filter((a) => a.id === "auto-fedex-exception-log")
+  );
 
   const runItems = useMemo(
     () =>
@@ -49,11 +51,12 @@ function AutomationsContent() {
         const automation = myAutomations.find((a) => a.id === run.automationId);
         return {
           id: run.id,
+          runId: `${run.id}-${run.automationId}`.replace(/[^a-z0-9]/gi, "").padEnd(16, "0").slice(0, 16),
           title: run.title,
           status: run.status,
           time: run.startedAt,
           duration: run.duration,
-          steps: run.steps,
+          input: "Scheduled trigger",
           agentId: automation?.agentId,
           automationId: run.automationId,
           automationName: automation?.name,

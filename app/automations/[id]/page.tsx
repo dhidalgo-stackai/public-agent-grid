@@ -86,11 +86,155 @@ function NodeIcon({ icon }: { icon?: string }) {
   );
 }
 
+const NODE_WIDTH = 260;
+const NODE_GAP = 56;
+const NODE_VPAD = 24;
+
+function StackNodeIcon({ kind }: { kind?: AutomationStep["nodeKind"] }) {
+  if (kind === "outlook-trigger") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 [&_svg]:size-5">
+        {integrationIcons.outlook}
+      </div>
+    );
+  }
+  if (kind === "excel-append") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 [&_svg]:size-5">
+        {integrationIcons.excel}
+      </div>
+    );
+  }
+  if (kind === "anthropic-agent") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 text-[#181818]">
+        <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
+          <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+        </svg>
+      </div>
+    );
+  }
+  if (kind === "outlook-category") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 [&_svg]:size-5">
+        {integrationIcons.outlook}
+      </div>
+    );
+  }
+  if (kind === "if-else") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 text-neutral-700">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+          <path d="M4 20 20 4" />
+          <path d="M14 4h6v6" />
+          <path d="M4 4l6 6" />
+          <path d="M14 20h6v-6" />
+        </svg>
+      </div>
+    );
+  }
+  return null;
+}
+
+function NodeHandle({ side }: { side: "left" | "right" }) {
+  return (
+    <div
+      className="absolute top-1/2 -translate-y-1/2 size-2.5 rounded-[3px] bg-white border border-neutral-300"
+      style={{ [side]: -5 } as React.CSSProperties}
+    />
+  );
+}
+
+function StackNodeCard({
+  step,
+  triggerType,
+  schedule,
+}: {
+  step: AutomationStep;
+  triggerType?: "schedule" | "slack" | "email";
+  schedule?: string;
+}) {
+  const kind = step.nodeKind;
+  const showLeftHandle = kind !== "outlook-trigger";
+  const showRightHandle = true;
+
+  return (
+    <div
+      className="relative rounded-xl bg-white"
+      style={{
+        width: NODE_WIDTH,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.08)",
+      }}
+    >
+      {showLeftHandle && <NodeHandle side="left" />}
+      {showRightHandle && <NodeHandle side="right" />}
+
+      {/* Header */}
+      <div className="flex items-start gap-2.5 px-3 pt-3">
+        <StackNodeIcon kind={kind} />
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="text-[13px] font-semibold text-neutral-900 leading-tight truncate">{step.label}</p>
+        </div>
+      </div>
+
+      {/* Description */}
+      {step.description && (
+        <p className="px-3 pt-1.5 text-[11px] leading-snug text-neutral-500 line-clamp-2">
+          {step.description}
+        </p>
+      )}
+
+      {/* Body per kind */}
+      {kind === "if-else" && (
+        <div className="px-3 pt-2.5 space-y-1.5">
+          <div className="flex items-center justify-end rounded-md border border-neutral-200 bg-neutral-50/60 px-2.5 h-7 text-[11px] font-medium text-neutral-500">IF</div>
+          <div className="flex items-center justify-end rounded-md border border-neutral-200 bg-neutral-50/60 px-2.5 h-7 text-[11px] font-medium text-neutral-500">ELSE</div>
+        </div>
+      )}
+
+      {kind === "anthropic-agent" && (
+        <div className="px-3 pt-2.5 space-y-1.5">
+          <div className="flex items-center justify-between rounded-md bg-neutral-50 border border-neutral-200/80 px-2 h-7">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Model</span>
+            <div className="flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="size-3.5 text-[#181818]" aria-hidden="true">
+                <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+              </svg>
+              <span className="text-[11.5px] font-medium text-neutral-800">{step.model ?? "Claude 4.6 Opus"}</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between rounded-md bg-neutral-50 border border-neutral-200/80 px-2 h-7">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400">Tools</span>
+            <span className="text-[11.5px] font-medium text-neutral-800">3 connected</span>
+          </div>
+        </div>
+      )}
+
+      <div className="pb-3" />
+    </div>
+  );
+}
+
+function NodeConnector() {
+  const w = NODE_GAP;
+  const h = 40;
+  return (
+    <svg width={w} height={h} className="shrink-0" style={{ overflow: "visible" }}>
+      <path
+        d={`M0 ${h / 2} C ${w * 0.5} ${h / 2}, ${w * 0.5} ${h / 2}, ${w} ${h / 2}`}
+        stroke="#d4d4d4"
+        strokeWidth="1.25"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 2;
 
 function getTriggerStepLabel(
-  triggerType: "schedule" | "slack",
+  triggerType: "schedule" | "slack" | "email",
   schedule?: string
 ) {
   if (triggerType === "slack") return "Message received";
@@ -105,7 +249,7 @@ function WorkflowCanvas({
 }: {
   steps: AutomationStep[];
   tools?: AutomationTool[];
-  triggerType?: "schedule" | "slack";
+  triggerType?: "schedule" | "slack" | "email";
   schedule?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -205,11 +349,11 @@ function WorkflowCanvas({
       onMouseDown={handleMouseDown}
       className="relative w-full overflow-hidden rounded-xl border border-border select-none overscroll-contain"
       style={{
-        background: "#fafafa",
-        backgroundImage: "radial-gradient(circle, #e5e5e5 1px, transparent 1px)",
+        background: "#f4f4f5",
+        backgroundImage: "radial-gradient(circle, #d4d4d8 1px, transparent 1px)",
         backgroundSize: "22px 22px",
         backgroundPosition: `${transform.x % 22}px ${transform.y % 22}px`,
-        height: 280,
+        height: 460,
         cursor: isPanning ? "grabbing" : "grab",
         touchAction: "none",
       }}
@@ -221,62 +365,96 @@ function WorkflowCanvas({
           transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
         }}
       >
-        <div className="flex items-center px-8 py-6" style={{ gap: 0 }}>
-          {steps.map((step, i) => {
-            const tool = tools?.find(
-              (t) =>
-                t.name.toLowerCase().includes(step.label.toLowerCase()) ||
-                step.label.toLowerCase().includes(t.name.toLowerCase())
-            );
-            const isTriggerStep = i === 0;
-            const stepLabel =
-              isTriggerStep && triggerType
-                ? getTriggerStepLabel(triggerType, schedule)
-                : step.label;
-            const description =
-              step.description ??
-              tool?.description ??
-              (isTriggerStep && triggerType === "schedule"
-                ? "Starts the workflow on this schedule"
-                : isTriggerStep && triggerType === "slack"
-                ? "When a message is posted in Slack"
-                : isTriggerStep
-                ? "Triggers the workflow automatically"
-                : i === steps.length - 1
-                ? "Outputs the result of this workflow"
-                : "Processes data using AI");
+        {steps.some((s) => s.nodeKind) ? (
+          <div className="flex items-start px-10 py-10 pb-40">
+            {steps.map((step, i) => (
+              <div key={step.id} className="flex items-start">
+                <div className="relative">
+                  <StackNodeCard step={step} triggerType={triggerType} schedule={schedule} />
+                  {step.elseBranch && (
+                    <>
+                      <div
+                        className="absolute"
+                        style={{ left: NODE_WIDTH + NODE_GAP, top: 210, width: NODE_WIDTH }}
+                      >
+                        <StackNodeCard step={step.elseBranch} />
+                      </div>
+                      <svg
+                        className="absolute pointer-events-none"
+                        style={{ left: 0, top: 0, width: NODE_WIDTH * 2 + NODE_GAP, height: 320, overflow: "visible" }}
+                      >
+                        <path
+                          d={`M ${NODE_WIDTH} 140 C ${NODE_WIDTH + NODE_GAP} 140, ${NODE_WIDTH + NODE_GAP - 30} 245, ${NODE_WIDTH + NODE_GAP} 245`}
+                          stroke="#d4d4d4"
+                          strokeWidth="1.25"
+                          fill="none"
+                        />
+                      </svg>
+                    </>
+                  )}
+                </div>
+                {i < steps.length - 1 && <NodeConnector />}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center px-8 py-6" style={{ gap: 0 }}>
+            {steps.map((step, i) => {
+              const tool = tools?.find(
+                (t) =>
+                  t.name.toLowerCase().includes(step.label.toLowerCase()) ||
+                  step.label.toLowerCase().includes(t.name.toLowerCase())
+              );
+              const isTriggerStep = i === 0;
+              const stepLabel =
+                isTriggerStep && triggerType
+                  ? getTriggerStepLabel(triggerType, schedule)
+                  : step.label;
+              const description =
+                step.description ??
+                tool?.description ??
+                (isTriggerStep && triggerType === "schedule"
+                  ? "Starts the workflow on this schedule"
+                  : isTriggerStep && triggerType === "slack"
+                  ? "When a message is posted in Slack"
+                  : isTriggerStep
+                  ? "Triggers the workflow automatically"
+                  : i === steps.length - 1
+                  ? "Outputs the result of this workflow"
+                  : "Processes data using AI");
 
-            return (
-              <div key={step.id} className="flex items-center">
-                <div
-                  className="bg-white rounded-lg px-2.5 py-2"
-                  style={{
-                    width: 150,
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.07)",
-                  }}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    {isTriggerStep && triggerType ? (
-                      <TriggerIcon triggerType={triggerType} />
-                    ) : (
-                      <NodeIcon icon={step.icon} />
-                    )}
-                    <p className="text-[11px] font-semibold text-neutral-800 leading-tight truncate">
-                      {stepLabel}
+              return (
+                <div key={step.id} className="flex items-center">
+                  <div
+                    className="bg-white rounded-lg px-2.5 py-2"
+                    style={{
+                      width: 150,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.07)",
+                    }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {isTriggerStep && triggerType ? (
+                        <TriggerIcon triggerType={triggerType} />
+                      ) : (
+                        <NodeIcon icon={step.icon} />
+                      )}
+                      <p className="text-[11px] font-semibold text-neutral-800 leading-tight truncate">
+                        {stepLabel}
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-neutral-500 leading-snug line-clamp-2">
+                      {description}
                     </p>
                   </div>
-                  <p className="text-[10px] text-neutral-500 leading-snug line-clamp-2">
-                    {description}
-                  </p>
-                </div>
 
-                {i < steps.length - 1 && (
-                  <div className="h-px bg-neutral-300" style={{ width: 20 }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {i < steps.length - 1 && (
+                    <div className="h-px bg-neutral-300" style={{ width: 20 }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Zoom controls */}
@@ -324,7 +502,7 @@ function MetadataRow({
   createdBy: string;
   personalizedBy?: string;
   labels?: string[];
-  triggerType?: "schedule" | "slack";
+  triggerType?: "schedule" | "slack" | "email";
   schedule?: string;
   integrations: string[];
 }) {
@@ -371,7 +549,9 @@ function MetadataRow({
             <span className="text-xs font-medium text-foreground">
               {triggerType === "slack"
                 ? "Message received"
-                : schedule || "Scheduled"}
+                : triggerType === "email"
+                  ? "Email received"
+                  : schedule || "Scheduled"}
             </span>
           </div>
         </div>
@@ -476,11 +656,12 @@ function AutomationTitleRow({
 function RunsPanel() {
   const runs = MOCK_RUNS.map((run) => ({
     id: run.id,
+    runId: `${run.id}-${run.time}`.replace(/[^a-z0-9]/gi, "").padEnd(16, "0").slice(0, 16),
     title: run.title,
     status: run.status,
     time: run.time,
     duration: "—",
-    steps: 0,
+    input: "Scheduled trigger",
   }));
 
   return <AutomationRunsList runs={runs} />;
@@ -572,7 +753,50 @@ function AgentsSection({
   );
 }
 
-const sectionDividerClass = "mt-4 border-t border-border/30 pt-4";
+function AiAgentsSection({
+  agents,
+}: {
+  agents: { id: string; name: string; model: string; prompt?: string }[];
+}) {
+  if (agents.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">AI Agents in this automation</p>
+      <div className="flex flex-col gap-2">
+        {agents.map((agent) => (
+          <div
+            key={agent.id}
+            className="rounded-lg border border-border/80 bg-background p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#181818] text-white">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
+                    <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{agent.name}</p>
+                  <p className="text-xs text-muted-foreground">{agent.model}</p>
+                </div>
+              </div>
+            </div>
+            {agent.prompt && (
+              <div className="mt-3">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">Prompt</p>
+                <pre className="whitespace-pre-wrap break-words rounded-md bg-muted/40 border border-border/60 px-3 py-2 text-xs text-foreground/90 font-mono leading-relaxed">
+{agent.prompt}
+                </pre>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const sectionDividerClass = "mt-4 pt-4";
 
 function OverviewPanel({
   automation,
@@ -597,7 +821,7 @@ function OverviewPanel({
 
       {automation.steps && automation.steps.length > 0 && (
         <section className={sectionDividerClass}>
-          <h2 className="text-sm font-semibold mb-2">Process</h2>
+          <h2 className="text-sm font-semibold mb-2">Workflow</h2>
           <WorkflowCanvas
             steps={automation.steps}
             tools={automation.tools}
@@ -607,31 +831,21 @@ function OverviewPanel({
         </section>
       )}
 
-      {automation.tools && automation.tools.length > 0 && (
+      {automation.steps && automation.steps.some((s) => s.nodeKind === "anthropic-agent") && (
         <section className={sectionDividerClass}>
-          <AgentsSection
-            agents={automation.tools.map((tool) => ({
-              id: tool.id,
-              name: tool.name,
-              logo: iconMap[tool.icon] ?? <ZapIcon className="size-4" />,
-              description: tool.description,
-            }))}
+          <AiAgentsSection
+            agents={automation.steps
+              .filter((s) => s.nodeKind === "anthropic-agent")
+              .map((s) => ({
+                id: s.id,
+                name: s.label,
+                model: s.model ?? "Claude 4.6 Opus",
+                prompt: s.prompt,
+              }))}
           />
         </section>
       )}
 
-      {automation.permissions && automation.permissions.length > 0 && (
-        <section className={sectionDividerClass}>
-          <div className="rounded-lg border border-border/80 bg-background p-4">
-            <p className="text-sm font-semibold text-foreground">Permissions</p>
-            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-              {automation.permissions.map((p) => (
-                <li key={p}>· {p}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
@@ -643,8 +857,9 @@ function AutomationDetailPageContent() {
   const id = typeof params?.id === "string" ? params.id : "";
   const automation = myAutomations.find((a) => a.id === id);
   const justActivated = searchParams.get("activated") === "1";
+  const isSetupMode = searchParams.get("setup") === "1" && !justActivated;
   const [isActive, setIsActive] = useState(
-    justActivated || automation?.status === "active"
+    !isSetupMode && (justActivated || automation?.status === "active")
   );
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -672,11 +887,34 @@ function AutomationDetailPageContent() {
       organisationName="FedEx"
       userName="Fred Smith"
       onNewChat={() => router.push("/agent/new")}
-      activeSection={automation ? "automations" : undefined}
+      activeSection={automation && !isSetupMode ? "automations" : "agents"}
     />
   );
 
   if (!automation) {
+    const isFedexEmailLog = id.includes("auto-fedex-exception-log");
+    const overrideIntegrations = isFedexEmailLog
+      ? ["outlook", "excel"]
+      : ["outlook", "slack"];
+    const overrideScheduleLabel = isFedexEmailLog
+      ? "When a new email arrives in Outlook"
+      : searchParams.get("schedule") ?? undefined;
+    const overrideSteps: AutomationStep[] = isFedexEmailLog
+      ? [
+          { id: "s1", label: "New Exception Email", icon: "mail", description: "Trigger a run for each new email in the monitored folder." },
+          { id: "s2", label: "Is Exception?", icon: "list-checks", description: "Route the input using if-else logic." },
+          { id: "s3", label: "Extract Exception Fields", icon: "sparkles", description: "Anthropic Claude returns a structured row." },
+          { id: "s4", label: "Append to Excel", icon: "database", description: "Add the row to ExceptionsTable on SharePoint." },
+        ]
+      : [
+          { id: "s1", label: "Trigger", icon: "zap" },
+          { id: "s2", label: "Extract Data", icon: "database" },
+          { id: "s3", label: "Validate", icon: "list-checks" },
+          { id: "s4", label: "AI Agent", icon: "sparkles" },
+          { id: "s5", label: "Format Output", icon: "file-text" },
+          { id: "s6", label: "Send Email", icon: "mail" },
+          { id: "s7", label: "Notify Slack", icon: "slack" },
+        ];
     const fallbackAutomation = {
       id: id || "unknown",
       name: fallbackName,
@@ -684,7 +922,7 @@ function AutomationDetailPageContent() {
       authorName: fallbackAuthorName,
       agentId: "",
       schedule: "",
-      triggerType: fallbackTriggerType as "schedule" | "slack",
+      triggerType: fallbackTriggerType as "schedule" | "slack" | "email",
       status: "paused" as const,
       lastRun: "",
       nextRun: "",
@@ -734,7 +972,7 @@ function AutomationDetailPageContent() {
           </PageHeader>
 
           <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 overflow-y-auto py-4">
+            <div className="flex-1 overflow-y-auto py-4" style={{ scrollbarGutter: "stable" }}>
             <div className={cn(pageContainerClass, "space-y-6 pb-8")}>
               <AutomationTitleRow
                 name={fallbackName}
@@ -757,24 +995,16 @@ function AutomationDetailPageContent() {
                     createdBy={fallbackAuthorName}
                     labels={fallbackLabels}
                     triggerType={fallbackTriggerType}
-                    schedule={searchParams.get("schedule") ?? undefined}
-                    integrations={["outlook", "slack"]}
+                    schedule={overrideScheduleLabel}
+                    integrations={overrideIntegrations}
                   />
 
                   <section className={sectionDividerClass}>
                     <h2 className="text-sm font-semibold mb-4">Workflow</h2>
                     <WorkflowCanvas
-                      steps={[
-                        { id: "s1", label: "Trigger", icon: "zap" },
-                        { id: "s2", label: "Extract Data", icon: "database" },
-                        { id: "s3", label: "Validate", icon: "list-checks" },
-                        { id: "s4", label: "AI Agent", icon: "sparkles" },
-                        { id: "s5", label: "Format Output", icon: "file-text" },
-                        { id: "s6", label: "Send Email", icon: "mail" },
-                        { id: "s7", label: "Notify Slack", icon: "slack" },
-                      ]}
+                      steps={overrideSteps}
                       triggerType={fallbackTriggerType}
-                      schedule={searchParams.get("schedule") ?? undefined}
+                      schedule={overrideScheduleLabel}
                     />
                   </section>
 
@@ -823,36 +1053,51 @@ function AutomationDetailPageContent() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         automation={automation}
-        onSave={() => { setIsActive(true); }}
+        isSetup={isSetupMode}
+        onSave={() => {
+          setIsActive(true);
+          if (isSetupMode) router.replace(`/automations/${id}?activated=1`);
+        }}
       />
 
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-        <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
+        <Tabs defaultValue="runs" className="flex min-h-0 flex-1 flex-col">
           <PageHeader titleRowClassName="flex items-center gap-3">
             <BackButton onClick={() => router.back()} />
             <div className="flex-1" />
 
-            <div className="flex items-center gap-2 mr-1">
-              <span
-                className={cn(
-                  "text-xs font-medium transition-colors",
-                  isActive ? "text-foreground" : "text-muted-foreground"
-                )}
+            {isSetupMode ? (
+              <button
+                onClick={() => setModalOpen(true)}
+                className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
               >
-                {isActive ? "Active" : "Paused"}
-              </span>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
-            </div>
+                Set up automation
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mr-1">
+                  <span
+                    className={cn(
+                      "text-xs font-medium transition-colors",
+                      isActive ? "text-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    {isActive ? "Active" : "Paused"}
+                  </span>
+                  <Switch checked={isActive} onCheckedChange={setIsActive} />
+                </div>
 
-            <button
-              onClick={() => setModalOpen(true)}
-              className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
-            >
-              Edit preferences
-            </button>
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
+                >
+                  Edit preferences
+                </button>
+              </>
+            )}
           </PageHeader>
 
-          <div className="flex-1 overflow-y-auto py-4">
+          <div className="flex-1 overflow-y-auto py-4" style={{ scrollbarGutter: "stable" }}>
             <div className={cn(pageContainerClass, "space-y-6 pb-8")}>
             <AutomationTitleRow
               name={automation.name}
@@ -863,15 +1108,19 @@ function AutomationDetailPageContent() {
               }
               description={automation.description}
             />
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="runs">Run history</TabsTrigger>
-            </TabsList>
-            <TabsContent value="runs" className="mt-0">
-              <RunsPanel />
-            </TabsContent>
+            {!isSetupMode && (
+              <TabsList>
+                <TabsTrigger value="runs">Run history</TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+              </TabsList>
+            )}
+            {!isSetupMode && (
+              <TabsContent value="runs" className="mt-0">
+                <RunsPanel />
+              </TabsContent>
+            )}
 
-            <TabsContent value="overview" className="mt-0">
+            <TabsContent value="overview" className="mt-0" forceMount={isSetupMode ? true : undefined}>
               <OverviewPanel automation={automation} />
             </TabsContent>
             </div>

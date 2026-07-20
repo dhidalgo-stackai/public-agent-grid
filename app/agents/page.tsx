@@ -17,6 +17,7 @@ import {
   GitBranch,
   Wand2,
   Handshake,
+  Mail,
 } from "lucide-react";
 import { AgentSidebar } from "@/components/agent-sidebar";
 import { AgentGrid, AgentSection } from "@/components/agent-grid";
@@ -247,6 +248,28 @@ const allAgents = [
   },
 ];
 
+const fedexAutomation: (typeof allAgents)[0] = {
+  id: "auto-fedex-exception-log",
+  name: "Log FedEx Exception Emails",
+  description:
+    "Captures FedEx shipment exception and delay emails from Outlook, extracts the key fields with an LLM, and appends a row to an Excel table on SharePoint.",
+  category: ["favorites", "work", "all", "your-agents", "automations"],
+  integrations: ["outlook", "excel"],
+  labels: ["Operations", "Intake"],
+  interfaceType: "Automation" as const,
+  icon: <Mail className="size-5" />,
+  authorName: "Enterprise Automation Team",
+  createdDate: "Jan 10, 2025",
+  lastUpdatedDate: "Jan 29, 2025",
+  runsCount: 214,
+  runnersCount: 12,
+};
+
+const displayAgents: typeof allAgents = [
+  ...allAgents.filter((a) => a.interfaceType !== "Automation"),
+  fedexAutomation,
+];
+
 function isScheduledAutomation(agent: (typeof allAgents)[0]) {
   return (
     agent.interfaceType === "Automation" &&
@@ -314,7 +337,7 @@ function AgentLibraryPageContent() {
   const [integrationFilter, setIntegrationFilter] = useState("all");
   const [interfaceFilter, setInterfaceFilter] = useState(() => searchParams.get("interface") ?? "all");
   const [favorites, setFavorites] = useState<Set<string>>(
-    () => new Set(allAgents.filter((a) => a.category.includes("favorites")).map((a) => a.id))
+    () => new Set(displayAgents.filter((a) => a.category.includes("favorites")).map((a) => a.id))
   );
 
   useEffect(() => {
@@ -372,15 +395,15 @@ function AgentLibraryPageContent() {
   }, [router, searchParams]);
 
   const favoriteAgents = useMemo(
-    () => allAgents.filter((a) => favorites.has(a.id)).map((a) => ({ id: a.id, name: a.name })),
+    () => displayAgents.filter((a) => favorites.has(a.id)).map((a) => ({ id: a.id, name: a.name })),
     [favorites]
   );
 
   const sections = useMemo(() => {
     const filteredByCategory =
       selectedCategory === "all"
-        ? allAgents
-        : allAgents.filter((agent) =>
+        ? displayAgents
+        : displayAgents.filter((agent) =>
             agent.category.includes(selectedCategory)
           );
 
@@ -392,7 +415,7 @@ function AgentLibraryPageContent() {
           id: "my-agents",
           title: "Favourite",
           hideTitle: true,
-          agents: allAgents.filter((a) => favorites.has(a.id)),
+          agents: displayAgents.filter((a) => favorites.has(a.id)),
         },
       ];
     }
@@ -405,9 +428,9 @@ function AgentLibraryPageContent() {
         .slice()
         .reverse()
         .slice(0, Math.max(0, savedAgents.length - 3));
-      const marketingAgents = allAgents.filter((a) => a.category.includes("marketing"));
-      const salesAgents = allAgents.filter((a) => a.category.includes("sales"));
-      const scrapersAgents = allAgents.filter((a) => a.category.includes("support"));
+      const marketingAgents = displayAgents.filter((a) => a.category.includes("marketing"));
+      const salesAgents = displayAgents.filter((a) => a.category.includes("sales"));
+      const scrapersAgents = displayAgents.filter((a) => a.category.includes("support"));
 
       return [
         { id: "saved-agents", title: "Saved Agents", agents: savedAgents },
@@ -444,7 +467,24 @@ function AgentLibraryPageContent() {
           id: "automations",
           title: "Automations",
           hideTitle: true,
-          agents: allAgents.filter((a) => a.category.includes("automations")),
+          agents: [
+            {
+              id: "auto-fedex-exception-log",
+              name: "Log FedEx Exception Emails",
+              description:
+                "Captures FedEx shipment exception and delay emails from Outlook, extracts the key fields with an LLM, and appends a row to an Excel table on SharePoint.",
+              category: ["automations", "favorites"],
+              integrations: ["outlook", "excel"],
+              labels: ["Operations", "Intake"],
+              interfaceType: "Automation" as const,
+              icon: <Mail className="size-5" />,
+              authorName: "Enterprise Automation Team",
+              createdDate: "Jan 10, 2025",
+              lastUpdatedDate: "Jan 29, 2025",
+              runsCount: 214,
+              runnersCount: 12,
+            },
+          ],
         },
       ];
     }
@@ -492,6 +532,7 @@ function AgentLibraryPageContent() {
       });
       if (agent.authorName) params.set("authorName", agent.authorName);
       if (agent.labels?.length) params.set("labels", agent.labels.join(","));
+      if (agent.interfaceType === "Automation") params.set("setup", "1");
       router.push(`${base}?${params.toString()}`);
     },
     [router]

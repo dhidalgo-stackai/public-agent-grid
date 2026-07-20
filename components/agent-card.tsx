@@ -79,6 +79,8 @@ export function AgentCard({
       ? "slack"
       : integrations.includes("teams")
       ? "teams"
+      : integrations.includes("outlook")
+      ? "outlook"
       : null
     : null;
   const footerIntegrations = chatTriggerApp
@@ -217,6 +219,8 @@ export function AgentCard({
                           ? "Triggered by Slack message"
                           : chatTriggerApp === "teams"
                           ? "Triggered by Teams message"
+                          : chatTriggerApp === "outlook"
+                          ? "Triggered by Outlook email"
                           : "Runs on a schedule"
                         : interfaceLabels[interfaceType]}
                     </span>

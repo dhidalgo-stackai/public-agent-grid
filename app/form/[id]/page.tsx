@@ -2,14 +2,28 @@
 
 import { useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { ChevronLeftIcon, Clock, Newspaper } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, Clock, Newspaper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getAgentIcon } from "@/lib/agent-icons";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const MOCK_HISTORY = [
   { id: "h1", label: "Blog post about AI trends", time: "2h ago" },
   { id: "h2", label: "Social media campaign for Q3", time: "Yesterday" },
   { id: "h3", label: "Email newsletter — product launch", time: "3d ago" },
+];
+
+const FORM_DIRECTORY: { id: string; name: string }[] = [
+  { id: "6", name: "Service Alert Writer" },
+  { id: "8", name: "Shipper Account Enricher" },
+  { id: "10", name: "Enterprise RFP Builder" },
+  { id: "13", name: "Tracking Page Optimizer" },
 ];
 
 export default function FormAgentPage() {
@@ -46,16 +60,54 @@ export default function FormAgentPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="group flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Back"
+          className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground"
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border transition-colors group-hover:bg-muted-foreground/15">
-            <ChevronLeftIcon className="size-4 shrink-0" />
-          </span>
-          Back
+          <ChevronLeftIcon className="size-4 shrink-0" />
         </button>
         <div className="mx-2 h-4 w-px bg-border" />
-        <span className="mx-1 text-xs text-muted-foreground/40">·</span>
-        <span className="text-xs font-medium truncate">{name}</span>
+        <span className="text-xs text-muted-foreground/40">·</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="group/form flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted/60"
+            >
+              <span className="relative flex size-4 shrink-0 items-center justify-center">
+                <span className="flex size-4 items-center justify-center transition-opacity group-hover/form:opacity-0">
+                  {getAgentIcon(id, "size-3.5 shrink-0 text-muted-foreground")}
+                </span>
+                <ChevronDownIcon className="absolute size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/form:opacity-100" />
+              </span>
+              <span className="min-w-0 truncate">{name}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <div className="max-h-72 overflow-y-auto py-1">
+              {FORM_DIRECTORY.filter((f) => f.id !== id).map((f) => (
+                <DropdownMenuItem
+                  key={f.id}
+                  onClick={() =>
+                    router.push(`/form/${f.id}?name=${encodeURIComponent(f.name)}&run=fr1`)
+                  }
+                  className="flex items-center gap-2"
+                >
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-black/8">
+                    {getAgentIcon(f.id, "size-4 shrink-0 text-muted-foreground")}
+                  </span>
+                  <span className="truncate">{f.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => router.push("/agents?interface=Form")}
+              className="flex items-center gap-2"
+            >
+              <span>Browse more forms</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       {/* Scrollable content */}

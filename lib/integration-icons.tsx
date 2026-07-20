@@ -184,11 +184,13 @@ export function IntegrationIcon({ name }: { name: string }) {
   );
 }
 
-export function TriggerIcon({ triggerType }: { triggerType: "schedule" | "slack" }) {
+export function TriggerIcon({ triggerType }: { triggerType: "schedule" | "slack" | "email" }) {
   return (
-    <div className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-background">
+    <div className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-background [&_svg]:size-3.5">
       {triggerType === "slack" ? (
         integrationIcons.slack
+      ) : triggerType === "email" ? (
+        integrationIcons.outlook
       ) : (
         <ClockIcon className="size-3.5 text-muted-foreground" />
       )}
