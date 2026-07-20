@@ -2240,7 +2240,7 @@ function AssistantBlocks({ blocks }: { blocks: import("@/lib/chats-data").Assist
 function messageTextPreview(msg: ChatMessage): string {
   if (msg.parts) {
     return msg.parts
-      .map((p) => (p.type === "text" ? p.text : `@${p.chip?.name ?? ""}`))
+      .map((p) => (p.type === "text" ? p.text : `@${p.chip?.label ?? ""}`))
       .join("")
       .trim();
   }
