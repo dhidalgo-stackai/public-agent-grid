@@ -17,24 +17,19 @@ import {
 interface AutomationRun {
   id: string;
   automationId: string;
+  runId: string;
   title: string;
   status: "success" | "failed" | "running" | "warning";
   startedAt: string;
   duration: string;
-  steps: number;
 }
 
+const FEDEX_AUTOMATION_ID = "auto-fedex-exception-log";
+
 const MOCK_RUNS: AutomationRun[] = [
-  { id: "r1",  automationId: "auto-1", title: "18 exceptions reviewed · 5 priority actions identified", status: "success", startedAt: "Today, 7:00 AM",     duration: "0m 48s", steps: 7 },
-  { id: "r2",  automationId: "auto-2", title: "ETA change detected on watched shipment",                status: "success", startedAt: "22 min ago",         duration: "0m 12s", steps: 6 },
-  { id: "r3",  automationId: "auto-4", title: "Handoff summary posted to incoming team",                status: "success", startedAt: "Yesterday, 5:30 PM", duration: "1m 04s", steps: 7 },
-  { id: "r4",  automationId: "auto-1", title: "12 exceptions reviewed · 3 priority actions identified", status: "success", startedAt: "Yesterday, 7:00 AM", duration: "0m 41s", steps: 7 },
-  { id: "r5",  automationId: "auto-2", title: "Customs hold detected on watched shipment",              status: "success", startedAt: "3 hours ago",        duration: "0m 09s", steps: 6 },
-  { id: "r6",  automationId: "auto-3", title: "Draft delay update prepared for my review",              status: "success", startedAt: "2 days ago",         duration: "0m 22s", steps: 7 },
-  { id: "r7",  automationId: "auto-1", title: "Outlook unavailable · Brief delivered to Teams",         status: "warning", startedAt: "July 15, 7:00 AM",   duration: "1m 12s", steps: 7 },
-  { id: "r8",  automationId: "auto-4", title: "Handoff summary posted to incoming team",                status: "success", startedAt: "2 days ago",         duration: "1m 02s", steps: 7 },
-  { id: "r9",  automationId: "auto-2", title: "Missed scan alert sent",                                 status: "success", startedAt: "5 hours ago",        duration: "0m 11s", steps: 6 },
-  { id: "r10", automationId: "auto-1", title: "Brief delivery failed · retry scheduled",                status: "failed",  startedAt: "July 10, 7:00 AM",   duration: "0m 08s", steps: 3 },
+  { id: "r1", automationId: FEDEX_AUTOMATION_ID, runId: "8f21ac04-1d7b-4e93-b0aa-5cd91a1927c2", title: "18 exception emails logged to Excel",        status: "success", startedAt: "Today, 7:00 AM",     duration: "12.4s" },
+  { id: "r2", automationId: FEDEX_AUTOMATION_ID, runId: "2a90fe17-83c2-4b45-9de8-11ab7c440d19", title: "12 exception emails logged to Excel",        status: "success", startedAt: "Yesterday, 7:00 AM", duration: "9.1s" },
+  { id: "r3", automationId: FEDEX_AUTOMATION_ID, runId: "3b623ee3-b364-554d-9fbb-3cd91a1927c2", title: "Outlook unavailable · retry scheduled",       status: "warning", startedAt: "July 15, 7:00 AM",   duration: "0.06s" },
 ];
 
 function AutomationsContent() {
@@ -51,7 +46,7 @@ function AutomationsContent() {
         const automation = myAutomations.find((a) => a.id === run.automationId);
         return {
           id: run.id,
-          runId: `${run.id}-${run.automationId}`.replace(/[^a-z0-9]/gi, "").padEnd(16, "0").slice(0, 16),
+          runId: run.runId,
           title: run.title,
           status: run.status,
           time: run.startedAt,

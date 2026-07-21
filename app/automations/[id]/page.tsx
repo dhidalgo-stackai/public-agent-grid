@@ -7,6 +7,10 @@ import { AgentSidebar } from "@/components/agent-sidebar";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AutomationRunsList } from "@/components/automation-runs-list";
+import {
+  AutomationRunDetailDrawer,
+  type AutomationRunDetail,
+} from "@/components/automation-run-detail-drawer";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { myAutomations } from "@/lib/automations-data";
 import {
@@ -587,29 +591,95 @@ function MetadataRow({
   );
 }
 
-const MOCK_RUNS: {
+interface MockRun {
   id: string;
+  runId: string;
   title: string;
   time: string;
   status: "success" | "warning";
-}[] = [
+  date: string;
+  duration: string;
+  aiModel?: string;
+  userId?: string;
+  usedTokens?: number;
+  input?: unknown;
+  output?: unknown;
+  errors?: { node: string; nodeId: string; message: string }[];
+}
+
+const MOCK_RUNS: MockRun[] = [
   {
     id: "r1",
+    runId: "8f21ac04-1d7b-4e93-b0aa-5cd91a1927c2",
     title: "18 exceptions reviewed · 5 priority actions identified",
     time: "Today, 7:00 AM",
     status: "success",
+    date: "07/21/26 7:00 AM",
+    duration: "12.4s",
+    aiModel: "Claude 4.6 Opus",
+    userId: "scheduler:cron",
+    usedTokens: 4820,
+    input: {
+      trigger: "schedule",
+      window: "last_24h",
+      folder: "Inbox/Exceptions",
+      account: "ops@fedex.com",
+    },
+    output: {
+      exceptions_reviewed: 18,
+      priority_actions: 5,
+      rows_appended: 18,
+      workbook: "ExceptionsTable.xlsx",
+    },
   },
   {
     id: "r2",
+    runId: "2a90fe17-83c2-4b45-9de8-11ab7c440d19",
     title: "12 exceptions reviewed · 3 priority actions identified",
     time: "Yesterday, 7:00 AM",
     status: "success",
+    date: "07/20/26 7:00 AM",
+    duration: "9.1s",
+    aiModel: "Claude 4.6 Opus",
+    userId: "scheduler:cron",
+    usedTokens: 3110,
+    input: {
+      trigger: "schedule",
+      window: "last_24h",
+      folder: "Inbox/Exceptions",
+      account: "ops@fedex.com",
+    },
+    output: {
+      exceptions_reviewed: 12,
+      priority_actions: 3,
+      rows_appended: 12,
+      workbook: "ExceptionsTable.xlsx",
+    },
   },
   {
     id: "r3",
+    runId: "3b623ee3-b364-554d-9fbb-3cd91a1927c2",
     title: "Outlook unavailable · Brief delivered to Microsoft Teams",
     time: "July 15, 7:00 AM",
     status: "warning",
+    date: "07/15/26 7:00 AM",
+    duration: "0.06s",
+    userId: "scheduler:cron",
+    usedTokens: 0,
+    input: {
+      trigger: "schedule",
+      window: "last_24h",
+      folder: "Inbox/Exceptions",
+      account: "ops@fedex.com",
+    },
+    errors: [
+      {
+        node: "Append to Excel",
+        nodeId: "action-3",
+        message:
+          "Outlook connector timed out — falling back to Microsoft Teams delivery.",
+      },
+    ],
   },
 ];
 
@@ -653,18 +723,73 @@ function AutomationTitleRow({
   );
 }
 
+const runStatusStyles: Record<
+  string,
+  { label: string; container: string; dot: string }
+> = {
+  success: {
+    label: "Completed",
+    container: "border border-border text-muted-foreground",
+    dot: "bg-emerald-500",
+  },
+  warning: {
+    label: "Failure",
+    container:
+      "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+    dot: "bg-red-500",
+  },
+};
+
 function RunsPanel() {
+  const [selected, setSelected] = useState<MockRun | null>(null);
+
   const runs = MOCK_RUNS.map((run) => ({
     id: run.id,
-    runId: `${run.id}-${run.time}`.replace(/[^a-z0-9]/gi, "").padEnd(16, "0").slice(0, 16),
+    runId: run.runId,
     title: run.title,
     status: run.status,
     time: run.time,
-    duration: "—",
+    duration: run.duration,
     input: "Scheduled trigger",
   }));
 
-  return <AutomationRunsList runs={runs} />;
+  const detail: AutomationRunDetail | null = selected
+    ? {
+        id: selected.id,
+        runId: selected.runId,
+        status: selected.status,
+        statusLabel: runStatusStyles[selected.status].label,
+        statusStyle: {
+          container: runStatusStyles[selected.status].container,
+          dot: runStatusStyles[selected.status].dot,
+        },
+        date: selected.date,
+        duration: selected.duration,
+        aiModel: selected.aiModel,
+        userId: selected.userId,
+        usedTokens: selected.usedTokens,
+        input: selected.input,
+        output: selected.output,
+        errors: selected.errors,
+      }
+    : null;
+
+  return (
+    <>
+      <AutomationRunsList
+        runs={runs}
+        onRunClick={(r) => {
+          const match = MOCK_RUNS.find((m) => m.id === r.id);
+          if (match) setSelected(match);
+        }}
+      />
+      <AutomationRunDetailDrawer
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        run={detail}
+      />
+    </>
+  );
 }
 
 function AgentCard({
@@ -770,7 +895,7 @@ function AiAgentsSection({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[#181818] text-white">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-[#181818] border border-border">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
                     <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
                   </svg>

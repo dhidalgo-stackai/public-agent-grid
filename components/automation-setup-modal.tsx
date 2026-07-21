@@ -44,8 +44,8 @@ import { integrationMeta } from "@/lib/integrations";
 
 function StaticField({ label, icon, value }: { label: string; icon: React.ReactNode; value: string }) {
   return (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+    <div className="space-y-3">
+      <label className="text-sm text-foreground">
         {label}
       </label>
       <div className="flex items-center gap-2 text-sm text-foreground">
@@ -318,8 +318,8 @@ export function AutomationSetupModal({
                   <p className="text-sm font-semibold text-foreground">General</p>
                   <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
                   <StaticField label="Trigger" icon={integrationIcons.outlook} value="On Email Received" />
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+                  <div className="space-y-3">
+                    <label className="text-sm text-foreground">
                       Connection
                     </label>
                     <Select value={outlookAccount} onValueChange={setOutlookAccount}>
@@ -353,10 +353,10 @@ export function AutomationSetupModal({
                   </button>
                   {configOpen && (
                     <div className="space-y-4 py-2">
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-1.5 text-sm text-foreground">
-                            <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Inbox Folder</span>
+                            <span>Inbox Folder</span>
                           </span>
                           <span className="text-xs text-muted-foreground">string</span>
                         </div>
@@ -380,10 +380,10 @@ export function AutomationSetupModal({
                         </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-1.5 text-sm text-foreground">
-                            <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Sender Email</span>
+                            <span>Sender Email</span>
                             <span className="text-xs text-muted-foreground">(optional)</span>
                           </span>
                           <span className="text-xs text-muted-foreground">string</span>
@@ -411,8 +411,8 @@ export function AutomationSetupModal({
                   <p className="text-sm font-semibold text-foreground">General</p>
                   <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
                   <StaticField label="Action" icon={integrationIcons.outlook} value="Set Email Category" />
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+                  <div className="space-y-3">
+                    <label className="text-sm text-foreground">
                       Connection
                     </label>
                     <Select value={outlookAccount} onValueChange={setOutlookAccount}>
@@ -439,10 +439,10 @@ export function AutomationSetupModal({
                     <span className="text-sm font-semibold text-foreground">Configuration</span>
                   </div>
                   <div className="space-y-4 py-2">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1 text-sm text-foreground">
-                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Category</span>
+                          <span>Category</span>
                           <span className="text-red-500">*</span>
                         </span>
                         <span className="text-xs text-muted-foreground">string</span>
@@ -471,10 +471,10 @@ export function AutomationSetupModal({
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1 text-sm text-foreground">
-                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Message ID</span>
+                          <span>Message ID</span>
                           <span className="text-red-500">*</span>
                         </span>
                         <span className="text-xs text-muted-foreground">string</span>
@@ -500,8 +500,8 @@ export function AutomationSetupModal({
                   <p className="text-sm font-semibold text-foreground">General</p>
                   <StaticField label="Provider" icon={integrationIcons.excel} value="Excel on SharePoint" />
                   <StaticField label="Action" icon={integrationIcons.excel} value="Append Row to Table" />
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-foreground underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">
+                  <div className="space-y-3">
+                    <label className="text-sm text-foreground">
                       Connection
                     </label>
                     <Select value={excelAccount} onValueChange={setExcelAccount}>
@@ -528,10 +528,10 @@ export function AutomationSetupModal({
                     <span className="text-sm font-semibold text-foreground">Configuration</span>
                   </div>
                   <div className="space-y-4 py-2">
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1 text-sm text-foreground">
-                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Workbook</span>
+                          <span>Workbook</span>
                           <span className="text-red-500">*</span>
                         </span>
                         <span className="text-xs text-muted-foreground">string</span>
@@ -552,10 +552,10 @@ export function AutomationSetupModal({
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1 text-sm text-foreground">
-                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Sheet</span>
+                          <span>Sheet</span>
                           <span className="text-red-500">*</span>
                         </span>
                         <span className="text-xs text-muted-foreground">string</span>
@@ -572,10 +572,10 @@ export function AutomationSetupModal({
                       </Select>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1 text-sm text-foreground">
-                          <span className="underline decoration-dotted underline-offset-4 decoration-muted-foreground/50">Table</span>
+                          <span>Table</span>
                           <span className="text-red-500">*</span>
                         </span>
                         <span className="text-xs text-muted-foreground">string</span>
