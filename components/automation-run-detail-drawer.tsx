@@ -6,7 +6,6 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   HashIcon,
-  MessageSquareIcon,
   CalendarIcon,
   ClockIcon,
   BotIcon,
@@ -318,7 +317,7 @@ export function AutomationRunDetailDrawer({ open, onClose, run }: Props) {
             <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-3.5">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-foreground">
-                  General
+                  Run details
                 </span>
                 <span
                   className={cn(
@@ -351,18 +350,7 @@ export function AutomationRunDetailDrawer({ open, onClose, run }: Props) {
                 mono
                 bold
               />
-              <Row
-                icon={<MessageSquareIcon />}
-                label="Conversation ID"
-                value={
-                  run.conversationId ?? (
-                    <span className="text-muted-foreground">-</span>
-                  )
-                }
-                mono={!!run.conversationId}
-                bold={!!run.conversationId}
-              />
-              <Row
+<Row
                 icon={<CalendarIcon />}
                 label="Date"
                 value={run.date}

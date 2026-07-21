@@ -611,73 +611,79 @@ const MOCK_RUNS: MockRun[] = [
   {
     id: "r1",
     runId: "8f21ac04-1d7b-4e93-b0aa-5cd91a1927c2",
-    title: "18 exceptions reviewed · 5 priority actions identified",
+    title: "Exception row appended · DELAY (MEM → SDF)",
     time: "Today, 7:00 AM",
     status: "success",
     date: "07/21/26 7:00 AM",
     duration: "12.4s",
     aiModel: "Claude 4.6 Opus",
-    userId: "scheduler:cron",
+    userId: "outlook:new-email",
     usedTokens: 4820,
     input: {
-      trigger: "schedule",
-      window: "last_24h",
+      from: "exceptions@fedex.com",
+      subject: "[Exception] Tracking 794512338891 delayed at MEM hub",
+      received_at: "2026-07-21T06:58:42Z",
       folder: "Inbox/Exceptions",
-      account: "ops@fedex.com",
+      body_preview:
+        "Shipment 794512338891 (Priority Overnight, MEM → SDF) has been delayed at the MEM hub due to weather. New ETA: 2026-07-21 18:00 local.",
     },
     output: {
-      exceptions_reviewed: 18,
-      priority_actions: 5,
-      rows_appended: 18,
+      tracking_number: "794512338891",
+      exception_code: "DELAY",
+      row_appended: true,
       workbook: "ExceptionsTable.xlsx",
     },
   },
   {
     id: "r2",
     runId: "2a90fe17-83c2-4b45-9de8-11ab7c440d19",
-    title: "12 exceptions reviewed · 3 priority actions identified",
+    title: "Exception row appended · HELD_CUSTOMS (HKG → LAX)",
     time: "Yesterday, 7:00 AM",
     status: "success",
     date: "07/20/26 7:00 AM",
     duration: "9.1s",
     aiModel: "Claude 4.6 Opus",
-    userId: "scheduler:cron",
+    userId: "outlook:new-email",
     usedTokens: 3110,
     input: {
-      trigger: "schedule",
-      window: "last_24h",
+      from: "exceptions@fedex.com",
+      subject: "[Exception] Tracking 812004557723 held at customs (HKG)",
+      received_at: "2026-07-20T06:58:12Z",
       folder: "Inbox/Exceptions",
-      account: "ops@fedex.com",
+      body_preview:
+        "International Priority shipment 812004557723 (HKG → LAX) is held pending customs documentation review.",
     },
     output: {
-      exceptions_reviewed: 12,
-      priority_actions: 3,
-      rows_appended: 12,
+      tracking_number: "812004557723",
+      exception_code: "HELD_CUSTOMS",
+      row_appended: true,
       workbook: "ExceptionsTable.xlsx",
     },
   },
   {
     id: "r3",
     runId: "3b623ee3-b364-554d-9fbb-3cd91a1927c2",
-    title: "Outlook unavailable · Brief delivered to Microsoft Teams",
+    title: "Excel append failed · retry scheduled",
     time: "July 15, 7:00 AM",
     status: "warning",
     date: "07/15/26 7:00 AM",
     duration: "0.06s",
-    userId: "scheduler:cron",
+    userId: "outlook:new-email",
     usedTokens: 0,
     input: {
-      trigger: "schedule",
-      window: "last_24h",
+      from: "exceptions@fedex.com",
+      subject: "[Exception] Tracking 733819224011 delivery attempt failed",
+      received_at: "2026-07-15T06:59:03Z",
       folder: "Inbox/Exceptions",
-      account: "ops@fedex.com",
+      body_preview:
+        "Ground shipment 733819224011 (ATL → JAX) delivery attempt failed — no one available at address.",
     },
     errors: [
       {
         node: "Append to Excel",
         nodeId: "action-3",
         message:
-          "Outlook connector timed out — falling back to Microsoft Teams delivery.",
+          "SharePoint workbook lock contention — retry scheduled in 5 minutes.",
       },
     ],
   },
@@ -746,11 +752,14 @@ function RunsPanel() {
   const runs = MOCK_RUNS.map((run) => ({
     id: run.id,
     runId: run.runId,
-    title: run.title,
+    title: run.output ? run.title : "",
     status: run.status,
     time: run.time,
     duration: run.duration,
-    input: "Scheduled trigger",
+    input:
+      typeof run.input === "object" && run.input && "subject" in run.input
+        ? (run.input as { subject: string }).subject
+        : "New email",
   }));
 
   const detail: AutomationRunDetail | null = selected
@@ -983,6 +992,7 @@ function AutomationDetailPageContent() {
   const automation = myAutomations.find((a) => a.id === id);
   const justActivated = searchParams.get("activated") === "1";
   const isSetupMode = searchParams.get("setup") === "1" && !justActivated;
+  const isPreviewMode = searchParams.get("preview") === "1";
   const [isActive, setIsActive] = useState(
     !isSetupMode && (justActivated || automation?.status === "active")
   );
@@ -1083,13 +1093,18 @@ function AutomationDetailPageContent() {
                   onClick={() => setModalOpen(true)}
                   className="rounded-lg px-4 py-2 text-sm font-medium border border-border bg-background hover:bg-muted/60 transition-colors"
                 >
-                  Edit preferences
+                  Edit automation
                 </button>
               </>
             ) : (
               <button
                 onClick={() => setModalOpen(true)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  isPreviewMode
+                    ? "border border-border bg-background text-foreground hover:bg-muted/60"
+                    : "bg-foreground text-background hover:bg-foreground/85"
+                )}
               >
                 Set up automation
               </button>
@@ -1194,7 +1209,12 @@ function AutomationDetailPageContent() {
             {isSetupMode ? (
               <button
                 onClick={() => setModalOpen(true)}
-                className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
+                className={cn(
+                  "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  isPreviewMode
+                    ? "border border-border bg-background text-foreground hover:bg-muted/60"
+                    : "bg-foreground text-background hover:bg-foreground/85"
+                )}
               >
                 Set up automation
               </button>
@@ -1214,9 +1234,9 @@ function AutomationDetailPageContent() {
 
                 <button
                   onClick={() => setModalOpen(true)}
-                  className="rounded-lg px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/85 transition-colors"
+                  className="rounded-lg px-4 py-2 text-sm font-medium border border-border bg-background hover:bg-muted/60 transition-colors"
                 >
-                  Edit preferences
+                  Edit automation
                 </button>
               </>
             )}

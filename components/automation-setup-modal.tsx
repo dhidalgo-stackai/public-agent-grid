@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CalendarIcon, ClockIcon, CheckCircle2, CheckIcon, PlusIcon, PlayIcon, XIcon, LockIcon, MailIcon, SparklesIcon, DatabaseIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon, CheckCircle2, CheckIcon, PlusIcon, PlayIcon, XIcon, LockIcon, MailIcon, SparklesIcon, DatabaseIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, RefreshCwIcon, XCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { integrationIcons } from "@/lib/integration-icons";
 
@@ -39,8 +39,369 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import type { Automation } from "@/lib/automations-data";
 import { integrationMeta } from "@/lib/integrations";
+
+type StepState = "pending" | "running" | "done" | "failed";
+
+type Sample = {
+  id: string;
+  name: string;
+  sender: string;
+  subject: string;
+  body: string;
+  messageId: string;
+  failsAt?: number; // step index where this sample fails, if any
+};
+
+const SAMPLES: Sample[] = [
+  {
+    id: "new-email-1",
+    name: "New email 1",
+    sender: "no-reply@fedex.com",
+    subject: "Delivery commitment at risk — tracking 794512300456",
+    body: "Shipment 794512300456 (Priority Overnight, MEM → JFK) is delayed at MEM hub due to a mechanical hold. Estimated new commitment: 11:30 AM.",
+    messageId: "AAMkADEzYWFmYTFmLTM1YjItNGYwYy1hYzE0",
+  },
+  {
+    id: "new-email-2",
+    name: "New email 2",
+    sender: "logistics@fedex.com",
+    subject: "Weather disruption in ATL — 4 shipments affected",
+    body: "Severe weather in ATL is impacting inbound loads. 4 of your shipments are delayed by an estimated 3–6 hours.",
+    messageId: "AAMkADEzYWFmYTFmLTM1YjItNGYwYy1hYzE1",
+  },
+  {
+    id: "new-email-3",
+    name: "New email 3",
+    sender: "no-reply@teams.mail.microsoft",
+    subject: "Chris Hart mentioned AI",
+    body: "<html dir=\"ltr\" lang=\"en-us\"><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"></head><body>Chris Hart mentioned you in a Teams channel.</body></html>",
+    messageId: "AAMkAGM3ZDl0N2MzLWUwOGYtNDdkMy1iMTcyLW",
+    failsAt: 1,
+  },
+  {
+    id: "default",
+    name: "Default values",
+    sender: "sample@example.com",
+    subject: "Sample subject line",
+    body: "Sample email body used when no live samples are available.",
+    messageId: "AAAA0000BBBB1111CCCC2222DDDD3333",
+  },
+];
+
+function TestPanel({
+  emailFolder,
+  emailCategory,
+  onClose,
+}: {
+  emailFolder: string;
+  emailCategory: string;
+  onClose: () => void;
+}) {
+  const [phase, setPhase] = useState<"choose" | "running" | "done">("choose");
+  const [selectedSampleId, setSelectedSampleId] = useState(SAMPLES[0].id);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [failedAt, setFailedAt] = useState<number | null>(null);
+
+  const sample = SAMPLES.find((s) => s.id === selectedSampleId) ?? SAMPLES[0];
+
+  const steps = [
+    { id: "trigger-0", label: "Watch inbox", icon: integrationIcons.outlook },
+    { id: "action-0", label: "Set email category", icon: integrationIcons.outlook },
+    { id: "action-1", label: "Append to Excel", icon: integrationIcons.excel },
+  ];
+
+  const stateOf = (i: number): StepState => {
+    if (phase === "choose") return "pending";
+    if (failedAt !== null) {
+      if (i < failedAt) return "done";
+      if (i === failedAt) return "failed";
+      return "pending";
+    }
+    if (stepIndex > i) return "done";
+    if (stepIndex === i) return phase === "done" ? "done" : "running";
+    return "pending";
+  };
+
+  const runWorkflow = () => {
+    const willFail = sample.failsAt ?? null;
+    setFailedAt(null);
+    setStepIndex(0);
+    setPhase("running");
+    if (willFail === null) {
+      setTimeout(() => setStepIndex(1), 500);
+      setTimeout(() => setStepIndex(2), 1000);
+      setTimeout(() => {
+        setStepIndex(3);
+        setPhase("done");
+      }, 1500);
+    } else {
+      for (let i = 1; i <= willFail; i++) {
+        setTimeout(() => setStepIndex(i), 500 * i);
+      }
+      setTimeout(() => {
+        setFailedAt(willFail);
+        setPhase("done");
+      }, 500 * (willFail + 1));
+    }
+  };
+
+  const succeeded = phase === "done" && failedAt === null;
+  const failed = phase === "done" && failedAt !== null;
+
+  return (
+    <div className="flex h-full flex-col bg-background">
+      {/* Panel body */}
+      <div className="no-scrollbar flex-1 overflow-y-auto px-4 pt-4 pb-5">
+        {phase === "choose" ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Choose a trigger sample
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="-mr-1 -mt-1 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Close test panel"
+              >
+                <XIcon className="size-4" />
+              </button>
+            </div>
+            <div className="space-y-1.5">
+                  {SAMPLES.map((s) => {
+                    const active = s.id === selectedSampleId;
+                    return (
+                      <HoverCard key={s.id} openDelay={120} closeDelay={80}>
+                        <HoverCardTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSampleId(s.id)}
+                            className={cn(
+                              "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-[13px] transition-colors",
+                              active
+                                ? "border-border bg-background text-foreground shadow-sm"
+                                : "border-transparent bg-muted/40 text-foreground hover:border-border hover:bg-background",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "flex size-4 shrink-0 items-center justify-center rounded-full border",
+                                active
+                                  ? "border-foreground bg-foreground text-background"
+                                  : "border-border bg-background",
+                              )}
+                            >
+                              {active && <CheckIcon className="size-2.5" />}
+                            </span>
+                            <span className="truncate font-medium">{s.name}</span>
+                          </button>
+                        </HoverCardTrigger>
+                        <HoverCardContent side="left" align="start" sideOffset={12} className="w-[340px] p-4">
+                          <p className="mb-3 text-[13px] font-medium text-foreground">{s.name}</p>
+                          <div className="space-y-3">
+                            <PreviewField label="Sender" value={s.sender} />
+                            <PreviewField label="Subject" value={s.subject} />
+                            <PreviewField label="Body" value={s.body} multiline />
+                            <PreviewField label="Message ID" value={s.messageId} mono />
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-1.5 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={runWorkflow}
+                    className="h-9 w-full rounded-lg border-border bg-background px-4 text-sm shadow-sm"
+                  >
+                    <PlayIcon className="size-3.5" />
+                    Test automation
+                  </Button>
+                  <button
+                    type="button"
+                    className="flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <RefreshCwIcon className="size-3.5" />
+                    Refresh samples
+                  </button>
+                </div>
+          </div>
+        ) : (
+          // running / done
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-[13px] font-semibold text-foreground">Run progress</p>
+                <span
+                  className={cn(
+                    "inline-flex h-5 items-center gap-1.5 rounded-full px-2 text-[11px] font-medium",
+                    failed
+                      ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
+                      : succeeded
+                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {failed ? "Failed" : succeeded ? "Success" : "Running…"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="-mr-1 -mt-1 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Close test panel"
+              >
+                <XIcon className="size-4" />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-border/80 bg-background">
+              {steps.map((step, i) => {
+                const state = stateOf(i);
+                const isLast = i === steps.length - 1;
+                return (
+                  <div
+                    key={step.id}
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-2.5",
+                      !isLast && "border-b border-border/60",
+                    )}
+                  >
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-white [&_svg]:size-4">
+                      {step.icon}
+                    </span>
+                    <span className="flex size-4 shrink-0 items-center justify-center">
+                      {state === "done" && (
+                        <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-500" />
+                      )}
+                      {state === "failed" && (
+                        <XCircleIcon className="size-4 text-red-600 dark:text-red-500" />
+                      )}
+                      {state === "running" && (
+                        <svg
+                          className="size-4 animate-spin text-muted-foreground"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          />
+                        </svg>
+                      )}
+                      {state === "pending" && (
+                        <span className="size-2 rounded-full border border-border" />
+                      )}
+                    </span>
+                    <span className="flex-1 truncate text-[12.5px] font-medium text-foreground">
+                      {step.label}
+                    </span>
+                    <span className="inline-flex items-center rounded-md border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">
+                      {step.id}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {failed && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[12px] text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+                Step failed: could not set category &quot;{emailCategory}&quot; on this message. This sample doesn&apos;t match the expected shape.
+              </div>
+            )}
+            {succeeded && (
+              <div className="overflow-hidden rounded-lg border border-border/70 bg-muted/40">
+                <div className="border-b border-border/60 px-3 py-1.5">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Output
+                  </p>
+                </div>
+                <pre className="no-scrollbar max-h-[220px] overflow-auto px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-foreground">
+{`{
+  "trigger": {
+    "sender": "${sample.sender}",
+    "subject": ${JSON.stringify(sample.subject)},
+    "messageId": "${sample.messageId}"
+  },
+  "actions": {
+    "setEmailCategory": {
+      "category": "${emailCategory}",
+      "ok": true
+    },
+    "appendToExcel": {
+      "row": {
+        "received": "2026-07-21 07:42",
+        "tracking": "794512300456",
+        "exception": "Delivery at risk",
+        "severity": "High"
+      },
+      "ok": true
+    }
+  }
+}`}
+                </pre>
+              </div>
+            )}
+
+            {phase === "done" && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPhase("choose")}
+                className="h-9 w-full rounded-lg border-border bg-background px-4 text-sm shadow-sm"
+              >
+                <ArrowLeftIcon className="size-3.5" />
+                Choose another sample
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PreviewField({
+  label,
+  value,
+  mono,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  multiline?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="text-[11.5px] font-medium text-muted-foreground">{label}</p>
+      <div
+        className={cn(
+          "rounded-md border border-border/70 bg-background px-2.5 py-1.5 text-[12.5px] text-foreground",
+          mono && "font-mono text-[11.5px]",
+          multiline ? "whitespace-pre-wrap break-words" : "truncate",
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
 
 function StaticField({ label, icon, value }: { label: string; icon: React.ReactNode; value: string }) {
   return (
@@ -127,6 +488,7 @@ export function AutomationSetupModal({
   const [connections, setConnections] = useState<Record<string, string>>({});
   const [details, setDetails] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
 
   // Reset transient state whenever the modal opens for a new automation.
   useEffect(() => {
@@ -144,6 +506,7 @@ export function AutomationSetupModal({
           : {},
       );
       setIsLoading(false);
+      setTestOpen(false);
     }
   }, [open, isSlackTrigger, automation]);
 
@@ -252,8 +615,18 @@ export function AutomationSetupModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent hideX className={cn("overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]", isFedexEmailLog ? "max-w-[880px]" : "max-w-[640px]")}>
-        <DialogClose className="absolute right-4 top-4 flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+      <DialogContent
+        hideX
+        className={cn(
+          "overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]",
+          testOpen
+            ? "max-w-[1240px]"
+            : isFedexEmailLog
+            ? "max-w-[880px]"
+            : "max-w-[640px]",
+        )}
+      >
+        <DialogClose className="absolute right-4 top-4 z-10 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
           <XIcon className="size-4" />
           <span className="sr-only">Close</span>
         </DialogClose>
@@ -266,7 +639,7 @@ export function AutomationSetupModal({
         </DialogHeader>
 
         {/* Body */}
-        <div className={cn("overflow-y-auto", isFedexEmailLog ? "flex h-[520px] p-0" : "h-[520px] space-y-6 px-7 py-6")}>
+        <div className={cn("no-scrollbar overflow-y-auto", isFedexEmailLog ? "flex h-[520px] p-0" : "h-[520px] space-y-6 px-7 py-6")}>
           {isFedexEmailLog ? (
             <>
               {/* Left rail: node list */}
@@ -310,7 +683,7 @@ export function AutomationSetupModal({
               </div>
 
               {/* Right pane: selected node config */}
-              <div className="flex-1 space-y-6 overflow-y-auto px-7 py-6">
+              <div className="no-scrollbar flex-1 space-y-6 overflow-y-auto px-7 py-6">
               {selectedNodeId === "trigger" && (
               <div className="space-y-5">
                 {/* General */}
@@ -597,6 +970,16 @@ export function AutomationSetupModal({
               )}
 
               </div>
+
+              {testOpen && (
+                <div className="flex w-[380px] shrink-0 flex-col border-l border-border/80 bg-background">
+                  <TestPanel
+                    emailFolder={emailFolder}
+                    emailCategory={emailCategory || "Not an exception"}
+                    onClose={() => setTestOpen(false)}
+                  />
+                </div>
+              )}
             </>
           ) : (
           <>
@@ -803,26 +1186,21 @@ export function AutomationSetupModal({
 
         {/* Footer */}
         <DialogFooter className="border-t border-border/80 bg-muted/30 px-7 py-4 sm:flex-row sm:items-center sm:justify-between">
-          {!allConnected ? (
-            <p className="w-full text-sm text-muted-foreground sm:w-auto">
-              {isFedexEmailLog
-                ? "Connect Outlook and Excel to continue"
-                : "Connect required accounts and select at least one exception to continue"}
-            </p>
-          ) : (
-            <div />
-          )}
+          <div />
           <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              disabled={!allConnected || isLoading}
-              className="h-9 rounded-lg border-border bg-background px-5 text-sm shadow-sm"
-            >
-              <PlayIcon className="size-3.5" />
-              Test with sample data
-            </Button>
+            {!testOpen && (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isLoading}
+                onClick={() => setTestOpen(true)}
+                className="h-9 rounded-lg border-border bg-background px-5 text-sm shadow-sm"
+              >
+                <PlayIcon className="size-3.5" />
+                Test automation
+              </Button>
+            )}
             <Button
               className="h-9 min-w-[118px] rounded-lg px-5 text-sm shadow-none"
               size="lg"
@@ -837,7 +1215,7 @@ export function AutomationSetupModal({
                   </svg>
                   Activating…
                 </span>
-              ) : isSetup ? "Activate" : "Save preferences"}
+              ) : isSetup ? "Activate" : "Save"}
             </Button>
           </div>
         </DialogFooter>

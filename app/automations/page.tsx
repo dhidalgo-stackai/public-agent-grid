@@ -19,6 +19,7 @@ interface AutomationRun {
   automationId: string;
   runId: string;
   title: string;
+  input: string;
   status: "success" | "failed" | "running" | "warning";
   startedAt: string;
   duration: string;
@@ -27,9 +28,9 @@ interface AutomationRun {
 const FEDEX_AUTOMATION_ID = "auto-fedex-exception-log";
 
 const MOCK_RUNS: AutomationRun[] = [
-  { id: "r1", automationId: FEDEX_AUTOMATION_ID, runId: "8f21ac04-1d7b-4e93-b0aa-5cd91a1927c2", title: "18 exception emails logged to Excel",        status: "success", startedAt: "Today, 7:00 AM",     duration: "12.4s" },
-  { id: "r2", automationId: FEDEX_AUTOMATION_ID, runId: "2a90fe17-83c2-4b45-9de8-11ab7c440d19", title: "12 exception emails logged to Excel",        status: "success", startedAt: "Yesterday, 7:00 AM", duration: "9.1s" },
-  { id: "r3", automationId: FEDEX_AUTOMATION_ID, runId: "3b623ee3-b364-554d-9fbb-3cd91a1927c2", title: "Outlook unavailable · retry scheduled",       status: "warning", startedAt: "July 15, 7:00 AM",   duration: "0.06s" },
+  { id: "r1", automationId: FEDEX_AUTOMATION_ID, runId: "8f21ac04-1d7b-4e93-b0aa-5cd91a1927c2", title: "Exception row appended · DELAY (MEM → SDF)",       input: "[Exception] Tracking 794512338891 delayed at MEM hub",           status: "success", startedAt: "Today, 7:00 AM",     duration: "12.4s" },
+  { id: "r2", automationId: FEDEX_AUTOMATION_ID, runId: "2a90fe17-83c2-4b45-9de8-11ab7c440d19", title: "Exception row appended · HELD_CUSTOMS (HKG → LAX)", input: "[Exception] Tracking 812004557723 held at customs (HKG)",         status: "success", startedAt: "Yesterday, 7:00 AM", duration: "9.1s" },
+  { id: "r3", automationId: FEDEX_AUTOMATION_ID, runId: "3b623ee3-b364-554d-9fbb-3cd91a1927c2", title: "",                                                  input: "[Exception] Tracking 733819224011 delivery attempt failed",       status: "warning", startedAt: "July 15, 7:00 AM",   duration: "0.06s" },
 ];
 
 function AutomationsContent() {
@@ -51,7 +52,7 @@ function AutomationsContent() {
           status: run.status,
           time: run.startedAt,
           duration: run.duration,
-          input: "Scheduled trigger",
+          input: run.input,
           agentId: automation?.agentId,
           automationId: run.automationId,
           automationName: automation?.name,

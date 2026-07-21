@@ -44,14 +44,14 @@ export function AutomationRunsList({
     <Table>
       <TableHeader>
         <TableRow className="border-border/60 hover:bg-transparent">
+          <TableHead className="pl-0 text-xs font-normal text-muted-foreground">Started</TableHead>
           {showIcons && (
-            <TableHead className="pl-0 text-xs font-normal text-muted-foreground">Automation</TableHead>
+            <TableHead className="text-xs font-normal text-muted-foreground">Automation</TableHead>
           )}
-          <TableHead className={cn("text-xs font-normal text-muted-foreground", !showIcons && "pl-0")}>Run ID</TableHead>
           <TableHead className="text-xs font-normal text-muted-foreground">Status</TableHead>
           <TableHead className="text-xs font-normal text-muted-foreground">Inputs</TableHead>
           <TableHead className="text-xs font-normal text-muted-foreground">Outputs</TableHead>
-          <TableHead className="text-right text-xs font-normal text-muted-foreground">Started</TableHead>
+          <TableHead className="text-right text-xs font-normal text-muted-foreground">Run ID</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -63,8 +63,12 @@ export function AutomationRunsList({
               className={cn("border-border/60", onRunClick && "cursor-pointer")}
               onClick={() => onRunClick?.(run)}
             >
+              <TableCell className="pl-0 align-middle text-xs text-muted-foreground tabular-nums">
+                {run.time}
+              </TableCell>
+
               {showIcons && (
-                <TableCell className="pl-0 align-top">
+                <TableCell className="align-middle">
                   <div className="flex items-center gap-3">
                     <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-background text-muted-foreground">
                       <span className="flex size-4 items-center justify-center">
@@ -75,11 +79,8 @@ export function AutomationRunsList({
                   </div>
                 </TableCell>
               )}
-              <TableCell className={cn("align-top", !showIcons && "pl-0")}>
-                <span className="font-mono text-xs text-muted-foreground">{run.runId ?? run.id}</span>
-              </TableCell>
 
-              <TableCell className="align-top">
+              <TableCell className="align-middle">
                 <div
                   className={cn(
                     "isolate inline-flex h-6 w-fit items-center gap-2 rounded-full py-0.5 pl-1.5 pr-2.5 text-xs",
@@ -91,16 +92,18 @@ export function AutomationRunsList({
                 </div>
               </TableCell>
 
-              <TableCell className="align-top text-sm text-foreground/80">
-                {run.input ?? <span className="text-muted-foreground">—</span>}
+              <TableCell className="max-w-[260px] align-middle text-xs text-muted-foreground">
+                <div className="truncate">
+                  {run.input ?? <span className="text-muted-foreground">—</span>}
+                </div>
               </TableCell>
 
-              <TableCell className="align-top text-sm text-foreground/80">
-                {run.title}
+              <TableCell className="max-w-[260px] align-middle text-xs text-muted-foreground">
+                <div className="truncate">{run.title || <span className="text-muted-foreground">—</span>}</div>
               </TableCell>
 
-              <TableCell className="align-top text-right text-xs text-muted-foreground tabular-nums">
-                {run.time}
+              <TableCell className="align-middle text-right">
+                <span className="font-mono text-xs text-muted-foreground">{run.runId ?? run.id}</span>
               </TableCell>
             </TableRow>
           );
