@@ -34,6 +34,10 @@ import {
   FilterIcon,
   ListChecksIcon,
   ChevronDownIcon,
+  InfoIcon,
+  RefreshCwIcon,
+  XIcon,
+  PlayIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -49,6 +53,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const iconMap: Record<string, React.ReactNode> = {
   zap: <ZapIcon className="size-4" />,
@@ -984,6 +997,369 @@ function OverviewPanel({
   );
 }
 
+function UpdateAvailableBanner({
+  authorName,
+  onReview,
+  onDismiss,
+}: {
+  authorName: string;
+  onReview: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5">
+      <InfoIcon className="size-4 shrink-0 text-blue-600" />
+      <p className="flex-1 text-[13px] text-blue-900">
+        <span className="font-medium">{authorName}</span> published an updated version of this automation. You don&apos;t need to update, but you can review the changes if you&apos;d like.
+      </p>
+      <button
+        onClick={onReview}
+        className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 h-8 text-[12.5px] font-medium text-white hover:bg-blue-700"
+      >
+        <RefreshCwIcon className="size-3.5" />
+        Review and update
+      </button>
+      <button
+        onClick={onDismiss}
+        className="flex size-7 items-center justify-center rounded-md text-blue-600 hover:bg-blue-100"
+        aria-label="Dismiss"
+      >
+        <XIcon className="size-4" />
+      </button>
+    </div>
+  );
+}
+
+interface ChangedNodeItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  change: string;
+  changeType: "added" | "modified" | "removed";
+  diff: { before?: string; after?: string; note?: string };
+}
+
+function ChangeTypePill({ type }: { type: ChangedNodeItem["changeType"] }) {
+  const styles: Record<ChangedNodeItem["changeType"], string> = {
+    added: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    modified: "bg-amber-50 text-amber-700 border-amber-200",
+    removed: "bg-red-50 text-red-700 border-red-200",
+  };
+  const labels: Record<ChangedNodeItem["changeType"], string> = {
+    added: "Added",
+    modified: "Modified",
+    removed: "Removed",
+  };
+  return (
+    <span className={cn("inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10.5px] font-medium", styles[type])}>
+      {labels[type]}
+    </span>
+  );
+}
+
+function ReviewUpdateModal({
+  open,
+  onClose,
+  authorName,
+  automationName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  authorName: string;
+  automationName: string;
+}) {
+  const changedNodes: ChangedNodeItem[] = [
+    {
+      id: "cn-anthropic",
+      label: "Extract Exception Fields",
+      icon: (
+        <span className="flex size-5 items-center justify-center rounded-sm bg-[#181818] text-white">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="size-3" aria-hidden="true">
+            <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+          </svg>
+        </span>
+      ),
+      change: "Model updated and system prompt refined.",
+      changeType: "modified",
+      diff: {
+        before: "model: claude-4.6-opus",
+        after: "model: claude-4.8-opus",
+        note: "System prompt: added explicit handling for HELD_CUSTOMS cases.",
+      },
+    },
+    {
+      id: "cn-if-else",
+      label: "Is Exception?",
+      icon: (
+        <span className="flex size-5 items-center justify-center rounded-sm bg-muted text-muted-foreground">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+            <path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>
+          </svg>
+        </span>
+      ),
+      change: "New condition for high-priority exceptions.",
+      changeType: "modified",
+      diff: {
+        before: "status in [DELAY, HELD_CUSTOMS]",
+        after: "status in [DELAY, HELD_CUSTOMS, HIGH_PRIORITY]",
+      },
+    },
+    {
+      id: "cn-notify",
+      label: "Notify on Slack",
+      icon: (
+        <span className="flex size-5 items-center justify-center rounded-sm bg-white [&_svg]:size-4">
+          {iconMap.slack}
+        </span>
+      ),
+      change: "New step: send a Slack message for high-priority exceptions.",
+      changeType: "added",
+      diff: {
+        note: "Posts to #ops-exceptions when priority is high.",
+      },
+    },
+  ];
+
+  const [selectedId, setSelectedId] = useState<string>(changedNodes[0].id);
+  const selected = changedNodes.find((n) => n.id === selectedId) ?? changedNodes[0];
+  const [testOpen, setTestOpen] = useState(false);
+  const [testPhase, setTestPhase] = useState<"idle" | "running" | "done">("idle");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSelectedId(changedNodes[0].id);
+      setTestOpen(false);
+      setTestPhase("idle");
+      setIsLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const runTest = () => {
+    setTestPhase("running");
+    setTimeout(() => setTestPhase("done"), 1200);
+  };
+
+  const handleUpdate = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      onClose();
+    }, 1200);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent
+        hideX
+        className={cn(
+          "overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]",
+          testOpen ? "max-w-[1240px]" : "max-w-[880px]",
+        )}
+      >
+        <DialogClose className="absolute right-4 top-4 z-10 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+          <XIcon className="size-4" />
+          <span className="sr-only">Close</span>
+        </DialogClose>
+
+        {/* Header */}
+        <DialogHeader className="space-y-1 border-b border-border/80 px-7 pb-6 pt-7 pr-16 text-left">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                Review updated version — {automationName}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Published by <span className="font-medium text-foreground">{authorName}</span> · 2 hours ago
+              </p>
+            </div>
+            {!testOpen && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isLoading}
+                onClick={() => setTestOpen(true)}
+                className="h-8 shrink-0 rounded-lg border-border bg-background px-3 text-sm shadow-sm"
+              >
+                <PlayIcon className="size-3.5" />
+                Test automation
+              </Button>
+            )}
+          </div>
+        </DialogHeader>
+
+        {/* Body */}
+        <div className="no-scrollbar flex h-[520px] overflow-y-auto p-0">
+          {/* Left rail: changed nodes */}
+          <div className="w-[220px] shrink-0 border-r border-border/80 bg-muted/30 py-4">
+            <p className="px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Changed nodes
+            </p>
+            <div className="space-y-0.5 px-2">
+              {changedNodes.map((node) => (
+                <button
+                  key={node.id}
+                  type="button"
+                  onClick={() => setSelectedId(node.id)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                    selectedId === node.id
+                      ? "bg-background text-foreground shadow-sm ring-1 ring-border/80"
+                      : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                  )}
+                >
+                  <span className="flex size-6 items-center justify-center rounded-md">
+                    {node.icon}
+                  </span>
+                  <span className="flex-1 truncate font-medium">{node.label}</span>
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      node.changeType === "added" && "bg-emerald-500",
+                      node.changeType === "modified" && "bg-amber-500",
+                      node.changeType === "removed" && "bg-red-500",
+                    )}
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right pane: selected node diff */}
+          <div className="no-scrollbar flex-1 space-y-5 overflow-y-auto px-7 py-6">
+            <div className="flex items-center gap-2">
+              <span className="flex size-6 items-center justify-center">{selected.icon}</span>
+              <p className="text-sm font-semibold text-foreground">{selected.label}</p>
+              <ChangeTypePill type={selected.changeType} />
+            </div>
+            <p className="text-sm text-muted-foreground">{selected.change}</p>
+
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-foreground">Diff</p>
+              <div className="rounded-lg border border-border/70 bg-muted/30 p-3 font-mono text-[12px] leading-relaxed">
+                {selected.diff.before && (
+                  <div className="rounded bg-red-50 px-2 py-1 text-red-700 line-through dark:bg-red-950/30 dark:text-red-300">
+                    - {selected.diff.before}
+                  </div>
+                )}
+                {selected.diff.after && (
+                  <div className="mt-1 rounded bg-emerald-50 px-2 py-1 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    + {selected.diff.after}
+                  </div>
+                )}
+                {selected.diff.note && (
+                  <div className="mt-3 text-[12.5px] font-sans text-muted-foreground">{selected.diff.note}</div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-[12.5px] text-blue-900 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
+              Updating won&apos;t change your existing connections or configuration.
+            </div>
+          </div>
+
+          {/* Test panel */}
+          {testOpen && (
+            <div className="flex w-[380px] shrink-0 flex-col border-l border-border/80 bg-background">
+              <div className="no-scrollbar flex-1 overflow-y-auto px-4 pt-4 pb-5">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-semibold text-foreground">Test new version</p>
+                    <button
+                      type="button"
+                      onClick={() => setTestOpen(false)}
+                      className="-mr-1 -mt-1 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      aria-label="Close test panel"
+                    >
+                      <XIcon className="size-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Sample input
+                    </p>
+                    <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2 text-[12.5px] text-foreground">
+                      [Exception] Tracking 794512338891 delayed at MEM hub
+                    </div>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={runTest}
+                    disabled={testPhase === "running"}
+                    className="h-9 w-full rounded-lg border-border bg-background px-4 text-sm shadow-sm"
+                  >
+                    <PlayIcon className="size-3.5" />
+                    {testPhase === "running" ? "Running…" : "Run with new version"}
+                  </Button>
+
+                  {testPhase !== "idle" && (
+                    <div className="overflow-hidden rounded-lg border border-border/70 bg-muted/30">
+                      <div className="border-b border-border/60 px-3 py-1.5">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          Output
+                        </p>
+                      </div>
+                      <pre className="no-scrollbar max-h-[220px] overflow-auto px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-foreground">
+{testPhase === "running"
+  ? "Running new version…"
+  : `{
+  "tracking": "794512338891",
+  "status": "DELAY",
+  "origin": "MEM",
+  "destination": "SDF",
+  "priority": "normal"
+}`}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <DialogFooter className="border-t border-border/80 bg-muted/30 px-7 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div />
+          <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={isLoading}
+              onClick={onClose}
+              className="h-9 rounded-lg border-border bg-background px-5 text-sm shadow-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="h-9 min-w-[150px] rounded-lg px-5 text-sm shadow-none"
+              size="lg"
+              disabled={isLoading}
+              onClick={handleUpdate}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="size-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Updating…
+                </span>
+              ) : "Update to new version"}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AutomationDetailPageContent() {
   const params = useParams();
   const router = useRouter();
@@ -997,6 +1373,8 @@ function AutomationDetailPageContent() {
     !isSetupMode && (justActivated || automation?.status === "active")
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [updateBannerVisible, setUpdateBannerVisible] = useState(true);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
 
   useEffect(() => {
     if (justActivated) setIsActive(true);
@@ -1010,6 +1388,7 @@ function AutomationDetailPageContent() {
 
   const sidebar = (
     <AgentSidebar
+      defaultCollapsed={isPreviewMode}
       selectedCategory={automation ? "" : "all"}
       onCategoryChange={(cat) => {
         router.push(cat === "all" ? "/agents" : `/agents?category=${cat}`);
@@ -1075,7 +1454,7 @@ function AutomationDetailPageContent() {
           onClose={() => setModalOpen(false)}
           automation={fallbackAutomation}
           isSetup
-          onSave={() => router.push(`/automations/${id}?activated=1`)}
+          onSave={() => router.push(`/automations`)}
         />
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
           <PageHeader titleRowClassName="flex items-center gap-3">
@@ -1196,9 +1575,16 @@ function AutomationDetailPageContent() {
         isSetup={isSetupMode}
         onSave={() => {
           setIsActive(true);
-          if (isSetupMode) router.replace(`/automations/${id}?activated=1`);
+          if (isSetupMode) router.replace(`/automations`);
         }}
       />
+      <ReviewUpdateModal
+        open={updateModalOpen}
+        onClose={() => setUpdateModalOpen(false)}
+        authorName={automation.authorName}
+        automationName={automation.name}
+      />
+
 
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
         <Tabs defaultValue="runs" className="flex min-h-0 flex-1 flex-col">
@@ -1244,6 +1630,13 @@ function AutomationDetailPageContent() {
 
           <div className="flex-1 overflow-y-auto py-4" style={{ scrollbarGutter: "stable" }}>
             <div className={cn(pageContainerClass, "space-y-6 pb-8")}>
+            {!isSetupMode && updateBannerVisible && (
+              <UpdateAvailableBanner
+                authorName={automation.authorName}
+                onReview={() => setUpdateModalOpen(true)}
+                onDismiss={() => setUpdateBannerVisible(false)}
+              />
+            )}
             <AutomationTitleRow
               name={automation.name}
               icon={

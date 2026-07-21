@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import {
   ChevronDownIcon,
@@ -38,6 +38,9 @@ import {
   RedoIcon,
   ListChecksIcon,
   ChevronLeftIcon,
+  BookOpenIcon,
+  Grid3x3Icon,
+  XIcon,
 } from "lucide-react";
 import { myAutomations, type AutomationStep } from "@/lib/automations-data";
 import {
@@ -110,17 +113,20 @@ function NodeIconBadge({ kind }: { kind?: AutomationStep["nodeKind"] }) {
 function NodeShell({
   children,
   width = NODE_WIDTH,
+  selected,
 }: {
   children: React.ReactNode;
   width?: number;
+  selected?: boolean;
 }) {
   return (
     <div
-      className="relative rounded-2xl bg-white"
+      className="relative rounded-2xl bg-white transition-shadow"
       style={{
         width,
-        boxShadow:
-          "0 1px 2px rgba(0,0,0,0.04), 0 6px 20px -8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.08)",
+        boxShadow: selected
+          ? "0 1px 2px rgba(0,0,0,0.04), 0 6px 20px -8px rgba(0,0,0,0.08), 0 0 0 2px #171717"
+          : "0 1px 2px rgba(0,0,0,0.04), 0 6px 20px -8px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.08)",
       }}
     >
       {children}
@@ -202,9 +208,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // -------------------- Individual node cards --------------------
 
-function OutlookTriggerNode({ step }: { step: AutomationStep }) {
+function OutlookTriggerNode({ step, selected }: { step: AutomationStep; selected?: boolean }) {
   return (
-    <NodeShell>
+    <NodeShell selected={selected}>
       <NodeHandle side="right" />
       <div className="absolute -top-8 left-2">
         <div className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 shadow-sm">
@@ -218,9 +224,9 @@ function OutlookTriggerNode({ step }: { step: AutomationStep }) {
   );
 }
 
-function IfElseNode({ step }: { step: AutomationStep }) {
+function IfElseNode({ step, selected }: { step: AutomationStep; selected?: boolean }) {
   return (
-    <NodeShell>
+    <NodeShell selected={selected}>
       <NodeHandle side="left" />
       {/* Two right-side handles for IF and ELSE outputs */}
       <div
@@ -243,9 +249,9 @@ function IfElseNode({ step }: { step: AutomationStep }) {
   );
 }
 
-function AnthropicAgentNode({ step }: { step: AutomationStep }) {
+function AnthropicAgentNode({ step, selected }: { step: AutomationStep; selected?: boolean }) {
   return (
-    <NodeShell width={340}>
+    <NodeShell width={340} selected={selected}>
       <NodeHandle side="left" />
       <NodeHandle side="right" />
       <NodeHeader
@@ -285,9 +291,9 @@ function AnthropicAgentNode({ step }: { step: AutomationStep }) {
   );
 }
 
-function ExcelAppendNode({ step }: { step: AutomationStep }) {
+function ExcelAppendNode({ step, selected }: { step: AutomationStep; selected?: boolean }) {
   return (
-    <NodeShell>
+    <NodeShell selected={selected}>
       <NodeHandle side="left" />
       <NodeHandle side="right" />
       <NodeHeader kind={step.nodeKind} label={step.label} description={step.description} />
@@ -296,9 +302,9 @@ function ExcelAppendNode({ step }: { step: AutomationStep }) {
   );
 }
 
-function OutlookCategoryNode({ step }: { step: AutomationStep }) {
+function OutlookCategoryNode({ step, selected }: { step: AutomationStep; selected?: boolean }) {
   return (
-    <NodeShell>
+    <NodeShell selected={selected}>
       <NodeHandle side="left" />
       <NodeHandle side="right" />
       <NodeHeader kind={step.nodeKind} label={`${step.label} 1`} description={step.description} />
@@ -307,21 +313,21 @@ function OutlookCategoryNode({ step }: { step: AutomationStep }) {
   );
 }
 
-function RenderNode({ step }: { step: AutomationStep }) {
+function RenderNode({ step, selected }: { step: AutomationStep; selected?: boolean }) {
   switch (step.nodeKind) {
     case "outlook-trigger":
-      return <OutlookTriggerNode step={step} />;
+      return <OutlookTriggerNode step={step} selected={selected} />;
     case "if-else":
-      return <IfElseNode step={step} />;
+      return <IfElseNode step={step} selected={selected} />;
     case "anthropic-agent":
-      return <AnthropicAgentNode step={step} />;
+      return <AnthropicAgentNode step={step} selected={selected} />;
     case "excel-append":
-      return <ExcelAppendNode step={step} />;
+      return <ExcelAppendNode step={step} selected={selected} />;
     case "outlook-category":
-      return <OutlookCategoryNode step={step} />;
+      return <OutlookCategoryNode step={step} selected={selected} />;
     default:
       return (
-        <NodeShell>
+        <NodeShell selected={selected}>
           <NodeHeader label={step.label} description={step.description} />
           <ViewResults />
         </NodeShell>
@@ -353,6 +359,7 @@ function BuilderCanvas({ steps }: { steps: AutomationStep[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
+  const [selectedStep, setSelectedStep] = useState<AutomationStep | null>(null);
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
   // Layout: main chain horizontally; if-else branch drops below.
@@ -555,13 +562,27 @@ function BuilderCanvas({ steps }: { steps: AutomationStep[] }) {
           <div
             key={placed.step.id}
             data-node
-            className="absolute"
+            className="absolute cursor-pointer"
             style={{ left: placed.x, top: placed.y }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedStep(placed.step);
+            }}
           >
-            <RenderNode step={placed.step} />
+            <RenderNode
+              step={placed.step}
+              selected={selectedStep?.id === placed.step.id}
+            />
           </div>
         ))}
       </div>
+
+      {selectedStep && (
+        <NodeSettingsSidebar
+          step={selectedStep}
+          onClose={() => setSelectedStep(null)}
+        />
+      )}
 
       {/* Bottom toolbar */}
       <div
@@ -602,6 +623,290 @@ function BuilderCanvas({ steps }: { steps: AutomationStep[] }) {
           Checklist
           <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-400 border border-white" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+// -------------------- Node settings sidebar --------------------
+
+const nodeSettingsMeta: Record<
+  NonNullable<AutomationStep["nodeKind"]>,
+  {
+    provider: string;
+    providerIcon: React.ReactNode;
+    trigger: string;
+    triggerIcon: React.ReactNode;
+    connection: string;
+    triggerBadge: string;
+    description: string;
+    showConnection: boolean;
+  }
+> = {
+  "outlook-trigger": {
+    provider: "Microsoft Outlook",
+    providerIcon: integrationIcons.outlook,
+    trigger: "On Email Received",
+    triggerIcon: integrationIcons.outlook,
+    connection: "David's Outlook (OAuth2) connection",
+    triggerBadge: "trigger-0",
+    description:
+      "Trigger a workflow execution every time an email is received in the selected inbox.",
+    showConnection: true,
+  },
+  "outlook-category": {
+    provider: "Microsoft Outlook",
+    providerIcon: integrationIcons.outlook,
+    trigger: "Set Email Category",
+    triggerIcon: integrationIcons.outlook,
+    connection: "David's Outlook (OAuth2) connection",
+    triggerBadge: "action-2",
+    description: "Set a category on an Outlook email message.",
+    showConnection: true,
+  },
+  "excel-append": {
+    provider: "Microsoft Excel",
+    providerIcon: integrationIcons.excel,
+    trigger: "Append Row",
+    triggerIcon: integrationIcons.excel,
+    connection: "David's Excel (OAuth2) connection",
+    triggerBadge: "action-3",
+    description: "Add data to a table in an Excel sheet.",
+    showConnection: true,
+  },
+  "anthropic-agent": {
+    provider: "Anthropic",
+    providerIcon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="size-4 text-[#181818]">
+        <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+      </svg>
+    ),
+    trigger: "Claude 4.6 Opus",
+    triggerIcon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="size-4 text-[#181818]">
+        <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+      </svg>
+    ),
+    connection: "David's Anthropic (API key) connection",
+    triggerBadge: "agent-1",
+    description: "Anthropic Agent with tool calling.",
+    showConnection: false,
+  },
+  "if-else": {
+    provider: "Stack AI",
+    providerIcon: <GitBranchIcon className="size-4 text-neutral-700" />,
+    trigger: "If / Else Router",
+    triggerIcon: <GitBranchIcon className="size-4 text-neutral-700" />,
+    connection: "",
+    triggerBadge: "logic-1",
+    description: "Route the input query using if-else logic.",
+    showConnection: false,
+  },
+};
+
+function SidebarSelect({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button className="flex h-9 w-full items-center gap-2 rounded-md border border-neutral-200 bg-white px-2.5 text-[13px] font-medium text-neutral-800 hover:bg-neutral-50">
+      <span className="flex size-4 items-center justify-center [&_svg]:size-4">{icon}</span>
+      <span className="flex-1 text-left truncate">{label}</span>
+      <ChevronDownIcon className="size-3.5 text-neutral-500" />
+    </button>
+  );
+}
+
+function SidebarFieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-1.5 text-[12px] font-medium text-neutral-700 underline decoration-dotted decoration-neutral-300 underline-offset-4 w-fit">
+      {children}
+    </p>
+  );
+}
+
+function SidebarCollapsibleRow({
+  icon,
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-neutral-200">
+      <button
+        onClick={onToggle}
+        className="flex h-11 w-full items-center gap-2 px-4 text-left hover:bg-neutral-50"
+      >
+        <span className="flex size-4 items-center justify-center text-neutral-500">{icon}</span>
+        <span className="flex-1 text-[13px] font-medium text-neutral-800">{label}</span>
+        <ChevronDownIcon
+          className={cn("size-4 text-neutral-500 transition-transform", !open && "-rotate-90")}
+        />
+      </button>
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+function NodeSettingsSidebar({
+  step,
+  onClose,
+}: {
+  step: AutomationStep;
+  onClose: () => void;
+}) {
+  const [configOpen, setConfigOpen] = useState(false);
+  const [outputsOpen, setOutputsOpen] = useState(false);
+  const [useEndUser, setUseEndUser] = useState(true);
+  const meta = step.nodeKind ? nodeSettingsMeta[step.nodeKind] : undefined;
+
+  const provider = meta?.provider ?? "Stack AI";
+  const providerIcon = meta?.providerIcon ?? <Grid3x3Icon className="size-4 text-neutral-700" />;
+  const trigger = meta?.trigger ?? step.label;
+  const triggerIcon = meta?.triggerIcon ?? providerIcon;
+  const connection = meta?.connection ?? "Select a connection";
+  const badge = meta?.triggerBadge ?? "node";
+  const description = meta?.description ?? step.description ?? "";
+  const showConnection = meta?.showConnection ?? false;
+
+  return (
+    <div
+      data-toolbar
+      className="absolute right-0 top-0 z-40 flex h-full w-[380px] flex-col border-l border-neutral-200 bg-white shadow-[-8px_0_24px_-12px_rgba(0,0,0,0.12)]"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3">
+        <span className="flex size-5 items-center justify-center [&_svg]:size-5">
+          {providerIcon}
+        </span>
+        <span className="text-[13.5px] font-semibold text-neutral-900 truncate">{step.label}</span>
+        <span className="rounded-md border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[10.5px] font-medium text-neutral-600 font-mono">
+          {badge}
+        </span>
+        <div className="flex-1" />
+        <button className="flex size-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100" aria-label="Docs">
+          <BookOpenIcon className="size-4" />
+        </button>
+        <button className="flex size-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100" aria-label="Layout">
+          <Grid3x3Icon className="size-4" />
+        </button>
+        <button className="flex size-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100" aria-label="More">
+          <MoreHorizontalIcon className="size-4" />
+        </button>
+        <button
+          onClick={onClose}
+          className="flex size-7 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100"
+          aria-label="Close"
+        >
+          <XIcon className="size-4" />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {/* Description */}
+        {description && (
+          <div className="px-4 pt-4 pb-3">
+            <p className="text-[12.5px] leading-snug text-neutral-500">{description}</p>
+          </div>
+        )}
+
+        {/* Provider / Trigger / Connection */}
+        <div className="px-4 pb-4 space-y-3">
+          <div>
+            <SidebarFieldLabel>Provider</SidebarFieldLabel>
+            <SidebarSelect icon={providerIcon} label={provider} />
+          </div>
+          <div>
+            <SidebarFieldLabel>
+              {step.nodeKind === "outlook-trigger" ? "Trigger" : "Action"}
+            </SidebarFieldLabel>
+            <SidebarSelect icon={triggerIcon} label={trigger} />
+          </div>
+
+          {showConnection && (
+            <div>
+              <SidebarFieldLabel>Connection</SidebarFieldLabel>
+
+              {/* Use end-user connection toggle */}
+              <div className="mb-2 rounded-md border border-neutral-200 bg-neutral-50/60 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[12.5px] font-medium text-neutral-800">
+                      Use end-user connection
+                    </p>
+                    <p className="mt-0.5 text-[11.5px] leading-snug text-neutral-500">
+                      Require end-users to authenticate at runtime
+                    </p>
+                  </div>
+                  <Switch
+                    checked={useEndUser}
+                    onCheckedChange={setUseEndUser}
+                    className="h-5 w-9"
+                  />
+                </div>
+              </div>
+
+              {useEndUser ? (
+                <SidebarSelect
+                  icon={<PlusIcon className="size-4 text-neutral-500" />}
+                  label="Select a connector..."
+                />
+              ) : (
+                <SidebarSelect icon={providerIcon} label={connection} />
+              )}
+
+              <p className="mt-2 text-[11.5px] leading-snug text-neutral-500">
+                <span className="underline decoration-dotted decoration-neutral-300 underline-offset-2">
+                  Your credentials are encrypted and can be removed at any time.
+                </span>{" "}
+                You can manage all your connections{" "}
+                <a href="#" className="underline text-neutral-700">
+                  here
+                </a>
+                .
+              </p>
+            </div>
+          )}
+        </div>
+
+        <SidebarCollapsibleRow
+          icon={<SettingsIcon className="size-4" />}
+          label="Configuration"
+          open={configOpen}
+          onToggle={() => setConfigOpen((v) => !v)}
+        >
+          <p className="text-[12.5px] text-neutral-500">
+            Advanced configuration for this node.
+          </p>
+        </SidebarCollapsibleRow>
+
+        <SidebarCollapsibleRow
+          icon={
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+              <path d="M4 4h10l6 6v10a2 2 0 0 1-2 2H4z" />
+              <path d="M14 4v6h6" />
+            </svg>
+          }
+          label="Outputs"
+          open={outputsOpen}
+          onToggle={() => setOutputsOpen((v) => !v)}
+        >
+          <p className="text-[12.5px] text-neutral-500">
+            Preview and reference outputs from this node.
+          </p>
+        </SidebarCollapsibleRow>
       </div>
     </div>
   );
@@ -737,7 +1042,7 @@ function PublishPopover({ onClose }: { onClose: () => void }) {
         className="flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] text-neutral-800 hover:bg-neutral-100"
       >
         <BotIcon className="size-4 text-neutral-600" />
-        <span className="whitespace-nowrap">Publish to Grid only</span>
+        <span className="whitespace-nowrap">Self subscribe to automation</span>
         <TooltipProvider delayDuration={150}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -755,7 +1060,7 @@ function PublishPopover({ onClose }: { onClose: () => void }) {
               className="max-w-[240px] border border-border bg-background px-3 py-2 text-left shadow-md"
             >
               <p className="text-[12px] font-medium text-foreground mb-1">
-                Publish to Grid only
+                Self subscribe to automation
               </p>
               <p className="text-[11.5px] leading-snug text-muted-foreground">
                 Publishes this version to the public Agent Grid without adding it to your personal workflows.
@@ -822,7 +1127,7 @@ function TopBar({
       <div className="flex-1" />
 
       {/* Tabs */}
-      <div className="flex items-center gap-4 text-[13px]">
+      <div className="inline-flex h-8 items-center justify-center rounded-lg bg-muted p-0.5 text-muted-foreground">
         {tabs.map((t) => {
           const key = t.toLowerCase() as BuilderTab;
           const active = tab === key;
@@ -831,14 +1136,13 @@ function TopBar({
               key={t}
               onClick={() => onTabChange(key)}
               className={cn(
-                "relative py-3 font-medium transition-colors",
-                active ? "text-neutral-900" : "text-neutral-500 hover:text-neutral-800"
+                "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-[13px] font-medium transition-all border-[0.5px] border-transparent",
+                active
+                  ? "bg-background text-foreground shadow"
+                  : "hover:text-foreground"
               )}
             >
               {t}
-              {active && (
-                <span className="absolute inset-x-0 -bottom-px h-0.5 bg-neutral-900 rounded-full" />
-              )}
             </button>
           );
         })}
@@ -1088,8 +1392,8 @@ function InterfaceConfigurator({
   onChangeInterface: () => void;
 }) {
   const [general, setGeneral] = useState(true);
-  const [fields, setFields] = useState(true);
   const [style, setStyle] = useState(true);
+  const [security, setSecurity] = useState(true);
   const label = interfaceLabels[interfaceKey] ?? "Website Chatbot";
 
   return (
@@ -1173,36 +1477,6 @@ function InterfaceConfigurator({
             <ConfigLabel tooltip>Description</ConfigLabel>
             <ConfigTextarea defaultValue="Add a description here so users understand what your agent does." />
 
-            <ConfigLabel tooltip>Disclaimer Message</ConfigLabel>
-            <ConfigInput defaultValue="AI assistants might make mistakes. Check important information." />
-
-            <ConfigLabel tooltip>Input Placeholder</ConfigLabel>
-            <ConfigInput defaultValue="Write a message..." />
-          </ConfigSection>
-
-          <ConfigSection title="Fields" open={fields} onToggle={() => setFields((v) => !v)}>
-            <div className="flex items-center gap-1.5 text-[12px] font-medium text-neutral-700 mb-2">
-              Inputs
-              <InfoIcon className="size-3 text-neutral-400" />
-            </div>
-            <div className="rounded-md border border-neutral-200 overflow-hidden">
-              <div className="grid grid-cols-3 bg-neutral-50 px-3 py-2 text-[11px] font-medium text-neutral-500">
-                <span>Node ID</span>
-                <span>Alias (optional)</span>
-                <span className="text-right">Required</span>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-1.5 text-[12px] font-medium text-neutral-700 mb-2">
-              Outputs
-              <InfoIcon className="size-3 text-neutral-400" />
-            </div>
-            <div className="rounded-md border border-neutral-200 overflow-hidden">
-              <div className="grid grid-cols-2 bg-neutral-50 px-3 py-2 text-[11px] font-medium text-neutral-500">
-                <span>Node ID</span>
-                <span>Alias (optional)</span>
-              </div>
-            </div>
           </ConfigSection>
 
           <ConfigSection title="Style" open={style} onToggle={() => setStyle((v) => !v)}>
@@ -1230,6 +1504,34 @@ function InterfaceConfigurator({
                 </div>
                 <p className="text-[11px] text-neutral-500">Suggested size is 64 × 64</p>
               </div>
+            </div>
+          </ConfigSection>
+
+          <ConfigSection title="Security" open={security} onToggle={() => setSecurity((v) => !v)}>
+            <ConfigLabel tooltip>Access</ConfigLabel>
+            <select className="w-full rounded-md border border-neutral-200 bg-white px-3 h-9 text-[13px] text-neutral-800 focus:outline-none focus:border-neutral-400">
+              <option>Anyone with the link</option>
+              <option>Only organization members</option>
+              <option>Password protected</option>
+            </select>
+
+            <ConfigLabel tooltip>Rate limit (requests / min)</ConfigLabel>
+            <ConfigInput defaultValue="60" />
+
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-1 text-[12px] font-medium text-neutral-700">
+                Require authentication
+                <InfoIcon className="size-3 text-neutral-400" />
+              </div>
+              <Switch />
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-1 text-[12px] font-medium text-neutral-700">
+                Log inputs and outputs
+                <InfoIcon className="size-3 text-neutral-400" />
+              </div>
+              <Switch defaultChecked />
             </div>
           </ConfigSection>
         </div>
@@ -1533,8 +1835,20 @@ function InterfacePanel({ automationId }: { automationId: string }) {
 function BuilderPageContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = typeof params?.id === "string" ? params.id : "";
-  const [tab, setTab] = useState<BuilderTab>("workflow");
+  const tabParam = searchParams.get("tab") as BuilderTab | null;
+  const validTabs: BuilderTab[] = ["workflow", "interface", "analytics", "manager", "evaluator"];
+  const initialTab: BuilderTab =
+    tabParam && validTabs.includes(tabParam) ? tabParam : "workflow";
+  const [tab, setTabState] = useState<BuilderTab>(initialTab);
+
+  const setTab = (t: BuilderTab) => {
+    setTabState(t);
+    const qs = new URLSearchParams(searchParams.toString());
+    qs.set("tab", t);
+    router.replace(`?${qs.toString()}`, { scroll: false });
+  };
 
   const automation =
     myAutomations.find((a) => a.id === id) ??

@@ -478,7 +478,7 @@ export function AutomationSetupModal({
   const [configOpen, setConfigOpen] = useState(true);
   const [outlookAccount, setOutlookAccount] = useState("");
   const [excelAccount, setExcelAccount] = useState("");
-  const [selectedNodeId, setSelectedNodeId] = useState<"trigger" | "category" | "append">("trigger");
+  const [selectedNodeId, setSelectedNodeId] = useState<"trigger" | "category" | "append" | "is-exception" | "extract">("trigger");
   const [excelWorkbook, setExcelWorkbook] = useState("FedEx Ops / Exception Log.xlsx");
   const [excelSheet, setExcelSheet] = useState("Exceptions");
   const [excelTable, setExcelTable] = useState("ExceptionsTable");
@@ -617,6 +617,7 @@ export function AutomationSetupModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         hideX
+        onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
           "overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]",
           testOpen
@@ -626,16 +627,33 @@ export function AutomationSetupModal({
             : "max-w-[640px]",
         )}
       >
-        <DialogClose className="absolute right-4 top-4 z-10 flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-          <XIcon className="size-4" />
-          <span className="sr-only">Close</span>
-        </DialogClose>
-
         {/* Header */}
-        <DialogHeader className="space-y-4 border-b border-border/80 px-7 pb-6 pt-7 pr-16 text-left">
-          <DialogTitle className="text-lg font-semibold text-foreground">
+        <DialogHeader className="flex-row items-center justify-between gap-3 space-y-0 border-b border-border/80 px-6 py-3 text-left">
+          <DialogTitle className="text-base font-semibold text-foreground">
             {automation.setupTitle ?? automation.name}
           </DialogTitle>
+          <div className="flex items-center gap-2">
+            {isFedexEmailLog && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isLoading}
+                onClick={() => setTestOpen((v) => !v)}
+                className={cn(
+                  "h-8 rounded-lg border-border bg-background px-3 text-sm shadow-sm",
+                  testOpen && "bg-muted",
+                )}
+              >
+                <PlayIcon className="size-3.5" />
+                Test automation
+              </Button>
+            )}
+            <DialogClose className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+              <XIcon className="size-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </div>
         </DialogHeader>
 
         {/* Body */}
@@ -674,12 +692,54 @@ export function AutomationSetupModal({
                       {node.status === "needs" && (
                         <span className="size-1.5 rounded-full bg-amber-500" />
                       )}
-                      {node.status === "auto" && (
-                        <CheckIcon className="size-3.5 text-muted-foreground" />
-                      )}
                     </button>
                   ))}
                 </div>
+
+                <p className="mt-5 px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Locked configuration
+                </p>
+                <div className="space-y-0.5 px-2">
+                  {[
+                    {
+                      id: "is-exception" as const,
+                      label: "Is Exception?",
+                      icon: (
+                        <span className="flex size-5 items-center justify-center rounded-sm bg-muted text-muted-foreground">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+                            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96a1 1 0 0 1 1.8.66c0 1.87-.44 3.75-1.63 5.83a13.4 13.4 0 0 1-3.37 4.15" />
+                          </svg>
+                        </span>
+                      ),
+                    },
+                    {
+                      id: "extract" as const,
+                      label: "Extract Exception Fields",
+                      icon: (
+                        <AnthropicStepIcon />
+                      ),
+                    },
+                  ].map((node) => (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                        selectedNodeId === node.id
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/80"
+                          : "text-muted-foreground/70 hover:bg-background/60 hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn("flex size-6 items-center justify-center rounded-md", selectedNodeId === node.id ? "" : "opacity-70")}>
+                        {node.icon}
+                      </span>
+                      <span className="flex-1 truncate font-medium">{node.label}</span>
+                      <LockIcon className="size-3 text-muted-foreground/60" />
+                    </button>
+                  ))}
+                </div>
+
               </div>
 
               {/* Right pane: selected node config */}
@@ -861,6 +921,85 @@ export function AutomationSetupModal({
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+              )}
+
+              {/* Is Exception? (locked) */}
+              {selectedNodeId === "is-exception" && (
+              <div className="space-y-5 opacity-90">
+                <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                  <LockIcon className="mt-0.5 size-3.5 shrink-0" />
+                  <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <StaticField label="Type" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>} value="If-else router" />
+                  <StaticField label="Route" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2v3"/><path d="M12 5a7 7 0 0 0-4 12.7c.5.5 1 1.3 1 2.3"/><path d="M12 5a7 7 0 0 1 4 12.7c-.5.5-1 1.3-1 2.3"/></svg>} value="Uses Extract Exception Fields output" />
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Branches</p>
+                  <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5 text-[12.5px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-foreground">If <span className="font-mono text-[12px]">isException == true</span></span>
+                      <span className="text-muted-foreground">→ Set email category</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5 text-[12.5px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-foreground">Else</span>
+                      <span className="text-muted-foreground">→ Skip</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {/* Extract Exception Fields (locked) */}
+              {selectedNodeId === "extract" && (
+              <div className="space-y-5 opacity-90">
+                <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                  <LockIcon className="mt-0.5 size-3.5 shrink-0" />
+                  <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <StaticField
+                    label="Type"
+                    icon={<svg viewBox="0 0 24 24" fill="currentColor" className="size-4"><path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" /></svg>}
+                    value="Anthropic Agent with tool calling"
+                  />
+                  <StaticField
+                    label="Model"
+                    icon={<svg viewBox="0 0 24 24" fill="currentColor" className="size-4"><path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" /></svg>}
+                    value="Claude 4.6 Opus"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">Tools</p>
+                  <div className="rounded-lg border border-border/70 bg-muted/30 divide-y divide-border/60 text-[12.5px]">
+                    {[
+                      { name: "read_email", desc: "Fetch the triggering message body and headers" },
+                      { name: "lookup_tracking", desc: "Resolve tracking numbers via Shipment Visibility" },
+                      { name: "classify_severity", desc: "Map exception type to a severity bucket" },
+                    ].map((t) => (
+                      <div key={t.name} className="flex items-start gap-2 px-3 py-2">
+                        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-sm bg-background text-muted-foreground">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-mono text-[11.5px] text-foreground">{t.name}</p>
+                          <p className="text-[11.5px] text-muted-foreground">{t.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-foreground">System prompt</p>
+                  <pre className="no-scrollbar max-h-[140px] overflow-auto rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-muted-foreground whitespace-pre-wrap">{`You extract structured fields from FedEx exception emails.
+Return: tracking, exception_type, severity, eta_impact.
+If the email is not an exception, return isException=false.`}</pre>
                 </div>
               </div>
               )}
@@ -1188,7 +1327,7 @@ export function AutomationSetupModal({
         <DialogFooter className="border-t border-border/80 bg-muted/30 px-7 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div />
           <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
-            {!testOpen && (
+            {!isFedexEmailLog && !testOpen && (
               <Button
                 type="button"
                 variant="outline"
@@ -1204,7 +1343,7 @@ export function AutomationSetupModal({
             <Button
               className="h-9 min-w-[118px] rounded-lg px-5 text-sm shadow-none"
               size="lg"
-              disabled={!allConnected || isLoading}
+              disabled={isLoading}
               onClick={handleActivate}
             >
               {isLoading ? (
