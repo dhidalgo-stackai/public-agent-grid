@@ -569,7 +569,7 @@ function AddMenuContent({
         )}
 
         {isSearching ? (
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {!hasSearchResults && (
               <div className="px-2 py-6 text-center text-sm text-muted-foreground">
                 No options found
@@ -1047,7 +1047,7 @@ function AddMenu(
     <DropdownMenu open={props.open} onOpenChange={props.onOpenChange}>
       <DropdownMenuTrigger asChild>
         <button ref={triggerRef} type="button" className={toolbarBtn} title="Add">
-          <PlusIcon className={toolbarIcon} />
+          <PlusIcon className={toolbarIcon} strokeWidth={2.25} />
         </button>
       </DropdownMenuTrigger>
       <AddMenuContent {...props} getAgentsRect={() => triggerRef.current?.getBoundingClientRect() ?? undefined} />
@@ -1115,7 +1115,7 @@ function AppToolSuggestionPanel({
   return (
     <div
       data-app-tool-suggestion-panel
-      className="fixed z-50 max-h-80 w-72 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
+      className="fixed z-50 max-h-80 w-72 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       style={{ left: anchor.left, top: anchor.top + 4 }}
       onMouseDown={(event) => event.preventDefault()}
     >
