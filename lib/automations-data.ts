@@ -3,7 +3,16 @@ export interface AutomationStep {
   label: string;
   icon?: string;
   description?: string;
-  nodeKind?: "outlook-trigger" | "if-else" | "anthropic-agent" | "excel-append" | "outlook-category";
+  nodeKind?:
+    | "outlook-trigger"
+    | "if-else"
+    | "anthropic-agent"
+    | "excel-append"
+    | "outlook-category"
+    | "schedule-trigger"
+    | "sharepoint-read"
+    | "weather-api"
+    | "outlook-send";
   model?: string;
   versionLabel?: string;
   prompt?: string;
@@ -25,7 +34,9 @@ export interface Automation {
   agentId: string;
   schedule: string;
   triggerType?: "schedule" | "slack" | "email";
+  iconKey?: "mail" | "cloud-sun";
   status: "active" | "paused";
+  version?: string;
   lastRun: string;
   nextRun: string;
   runsCount: number;
@@ -43,6 +54,116 @@ export interface Automation {
 
 export const myAutomations: Automation[] = [
   {
+    id: "auto-fedex-weather-route-brief",
+    name: "Morning Weather Risk Route Brief",
+    agentName: "Route Risk Advisor",
+    authorName: "Enterprise Automation Team",
+    personalizedBy: "Fred Smith",
+    governanceNote: "Approved workflow · Core logic locked",
+    agentId: "7",
+    schedule: "Every weekday at 5:30 AM",
+    triggerType: "schedule",
+    iconKey: "cloud-sun",
+    status: "paused",
+    lastRun: "Today, 5:30 AM",
+    nextRun: "Tomorrow, 5:30 AM",
+    runsCount: 58,
+    integrations: ["connector", "outlook", "sharepoint"],
+    labels: ["Dispatch", "Daily"],
+    description:
+      "Pulls today's Ground and Express route plan for my hub, cross-checks the National Weather Service forecast along each lane, and posts a ranked risk brief to my inbox before dispatch.",
+    permissions: [
+      "Read today's route plan for the assigned hub",
+      "Read weather forecast data from the NWS connector",
+      "Send private employee notifications by email",
+      "Cannot reassign drivers or change route records",
+    ],
+    steps: [
+      {
+        id: "s1",
+        label: "Every weekday at 5:30 AM",
+        nodeKind: "schedule-trigger",
+        description: "Trigger a workflow execution on a recurring cron schedule (Mon–Fri, 05:30 America/Chicago).",
+      },
+      {
+        id: "s2",
+        label: "Pull Today's Route Plan",
+        nodeKind: "sharepoint-read",
+        description: "Read rows from the DispatchPlans list on SharePoint for the assigned hub and today's date.",
+        versionLabel: "v2.1.0",
+      },
+      {
+        id: "s3",
+        label: "Fetch NWS Forecast",
+        nodeKind: "weather-api",
+        description: "GET api.weather.gov/points/{lat},{lon}/forecast/hourly for each stop along the lane.",
+        versionLabel: "v1.4.0",
+      },
+      {
+        id: "s4",
+        label: "Score Route Risk",
+        nodeKind: "anthropic-agent",
+        description: "Anthropic Agent with tool calling",
+        model: "Claude 4.6 Sonnet",
+        prompt:
+          "You are a dispatch risk analyst for a FedEx Ground and Express hub. For each route in the input, score delay risk from 0-100 using the hourly NWS forecast along the lane, the SLA commit time, and driver-hours remaining.\n\nRules:\n- Return valid JSON only, no prose.\n- Fields per route: route_id, service (GROUND|EXPRESS), risk_score (0-100), risk_band (LOW|MEDIUM|HIGH|SEVERE), primary_driver (WIND|SNOW|ICE|RAIN|FOG|HEAT|NONE), sla_exposure_minutes, recommended_action.\n- Recommended actions must come from: HOLD_FOR_UPDATE, RESEQUENCE, PRE_STAGE_RELAY, NOTIFY_CUSTOMER, PROCEED.\n- Only mark SEVERE when NWS advisory severity >= 'Moderate' overlaps the delivery window.",
+      },
+      {
+        id: "s5",
+        label: "Draft Dispatch Brief",
+        nodeKind: "anthropic-agent",
+        description: "Anthropic Agent with tool calling",
+        model: "Claude 4.6 Opus",
+        prompt:
+          "You are drafting a morning risk brief for the hub dispatcher. Input is the JSON output of the risk scorer.\n\nWrite an Outlook email with:\n- Subject: 'Morning Route Risk Brief — {hub_code} — {date}'\n- Top summary line: count of HIGH+SEVERE routes and the primary weather driver.\n- A ranked table of the top 10 at-risk routes: route_id, service, band, primary driver, SLA exposure, recommended action.\n- A short 'Watch items' paragraph flagging any active NWS advisories on the lane corridors.\n\nTone: neutral, operational. No emoji. No speculation beyond what the scorer returned.",
+      },
+      {
+        id: "s6",
+        label: "Send Brief via Outlook",
+        nodeKind: "outlook-send",
+        description: "Send an email from the dispatcher's Outlook mailbox to the configured recipient list.",
+        versionLabel: "v1.0.0",
+      },
+    ],
+    tools: [
+      {
+        id: "t1",
+        name: "SharePoint — DispatchPlans",
+        description:
+          "Reads today's row set from the DispatchPlans list on the hub's SharePoint site. Columns used: route_id, service, driver_id, lane_stops (JSON), sla_commit, tender_time.",
+        icon: "database",
+      },
+      {
+        id: "t2",
+        name: "National Weather Service API",
+        description:
+          "Public api.weather.gov endpoints. Uses /points and /forecast/hourly for each lane stop; falls back to /alerts/active for advisory overlays. No API key required.",
+        icon: "globe",
+      },
+      {
+        id: "t3",
+        name: "Anthropic Claude (claude-sonnet-4-6)",
+        description:
+          "Structured risk scoring. Temperature 0, seed 17, JSON-only output validated against the RouteRisk schema.",
+        icon: "sparkles",
+      },
+      {
+        id: "t4",
+        name: "Anthropic Claude (claude-opus-4-6)",
+        description:
+          "Drafts the dispatcher email. Temperature 0.2, no markdown, output rendered as HTML for Outlook.",
+        icon: "sparkles",
+      },
+      {
+        id: "t5",
+        name: "Outlook",
+        description:
+          "Sends the morning brief from the dispatcher's mailbox. Recipient list is read from the automation's SendTo setting.",
+        icon: "mail",
+      },
+    ],
+  },
+  {
     id: "auto-fedex-exception-log",
     name: "Log FedEx Exception Emails",
     agentName: "Exception Intake Agent",
@@ -50,6 +171,7 @@ export const myAutomations: Automation[] = [
     agentId: "6",
     schedule: "When a new email arrives in Outlook",
     triggerType: "email",
+    iconKey: "mail",
     status: "active",
     lastRun: "8 min ago",
     nextRun: "On next email",

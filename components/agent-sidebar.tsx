@@ -16,7 +16,7 @@ import {
   ListFilterIcon,
   StarIcon,
   BookOpenIcon,
-  AsteriskIcon,
+  PuzzleIcon,
   Plug2Icon,
   CheckIcon,
   MoreHorizontalIcon,
@@ -124,7 +124,7 @@ interface AgentSidebarProps {
   onNewChat?: () => void;
   agentMode?: boolean;
   filterAgentId?: string;
-  activeSection?: "agents" | "automations" | "knowledge-bases" | "connections" | "artifacts";
+  activeSection?: "agents" | "automations" | "knowledge-bases" | "connections" | "skills";
   favoriteAgents?: { id: string; name: string }[];
   defaultCollapsed?: boolean;
 }
@@ -326,18 +326,8 @@ export function AgentSidebar({
           <ZapIcon className="size-4" />
         </Link>
         <Link
-          href="/artifacts"
-          title="Artifacts"
-          className={cn(
-            "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
-            pathname.startsWith("/artifacts") ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
-          )}
-        >
-          <AsteriskIcon className="size-4" />
-        </Link>
-        <Link
           href="/knowledge-bases"
-          title="Knowledge Bases"
+          title="Library"
           className={cn(
             "flex size-9 items-center justify-center rounded-md transition-colors hover:bg-black/5",
             isKnowledgeBases ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
@@ -517,7 +507,7 @@ export function AgentSidebar({
               aria-label="Agents"
               className="absolute inset-0 rounded-md"
             />
-            <span className="pointer-events-none flex items-center gap-2 py-1.5 pl-3 pr-1">
+            <span className="pointer-events-none flex flex-1 items-center gap-2 py-1.5 pl-3 pr-1">
               <span className="flex size-5 shrink-0 items-center justify-center">
                 <WorkflowIcon className="size-4" />
               </span>
@@ -528,7 +518,7 @@ export function AgentSidebar({
               onClick={() => setCategoriesOpen((v) => !v)}
               aria-expanded={categoriesOpen}
               aria-label="Toggle categories"
-              className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded transition-colors hover:bg-black/10"
+              className="relative z-10 mr-1 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground/50 transition-colors hover:bg-black/10 hover:text-muted-foreground"
             >
               <ChevronDownIcon
                 className={cn(
@@ -579,35 +569,35 @@ export function AgentSidebar({
         </Link>
 
         <Link
-          href="/artifacts"
+          href="/knowledge-bases"
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
-            pathname.startsWith("/artifacts")
+            isKnowledgeBases
               ? "bg-black/8 text-foreground font-medium"
               : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
           )}
         >
           <span className="flex size-5 shrink-0 items-center justify-center">
-            <AsteriskIcon className="size-4" />
+            <BookOpenIcon className="size-4" />
           </span>
-          <span>Artifacts</span>
+          <span>Library</span>
         </Link>
 
         {moreOpen && (
           <>
             <Link
-              href="/knowledge-bases"
+              href="/skills"
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm leading-none transition-colors",
-                isKnowledgeBases
+                pathname.startsWith("/skills")
                   ? "bg-black/8 text-foreground font-medium"
                   : "text-foreground/70 hover:bg-black/5 hover:text-foreground"
               )}
             >
               <span className="flex size-5 shrink-0 items-center justify-center">
-                <BookOpenIcon className="size-4" />
+                <PuzzleIcon className="size-4" />
               </span>
-              <span>Knowledge Bases</span>
+              <span>Skills</span>
             </Link>
 
             <Link

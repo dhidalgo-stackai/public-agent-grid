@@ -18,6 +18,7 @@ import {
   Wand2,
   Handshake,
   Mail,
+  CloudSun,
 } from "lucide-react";
 import { AgentSidebar } from "@/components/agent-sidebar";
 import { AgentGrid, AgentSection } from "@/components/agent-grid";
@@ -265,8 +266,26 @@ const fedexAutomation: (typeof allAgents)[0] = {
   runnersCount: 12,
 };
 
+const weatherRouteAutomation: (typeof allAgents)[0] = {
+  id: "auto-fedex-weather-route-brief",
+  name: "Morning Weather Risk Route Brief",
+  description:
+    "Pulls today's Ground and Express route plan for my hub, cross-checks the National Weather Service forecast along each lane, and posts a ranked risk brief to my inbox before dispatch.",
+  category: ["work", "all", "your-agents", "automations"],
+  integrations: ["connector", "outlook", "sharepoint"],
+  labels: ["Dispatch", "Daily"],
+  interfaceType: "Automation" as const,
+  icon: <CloudSun className="size-5" />,
+  authorName: "Enterprise Automation Team",
+  createdDate: "Jan 12, 2025",
+  lastUpdatedDate: "Jan 29, 2025",
+  runsCount: 58,
+  runnersCount: 4,
+};
+
 const displayAgents: typeof allAgents = [
   ...allAgents.filter((a) => a.interfaceType !== "Automation"),
+  weatherRouteAutomation,
   fedexAutomation,
 ];
 
@@ -468,6 +487,7 @@ function AgentLibraryPageContent() {
           title: "Automations",
           hideTitle: true,
           agents: [
+            weatherRouteAutomation,
             {
               id: "auto-fedex-exception-log",
               name: "Log FedEx Exception Emails",

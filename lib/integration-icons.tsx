@@ -1,5 +1,5 @@
 import React from "react";
-import { ClockIcon, SquareChevronRight } from "lucide-react";
+import { CalendarClockIcon, SquareChevronRight } from "lucide-react";
 
 export const integrationIcons: Record<string, React.ReactNode> = {
   slack: (
@@ -176,24 +176,58 @@ export const integrationIcons: Record<string, React.ReactNode> = {
   ),
 };
 
-export function IntegrationIcon({ name }: { name: string }) {
+const APP_ICON_SIZES = {
+  xs: "size-5 [&_svg]:size-3",
+  sm: "size-6 [&_svg]:size-3.5",
+  md: "size-7 [&_svg]:size-4",
+  lg: "size-8 [&_svg]:size-4.5",
+} as const;
+
+export type AppIconSize = keyof typeof APP_ICON_SIZES;
+
+export const appIconTileClass = (size: AppIconSize = "sm") =>
+  `flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-neutral-200 bg-background ${APP_ICON_SIZES[size]}`;
+
+export function AppIcon({
+  size = "sm",
+  className,
+  children,
+}: {
+  size?: AppIconSize;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-background">
-      {integrationIcons[name] ?? <SquareChevronRight className="size-3" />}
+    <div className={`${appIconTileClass(size)}${className ? ` ${className}` : ""}`}>
+      {children}
     </div>
   );
 }
 
-export function TriggerIcon({ triggerType }: { triggerType: "schedule" | "slack" | "email" }) {
+export function IntegrationIcon({ name, size = "sm" }: { name: string; size?: AppIconSize }) {
   return (
-    <div className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-background [&_svg]:size-3.5">
+    <AppIcon size={size}>
+      {integrationIcons[name] ?? <SquareChevronRight className="size-3" />}
+    </AppIcon>
+  );
+}
+
+export function TriggerIcon({
+  triggerType,
+  size = "sm",
+}: {
+  triggerType: "schedule" | "slack" | "email";
+  size?: AppIconSize;
+}) {
+  return (
+    <AppIcon size={size}>
       {triggerType === "slack" ? (
         integrationIcons.slack
       ) : triggerType === "email" ? (
         integrationIcons.outlook
       ) : (
-        <ClockIcon className="size-3.5 text-muted-foreground" />
+        <CalendarClockIcon className="text-muted-foreground" />
       )}
-    </div>
+    </AppIcon>
   );
 }

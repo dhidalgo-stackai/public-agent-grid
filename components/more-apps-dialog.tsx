@@ -124,7 +124,7 @@ export function MoreAppsDialog({
                   }}
                   className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/60 transition-colors"
                 >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-background">
                     {integrationIcons[app.id] ?? <PlugIcon className="size-4 text-muted-foreground" />}
                   </span>
                   <span className="flex-1 min-w-0">

@@ -349,11 +349,7 @@ export const integrationMeta: Record<string, IntegrationMeta> = {
   },
   excel: {
     label: "Excel",
-    icon: (
-      <svg className="size-3.5" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2 5 5h-5V4zM8 17v-2h4v2H8zm0-4v-2h8v2H8zm0-4v-2h8v2H8z"/>
-      </svg>
-    ),
+    icon: integrationIcons.excel,
     connections: [
       { id: "excel-1", name: "Weekly SLA Workbook" },
       { id: "excel-2", name: "Peak Volume Forecast.xlsx" },

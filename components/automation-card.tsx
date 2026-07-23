@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ZapIcon, ClockIcon, SquareChevronRight, MoreVertical } from "lucide-react";
+import { ZapIcon, ClockIcon, MailIcon, CloudSun, SquareChevronRight, MoreVertical, InfoIcon, PencilIcon, ArchiveIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -30,11 +30,27 @@ interface AutomationCardProps {
 export function AutomationCard({ automation, onToggle, onClick, onUpdateSchedule }: AutomationCardProps) {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const isActive = automation.status === "active";
-  const isScheduled = automation.triggerType !== "slack";
+  const isScheduled = automation.triggerType === "schedule" || automation.triggerType === undefined;
   const isSlackTriggered = automation.triggerType === "slack";
-  const footerIntegrations = isSlackTriggered
-    ? automation.integrations.filter((i) => i !== "slack")
+  const isEmailTriggered = automation.triggerType === "email";
+  const triggerApp: string | null = isSlackTriggered
+    ? "slack"
+    : automation.integrations.includes("slack")
+    ? "slack"
+    : automation.integrations.includes("teams")
+    ? "teams"
+    : automation.integrations.includes("outlook")
+    ? "outlook"
+    : null;
+  const footerIntegrations = triggerApp
+    ? automation.integrations.filter((i) => i !== triggerApp)
     : automation.integrations;
+  const bigIcon =
+    automation.iconKey === "mail"
+      ? <MailIcon className="size-5 text-muted-foreground" />
+      : automation.iconKey === "cloud-sun"
+      ? <CloudSun className="size-5 text-muted-foreground" />
+      : <ZapIcon className="size-5 text-muted-foreground" />;
 
   return (
     <div className="group/card relative rounded-xl">
@@ -50,14 +66,36 @@ export function AutomationCard({ automation, onToggle, onClick, onUpdateSchedule
         {/* Header */}
         <div className="flex items-center gap-3 p-4 pb-0">
           <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border">
-            {isScheduled
-              ? <ClockIcon className="size-5 text-muted-foreground" />
-              : <ZapIcon className="size-5 text-muted-foreground" />
-            }
+            {bigIcon}
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <h3 className="truncate text-sm font-medium">{automation.name}</h3>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h3 className="truncate text-sm font-medium">{automation.name}</h3>
+              {automation.id !== "auto-fedex-weather-route-brief" && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="flex size-4 shrink-0 cursor-default items-center justify-center rounded-full bg-blue-100 text-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <InfoIcon className="size-2.5" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-64 border border-border bg-background px-2.5 py-1.5 shadow-md">
+                      <span className="text-xs text-foreground">
+                        <span className="font-medium">{automation.authorName}</span> published an updated version. Open the automation to review.
+                      </span>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 overflow-hidden text-xs whitespace-nowrap text-muted-foreground">
+              <ZapIcon className="size-3.5 shrink-0 opacity-60" />
+              <span className="truncate">Automation</span>
+            </div>
           </div>
 
           {/* Status toggle */}
@@ -81,23 +119,19 @@ export function AutomationCard({ automation, onToggle, onClick, onUpdateSchedule
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
-                disabled={!isScheduled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setScheduleOpen(true);
                 }}
               >
-                <ClockIcon className="size-4" />
-                Edit schedule
+                <PencilIcon className="size-4" />
+                Edit automation
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick?.(automation);
-                }}
+                onClick={(e) => e.stopPropagation()}
               >
-                <SquareChevronRight className="size-4" />
-                Open automation
+                <ArchiveIcon className="size-4" />
+                Archive
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -142,14 +176,22 @@ export function AutomationCard({ automation, onToggle, onClick, onUpdateSchedule
                     className="flex size-6 shrink-0 cursor-default items-center justify-center rounded-md border bg-background transition-transform hover:scale-105"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {isSlackTriggered
-                      ? integrationMeta.slack.icon
+                    {triggerApp && integrationMeta[triggerApp]
+                      ? integrationMeta[triggerApp].icon
+                      : isEmailTriggered
+                      ? <MailIcon className="size-3.5 text-muted-foreground" />
                       : <ClockIcon className="size-3.5 text-muted-foreground" />}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="border border-border bg-background px-2 py-1 shadow-md">
                   <span className="text-xs font-medium text-foreground">
-                    {isSlackTriggered ? "Slack trigger" : automation.schedule}
+                    {triggerApp === "slack"
+                      ? "Triggered by Slack message"
+                      : triggerApp === "teams"
+                      ? "Triggered by Teams message"
+                      : triggerApp === "outlook"
+                      ? "Triggered by Outlook email"
+                      : automation.schedule}
                   </span>
                 </TooltipContent>
               </Tooltip>

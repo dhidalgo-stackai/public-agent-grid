@@ -97,7 +97,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 function NodeIcon({ icon }: { icon?: string }) {
   return (
-    <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-neutral-100 text-neutral-600 border border-neutral-200/80 [&_svg]:size-3">
+    <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-neutral-100 text-neutral-600 border border-neutral-200 [&_svg]:size-3">
       {icon ? iconMap[icon] ?? <ZapIcon className="size-3" /> : <ZapIcon className="size-3" />}
     </div>
   );
@@ -108,7 +108,7 @@ const NODE_GAP = 56;
 const NODE_VPAD = 24;
 
 function StackNodeIcon({ kind }: { kind?: AutomationStep["nodeKind"] }) {
-  if (kind === "outlook-trigger") {
+  if (kind === "outlook-trigger" || kind === "outlook-send") {
     return (
       <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 [&_svg]:size-5">
         {integrationIcons.outlook}
@@ -119,6 +119,39 @@ function StackNodeIcon({ kind }: { kind?: AutomationStep["nodeKind"] }) {
     return (
       <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 [&_svg]:size-5">
         {integrationIcons.excel}
+      </div>
+    );
+  }
+  if (kind === "sharepoint-read") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 [&_svg]:size-5">
+        {integrationIcons.sharepoint}
+      </div>
+    );
+  }
+  if (kind === "schedule-trigger") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 text-neutral-700">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      </div>
+    );
+  }
+  if (kind === "weather-api") {
+    return (
+      <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200">
+        <svg viewBox="0 0 24 24" fill="none" className="size-4" aria-hidden="true">
+          <circle cx="16.5" cy="8.5" r="3" fill="#F5A623" />
+          <path
+            d="M6.5 17.5a3.5 3.5 0 0 1 .6-6.95 5 5 0 0 1 9.65 1.2 3.75 3.75 0 0 1-1.5 7.25H7a3.5 3.5 0 0 1-.5-1.5Z"
+            fill="#3B7DDD"
+            stroke="#2A5FAF"
+            strokeWidth="0.6"
+            strokeLinejoin="round"
+          />
+        </svg>
       </div>
     );
   }
@@ -142,10 +175,11 @@ function StackNodeIcon({ kind }: { kind?: AutomationStep["nodeKind"] }) {
     return (
       <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white border border-neutral-200 text-neutral-700">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4">
-          <path d="M4 20 20 4" />
-          <path d="M14 4h6v6" />
-          <path d="M4 4l6 6" />
-          <path d="M14 20h6v-6" />
+          <path d="M16 3h5v5" />
+          <path d="M8 3H3v5" />
+          <path d="M12 22V11" />
+          <path d="M21 3l-6.5 6.5a4 4 0 0 0-1.172 2.829" />
+          <path d="M3 3l6.5 6.5a4 4 0 0 1 1.172 2.829" />
         </svg>
       </div>
     );
@@ -172,7 +206,7 @@ function StackNodeCard({
   schedule?: string;
 }) {
   const kind = step.nodeKind;
-  const showLeftHandle = kind !== "outlook-trigger";
+  const showLeftHandle = kind !== "outlook-trigger" && kind !== "schedule-trigger";
   const showRightHandle = true;
 
   return (
@@ -510,14 +544,12 @@ function WorkflowCanvas({
 
 function MetadataRow({
   createdBy,
-  personalizedBy,
   labels = [],
   triggerType,
   schedule,
   integrations,
 }: {
   createdBy: string;
-  personalizedBy?: string;
   labels?: string[];
   triggerType?: "schedule" | "slack" | "email";
   schedule?: string;
@@ -529,13 +561,6 @@ function MetadataRow({
         <span className="text-xs text-muted-foreground">Created by</span>
         <span className="text-sm font-normal text-foreground">{createdBy}</span>
       </div>
-
-      {personalizedBy && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs text-muted-foreground">Personalized by</span>
-          <span className="text-sm font-normal text-foreground">{personalizedBy}</span>
-        </div>
-      )}
 
       {labels.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -587,7 +612,7 @@ function MetadataRow({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent
-                    side="bottom"
+                    side="top"
                     className="border border-border bg-background px-2 py-1 shadow-md"
                   >
                     <span className="text-xs font-medium text-foreground">
@@ -955,15 +980,11 @@ function OverviewPanel({
       <section>
         <MetadataRow
           createdBy={automation.authorName}
-          personalizedBy={automation.personalizedBy}
           labels={automation.labels}
           triggerType={automation.triggerType}
           schedule={automation.schedule}
           integrations={automation.integrations}
         />
-        {automation.governanceNote && (
-          <p className="mt-3 text-xs text-muted-foreground">{automation.governanceNote}</p>
-        )}
       </section>
 
       {automation.steps && automation.steps.length > 0 && (
@@ -1181,7 +1202,7 @@ function ReviewUpdateModal({
                 size="sm"
                 disabled={isLoading}
                 onClick={() => setTestOpen(true)}
-                className="h-8 shrink-0 rounded-lg border-border bg-background px-3 text-sm shadow-sm"
+                className="h-8 shrink-0 rounded-lg border-border bg-background px-3 text-sm"
               >
                 <PlayIcon className="size-3.5" />
                 Test automation
@@ -1206,7 +1227,7 @@ function ReviewUpdateModal({
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
                     selectedId === node.id
-                      ? "bg-background text-foreground shadow-sm ring-1 ring-border/80"
+                      ? "bg-background text-foreground ring-1 ring-border/80"
                       : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
                   )}
                 >
@@ -1291,7 +1312,7 @@ function ReviewUpdateModal({
                     variant="outline"
                     onClick={runTest}
                     disabled={testPhase === "running"}
-                    className="h-9 w-full rounded-lg border-border bg-background px-4 text-sm shadow-sm"
+                    className="h-9 w-full rounded-lg border-border bg-background px-4 text-sm"
                   >
                     <PlayIcon className="size-3.5" />
                     {testPhase === "running" ? "Running…" : "Run with new version"}
@@ -1333,7 +1354,7 @@ function ReviewUpdateModal({
               size="lg"
               disabled={isLoading}
               onClick={onClose}
-              className="h-9 rounded-lg border-border bg-background px-5 text-sm shadow-sm"
+              className="h-9 rounded-lg border-border bg-background px-5 text-sm"
             >
               Cancel
             </Button>
@@ -1462,9 +1483,18 @@ function AutomationDetailPageContent() {
             <div className="flex-1" />
             {justActivated ? (
               <>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-foreground">
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      isActive ? "bg-emerald-500" : "bg-muted-foreground/50",
+                    )}
+                  />
+                  {automation?.version ?? "v1"}
+                </span>
                 <div className="flex items-center gap-2 mr-1">
                   <span className="text-xs font-medium text-foreground transition-colors">
-                    Active
+                    {isActive ? "Active" : "Paused"}
                   </span>
                   <Switch checked={isActive} onCheckedChange={setIsActive} />
                 </div>
@@ -1606,6 +1636,15 @@ function AutomationDetailPageContent() {
               </button>
             ) : (
               <>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-foreground">
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full",
+                      isActive ? "bg-emerald-500" : "bg-muted-foreground/50",
+                    )}
+                  />
+                  {automation?.version ?? "v1"}
+                </span>
                 <div className="flex items-center gap-2 mr-1">
                   <span
                     className={cn(
@@ -1630,13 +1669,6 @@ function AutomationDetailPageContent() {
 
           <div className="flex-1 overflow-y-auto py-4" style={{ scrollbarGutter: "stable" }}>
             <div className={cn(pageContainerClass, "space-y-6 pb-8")}>
-            {!isSetupMode && updateBannerVisible && (
-              <UpdateAvailableBanner
-                authorName={automation.authorName}
-                onReview={() => setUpdateModalOpen(true)}
-                onDismiss={() => setUpdateBannerVisible(false)}
-              />
-            )}
             <AutomationTitleRow
               name={automation.name}
               icon={
@@ -1651,6 +1683,13 @@ function AutomationDetailPageContent() {
                 <TabsTrigger value="runs">Run history</TabsTrigger>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
               </TabsList>
+            )}
+            {!isSetupMode && updateBannerVisible && automation.id !== "auto-fedex-weather-route-brief" && (
+              <UpdateAvailableBanner
+                authorName={automation.authorName}
+                onReview={() => setUpdateModalOpen(true)}
+                onDismiss={() => setUpdateBannerVisible(false)}
+              />
             )}
             {!isSetupMode && (
               <TabsContent value="runs" className="mt-0">

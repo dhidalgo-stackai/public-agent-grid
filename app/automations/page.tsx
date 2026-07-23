@@ -37,9 +37,12 @@ function AutomationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") === "runs" ? "runs" : "list";
-  const [automations, setAutomations] = useState(
-    myAutomations.filter((a) => a.id === "auto-fedex-exception-log")
-  );
+  const [automations, setAutomations] = useState(() => {
+    const order = ["auto-fedex-exception-log", "auto-fedex-weather-route-brief"];
+    return order
+      .map((id) => myAutomations.find((a) => a.id === id))
+      .filter((a): a is (typeof myAutomations)[number] => Boolean(a));
+  });
 
   const runItems = useMemo(
     () =>

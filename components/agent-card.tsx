@@ -200,7 +200,7 @@ export function AgentCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div
-                      className="flex size-6 shrink-0 cursor-default items-center justify-center rounded-md border bg-background transition-transform hover:scale-105"
+                      className="flex size-6 shrink-0 cursor-default items-center justify-center rounded-md border border-neutral-200 bg-background transition-transform hover:scale-105"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {isAutomation
@@ -239,7 +239,7 @@ export function AgentCard({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div
-                            className="flex size-6 shrink-0 cursor-default items-center justify-center rounded-md border bg-background transition-transform hover:scale-105"
+                            className="flex size-6 shrink-0 cursor-default items-center justify-center rounded-md border border-neutral-200 bg-background transition-transform hover:scale-105"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {integrationIcons[integration] ?? <SquareChevronRight className="size-3" />}
@@ -252,7 +252,7 @@ export function AgentCard({
                     </TooltipProvider>
                   ))}
                   {footerIntegrations.length > 3 && (
-                    <div className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-muted text-[10px] font-medium text-muted-foreground">
+                    <div className="flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-muted text-[10px] font-medium text-muted-foreground">
                       +{footerIntegrations.length - 3}
                     </div>
                   )}

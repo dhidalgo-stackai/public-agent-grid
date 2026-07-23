@@ -74,22 +74,22 @@ function NodeHandle({ side, top }: { side: "left" | "right"; top?: number }) {
 function NodeIconBadge({ kind }: { kind?: AutomationStep["nodeKind"] }) {
   if (kind === "outlook-trigger" || kind === "outlook-category") {
     return (
-      <div className="flex size-6 shrink-0 items-center justify-center [&_svg]:size-5">
+      <div className="flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white [&_svg]:size-4">
         {integrationIcons.outlook}
       </div>
     );
   }
   if (kind === "excel-append") {
     return (
-      <div className="flex size-6 shrink-0 items-center justify-center [&_svg]:size-5">
+      <div className="flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white [&_svg]:size-4">
         {integrationIcons.excel}
       </div>
     );
   }
   if (kind === "anthropic-agent") {
     return (
-      <div className="flex size-6 shrink-0 items-center justify-center text-[#181818]">
-        <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
+      <div className="flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white text-[#181818]">
+        <svg viewBox="0 0 24 24" fill="currentColor" className="size-4" aria-hidden="true">
           <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
         </svg>
       </div>
@@ -97,12 +97,13 @@ function NodeIconBadge({ kind }: { kind?: AutomationStep["nodeKind"] }) {
   }
   if (kind === "if-else") {
     return (
-      <div className="flex size-6 shrink-0 items-center justify-center text-neutral-700">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-5">
-          <path d="M4 20 20 4" />
-          <path d="M14 4h6v6" />
-          <path d="M4 4l6 6" />
-          <path d="M14 20h6v-6" />
+      <div className="flex size-6 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-700">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+          <path d="M16 3h5v5" />
+          <path d="M8 3H3v5" />
+          <path d="M12 22V11" />
+          <path d="M21 3l-6.5 6.5a4 4 0 0 0-1.172 2.829" />
+          <path d="M3 3l6.5 6.5a4 4 0 0 1 1.172 2.829" />
         </svg>
       </div>
     );
@@ -213,7 +214,7 @@ function OutlookTriggerNode({ step, selected }: { step: AutomationStep; selected
     <NodeShell selected={selected}>
       <NodeHandle side="right" />
       <div className="absolute -top-8 left-2">
-        <div className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700 shadow-sm">
+        <div className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-700">
           <PlayIcon className="size-3 fill-current" />
           Run
         </div>
@@ -618,7 +619,7 @@ function BuilderCanvas({ steps }: { steps: AutomationStep[] }) {
           <ToolbarIcon><CameraIcon className="size-4" /></ToolbarIcon>
         </div>
 
-        <button className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3 h-8 text-[12px] font-medium text-neutral-800 hover:bg-neutral-50 shadow-sm relative">
+        <button className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3 h-8 text-[12px] font-medium text-neutral-800 hover:bg-neutral-50 relative">
           <ListChecksIcon className="size-3.5" />
           Checklist
           <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-400 border border-white" />
@@ -1689,14 +1690,14 @@ function InterfacePanel({ automationId }: { automationId: string }) {
         <div className="relative flex flex-col items-center gap-6 text-center">
           {/* Scattered cards illustration */}
           <div className="relative h-[180px] w-[280px]">
-            <div className="absolute left-2 top-8 h-16 w-24 -rotate-12 rounded-lg border border-neutral-200 bg-white shadow-sm">
+            <div className="absolute left-2 top-8 h-16 w-24 -rotate-12 rounded-lg border border-neutral-200 bg-white">
               <div className="p-2">
                 <div className="mb-1.5 size-3 rounded-full border-2 border-red-400" />
                 <div className="mb-1 h-1 w-14 rounded-full bg-neutral-200" />
                 <div className="h-1 w-10 rounded-full bg-neutral-200" />
               </div>
             </div>
-            <div className="absolute right-4 top-2 h-16 w-24 rotate-12 rounded-lg border border-neutral-200 bg-white shadow-sm">
+            <div className="absolute right-4 top-2 h-16 w-24 rotate-12 rounded-lg border border-neutral-200 bg-white">
               <div className="flex h-full items-center justify-center text-neutral-400">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-6">
                   <path d="M8 9l-3 3 3 3M16 9l3 3-3 3" />
@@ -1710,13 +1711,13 @@ function InterfacePanel({ automationId }: { automationId: string }) {
                 <div className="h-1.5 w-24 rounded-full bg-neutral-200" />
               </div>
             </div>
-            <div className="absolute right-1 top-24 h-14 w-20 -rotate-6 rounded-lg border border-neutral-200 bg-white shadow-sm">
+            <div className="absolute right-1 top-24 h-14 w-20 -rotate-6 rounded-lg border border-neutral-200 bg-white">
               <div className="p-2">
                 <div className="mb-1 size-2 rounded-full bg-neutral-800" />
                 <div className="h-1 w-12 rounded-full bg-neutral-200" />
               </div>
             </div>
-            <div className="absolute left-4 top-28 h-12 w-16 rotate-6 rounded-lg border border-neutral-200 bg-white shadow-sm" />
+            <div className="absolute left-4 top-28 h-12 w-16 rotate-6 rounded-lg border border-neutral-200 bg-white" />
           </div>
           <p className="text-[15px] font-semibold text-neutral-900">
             You haven&apos;t chosen an interface yet.

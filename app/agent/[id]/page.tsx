@@ -59,7 +59,7 @@ import {
 } from "@/lib/chats-data";
 import { getAgentIcon } from "@/lib/agent-icons";
 import { AGENT_DIRECTORY, getAgentApps, getAppLabel } from "@/lib/agents-data";
-import { integrationIcons } from "@/lib/integration-icons";
+import { AppIcon, integrationIcons } from "@/lib/integration-icons";
 import { ALL_WORKFLOWS, type Workflow } from "@/lib/workflows-data";
 import { AgentSidebar } from "@/components/agent-sidebar";
 import { AgentCard } from "@/components/agent-card";
@@ -613,7 +613,7 @@ function AddMenuContent({
                 className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5"
                 onClick={() => closeAfterAction()}
               >
-                <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[app.id]}</span>
+                <AppIcon size="xs">{integrationIcons[app.id]}</AppIcon>
                 <span className="min-w-0 flex-1 truncate text-sm">{app.name}</span>
                 <span className="text-xs text-muted-foreground">Connected app</span>
               </DropdownMenuItem>
@@ -651,7 +651,7 @@ function AddMenuContent({
                   onClick={() => runAction(() => selectConnector(c.id, c.label))}
                   title={c.label}
                 >
-                  <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[c.id]}</span>
+                  <AppIcon size="xs">{integrationIcons[c.id]}</AppIcon>
                   <span className="min-w-0 flex-1 truncate text-sm">{c.label}</span>
                   {isSelected ? (
                     <CheckIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -785,7 +785,7 @@ function AddMenuContent({
                         className="gap-2"
                         onClick={() => closeAfterAction()}
                       >
-                        {integrationIcons[app.id]}
+                        <AppIcon size="xs">{integrationIcons[app.id]}</AppIcon>
                         {app.name}
                       </DropdownMenuItem>
                     ))}
@@ -821,7 +821,7 @@ function AddMenuContent({
                   onClick={() => runAction(() => selectConnector(c.id, c.label))}
                   title={c.label}
                 >
-                  <span className="flex size-4 shrink-0 items-center justify-center">{integrationIcons[c.id]}</span>
+                  <AppIcon size="xs">{integrationIcons[c.id]}</AppIcon>
                   <span className="min-w-0 flex-1 truncate text-sm">{c.label}</span>
                   {isSelected ? (
                     <CheckIcon className="ml-auto size-4 shrink-0 text-muted-foreground" />
@@ -1128,9 +1128,7 @@ function AppToolSuggestionPanel({
           onClick={() => onSelect(item.id, item.label)}
           title={item.label}
         >
-          <span className="flex size-4 shrink-0 items-center justify-center">
-            {integrationIcons[item.id]}
-          </span>
+          <AppIcon size="xs">{integrationIcons[item.id]}</AppIcon>
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
           <span className="text-xs text-muted-foreground">Tool</span>
         </button>
@@ -3150,7 +3148,7 @@ export default function AgentChatPage() {
   const otherAgents = AGENT_DIRECTORY.filter((agent) => agent.id !== activeAgent?.id);
 
   const renderChatHeader = () => (
-    <header className="flex h-12 shrink-0 items-center gap-1 px-3">
+    <header className="flex h-12 shrink-0 items-center gap-2 px-3">
       <Link
         href={isNewChat ? "/" : "/agents"}
         aria-label="Back"
@@ -3175,7 +3173,7 @@ export default function AgentChatPage() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-64">
-            <div className="max-h-72 overflow-y-auto py-1">
+            <div className="max-h-72 overflow-y-auto py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {otherAgents.map((agent) => (
                 <DropdownMenuItem
                   key={agent.id}
@@ -3498,15 +3496,9 @@ export default function AgentChatPage() {
                     <div className="-mt-3 flex cursor-pointer items-center gap-3 rounded-b-xl border-x border-b border-black/5 bg-muted/40 px-4 pb-2.5 pt-5 hover:bg-muted/60 transition-colors" onClick={() => setMoreAppsOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setMoreAppsOpen(true)}>
                       <span className="text-xs text-muted-foreground shrink-0">Unlock more by connecting your tools</span>
                       <div className="flex items-center -space-x-1.5 ml-auto">
-                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="SharePoint">
-                          {integrationIcons.sharepoint}
-                        </div>
-                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Teams">
-                          {integrationIcons.teams}
-                        </div>
-                        <div className="size-6 rounded-md border bg-background flex items-center justify-center overflow-hidden" title="Outlook">
-                          {integrationIcons.outlook}
-                        </div>
+                        <AppIcon><span title="SharePoint">{integrationIcons.sharepoint}</span></AppIcon>
+                        <AppIcon><span title="Teams">{integrationIcons.teams}</span></AppIcon>
+                        <AppIcon><span title="Outlook">{integrationIcons.outlook}</span></AppIcon>
                         <button type="button" className="!ml-3 text-muted-foreground/50 hover:text-foreground transition-colors" onClick={(e) => e.stopPropagation()}>
                           <XIcon className="size-3.5" />
                         </button>
@@ -3540,7 +3532,7 @@ export default function AgentChatPage() {
                         }}
                         className="flex w-full items-center gap-3 border-t border-border/60 px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
                       >
-                        <span className="flex size-4 shrink-0 items-center justify-center">{example.icon}</span>
+                        <AppIcon>{example.icon}</AppIcon>
                         <span className="truncate">{example.text}</span>
                       </button>
                     ))}

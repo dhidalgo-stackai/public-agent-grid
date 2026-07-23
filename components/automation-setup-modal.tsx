@@ -1,26 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CalendarIcon, ClockIcon, CheckCircle2, CheckIcon, PlusIcon, PlayIcon, XIcon, LockIcon, MailIcon, SparklesIcon, DatabaseIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, RefreshCwIcon, XCircleIcon } from "lucide-react";
+import { CalendarIcon, CalendarClockIcon, ClockIcon, CheckCircle2, CheckIcon, PlusIcon, PlayIcon, XIcon, LockIcon, MailIcon, SparklesIcon, DatabaseIcon, ArrowLeftIcon, ChevronDownIcon, ChevronRightIcon, RefreshCwIcon, XCircleIcon, InfoIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { integrationIcons } from "@/lib/integration-icons";
+import { AppIcon, integrationIcons } from "@/lib/integration-icons";
 
-const OutlookStepIcon = () => (
-  <span className="flex size-5 items-center justify-center rounded-sm bg-white [&_svg]:size-4">
-    {integrationIcons.outlook}
-  </span>
-);
-const ExcelStepIcon = () => (
-  <span className="flex size-5 items-center justify-center rounded-sm bg-white [&_svg]:size-4">
-    {integrationIcons.excel}
-  </span>
-);
+const OutlookStepIcon = () => <AppIcon>{integrationIcons.outlook}</AppIcon>;
+const ExcelStepIcon = () => <AppIcon>{integrationIcons.excel}</AppIcon>;
 const AnthropicStepIcon = () => (
-  <span className="flex size-5 items-center justify-center rounded-sm bg-[#181818] text-white">
-    <svg viewBox="0 0 24 24" fill="currentColor" className="size-3" aria-hidden="true">
+  <AppIcon>
+    <svg viewBox="0 0 24 24" fill="currentColor" className="text-[#181818]" aria-hidden="true">
       <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
     </svg>
-  </span>
+  </AppIcon>
+);
+const ScheduleStepIcon = () => (
+  <AppIcon>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-700">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  </AppIcon>
+);
+const SharepointStepIcon = () => <AppIcon>{integrationIcons.sharepoint}</AppIcon>;
+const WeatherStepIcon = () => (
+  <AppIcon>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="16.5" cy="8.5" r="3" fill="#F5A623" />
+      <path d="M6.5 17.5a3.5 3.5 0 0 1 .6-6.95 5 5 0 0 1 9.65 1.2 3.75 3.75 0 0 1-1.5 7.25H7a3.5 3.5 0 0 1-.5-1.5Z" fill="#3B7DDD" stroke="#2A5FAF" strokeWidth="0.6" strokeLinejoin="round" />
+    </svg>
+  </AppIcon>
 );
 import {
   Dialog,
@@ -403,15 +412,201 @@ function PreviewField({
   );
 }
 
+function ScheduleField({
+  label,
+  typeHint,
+  required,
+  children,
+}: {
+  label: string;
+  typeHint?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between">
+        <label className="text-sm font-medium text-foreground">
+          {label}
+          {required && <span className="ml-1 text-red-500">*</span>}
+        </label>
+        {typeHint && (
+          <span className="font-mono text-[11px] text-muted-foreground">{typeHint}</span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function NodeHeader({ name, description }: { name: string; description: string }) {
+  return (
+    <div className="space-y-0.5">
+      <p className="text-sm font-medium text-foreground">{name}</p>
+      <p className="text-sm text-foreground">{description}</p>
+    </div>
+  );
+}
+
 function StaticField({ label, icon, value }: { label: string; icon: React.ReactNode; value: string }) {
   return (
-    <div className="space-y-3">
-      <label className="text-sm text-foreground">
+    <div className="flex flex-col gap-2.5">
+      <label className="block text-sm font-medium text-foreground">
         {label}
       </label>
       <div className="flex items-center gap-2 text-sm text-foreground">
-        <span className="flex size-5 items-center justify-center [&_svg]:size-4">{icon}</span>
+        <AppIcon>{icon}</AppIcon>
         <span>{value}</span>
+      </div>
+    </div>
+  );
+}
+
+const StackAiMark = ({ className = "size-4" }: { className?: string }) => (
+  <span className={cn("inline-flex items-center justify-center text-foreground [&_svg]:h-full [&_svg]:w-full", className)}>
+    {integrationIcons.connector}
+  </span>
+);
+
+const AnthropicMark = ({ className = "size-4" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={cn(className, "text-[#181818]")} aria-hidden="true">
+    <path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" />
+  </svg>
+);
+
+function StackAiRow({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex h-10 w-full items-center gap-2 rounded-lg border border-input bg-background px-3 text-sm text-foreground">
+      <span className="flex size-5 items-center justify-center [&_svg]:size-4">{icon}</span>
+      <span className="flex-1 truncate">{label}</span>
+    </div>
+  );
+}
+
+function StackAiToolbar({ leftItems, showFormatted }: { leftItems?: React.ReactNode; showFormatted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between border-t border-input px-2 py-1.5">
+      <div className="flex items-center gap-1">
+        {leftItems}
+      </div>
+      <div className="flex items-center gap-1">
+        <button type="button" disabled className="flex size-6 items-center justify-center rounded-md text-muted-foreground/60">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5"><path d="M9.94 14.34a4 4 0 1 1-4.28-4.28"/><path d="m14 6 3 3"/><path d="M18.37 3.63 8 14l-1 4 4-1L21.37 6.63a2.5 2.5 0 1 0-3.53-3.53Z"/></svg>
+        </button>
+        <button type="button" disabled className="flex size-6 items-center justify-center rounded-md text-muted-foreground/60">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5"><rect width="6" height="12" x="9" y="3" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function StackAiInstructionsToolbar() {
+  return (
+    <StackAiToolbar
+      leftItems={
+        <>
+          <button type="button" disabled className="flex size-6 items-center justify-center rounded-md text-muted-foreground/70">
+            <PlusIcon className="size-3.5" />
+          </button>
+          <button type="button" disabled className="flex h-6 items-center gap-1 rounded-md px-1.5 text-[12px] text-muted-foreground/70">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            Tools
+          </button>
+          <button type="button" disabled className="flex h-6 items-center gap-1 rounded-md px-1.5 text-[12px] text-muted-foreground/70">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-3.5"><circle cx="12" cy="12" r="10"/><path d="m8 14 2.5-6L13 14"/><path d="M9 12h3"/><path d="M15 8v6"/></svg>
+            Skills
+          </button>
+        </>
+      }
+    />
+  );
+}
+
+function LlmAgentBody({
+  name,
+  description,
+  provider,
+  action,
+  aiProvider,
+  aiProviderIcon,
+  model,
+  instructions,
+  userMessage,
+  toolsCount = 2,
+}: {
+  name: string;
+  description: string;
+  provider: string;
+  action: string;
+  aiProvider: string;
+  aiProviderIcon: React.ReactNode;
+  model: string;
+  instructions: string;
+  userMessage?: React.ReactNode;
+  toolsCount?: number;
+}) {
+  return (
+    <div className="space-y-5">
+      <p className="text-sm font-semibold text-muted-foreground">General</p>
+      <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
+        <LockIcon className="mt-0.5 size-3.5 shrink-0" />
+        <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
+      </div>
+      <NodeHeader name={name} description={description} />
+      <StaticField label="Provider" icon={aiProviderIcon} value={provider} />
+      <StaticField label="Action" icon={aiProviderIcon} value={action} />
+
+      <div className="mt-6 space-y-5 border-t border-border/70 pt-6">
+        <p className="text-sm font-semibold text-muted-foreground">Configuration</p>
+
+        <div className="space-y-2">
+          <label className="text-sm text-foreground">AI Provider</label>
+          <StackAiRow icon={aiProviderIcon} label={aiProvider} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm text-foreground">Model</label>
+          <StackAiRow icon={aiProviderIcon} label={model} />
+        </div>
+
+        <p className="text-sm font-semibold text-muted-foreground">Prompting</p>
+
+        <div className="space-y-2">
+          <label className="text-[13px] font-medium text-foreground underline decoration-dotted underline-offset-4">
+            Instructions
+          </label>
+          <textarea
+            disabled
+            value={instructions}
+            rows={6}
+            className="block w-full resize-none rounded-md border border-input bg-background px-3 py-2 font-mono text-[12px] leading-relaxed text-foreground/90 outline-none"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[13px] font-medium text-foreground underline decoration-dotted underline-offset-4">
+            Prompt
+          </label>
+          <div className="min-h-[80px] rounded-md border border-input bg-background px-3 py-2 font-mono text-[12px] leading-relaxed text-foreground/90">
+            <span className="text-muted-foreground">User Message: </span>
+            {userMessage}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-foreground">Tools</label>
+          <div className="flex items-center gap-3 rounded-lg border border-input bg-background px-3 py-2">
+            <div className="flex size-7 shrink-0 items-center justify-center">
+              <StackAiMark className="size-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-foreground">StackAI Tools</p>
+              <p className="text-[11.5px] text-muted-foreground">{toolsCount} tools added</p>
+            </div>
+            <ChevronDownIcon className="size-4 text-muted-foreground" />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -439,6 +634,8 @@ export function AutomationSetupModal({
 }: AutomationSetupModalProps) {
   const isSlackTrigger = automation?.triggerType === "slack";
   const isFedexEmailLog = !!automation?.id?.includes("auto-fedex-exception-log");
+  const isWeatherBrief = !!automation?.id?.includes("auto-fedex-weather-route-brief");
+  const hasSidebarLayout = isFedexEmailLog || isWeatherBrief;
 
   // The trigger connection (Slack) is configured in the Trigger section; every
   // other integration the automation touches is bound in the Connections section.
@@ -449,10 +646,16 @@ export function AutomationSetupModal({
       !integrationMeta[i].isSystem,
   );
 
-  const [frequency, setFrequency] = useState("Weekdays");
+  const [frequency, setFrequency] = useState(
+    automation?.id?.includes("auto-fedex-weather-route-brief") ? "Every day" : "Weekdays",
+  );
   const [day, setDay] = useState("Monday");
-  const [time, setTime] = useState("07:00");
-  const [timezone, setTimezone] = useState("local");
+  const [time, setTime] = useState(
+    automation?.id?.includes("auto-fedex-weather-route-brief") ? "09:00" : "07:00",
+  );
+  const [timezone, setTimezone] = useState(
+    automation?.id?.includes("auto-fedex-weather-route-brief") ? "UTC" : "local",
+  );
   const [station, setStation] = useState("Memphis Hub");
   const [services, setServices] = useState<Record<string, boolean>>({
     Express: true,
@@ -478,7 +681,25 @@ export function AutomationSetupModal({
   const [configOpen, setConfigOpen] = useState(true);
   const [outlookAccount, setOutlookAccount] = useState("");
   const [excelAccount, setExcelAccount] = useState("");
-  const [selectedNodeId, setSelectedNodeId] = useState<"trigger" | "category" | "append" | "is-exception" | "extract">("trigger");
+  const [sharepointAccount, setSharepointAccount] = useState("");
+  const [sharepointSite, setSharepointSite] = useState("dispatchhub.sharepoint.com/sites/route-ops");
+  const [sharepointList, setSharepointList] = useState("DispatchPlans");
+  const [sharepointFilter, setSharepointFilter] = useState("Date eq today() and Hub eq '{{trigger.hub_code}}'");
+  const [outlookRecipient, setOutlookRecipient] = useState("dispatch-lead@fedex.com");
+  const [outlookSubject, setOutlookSubject] = useState("Morning Route Risk Brief — {{trigger.hub_code}} — {{trigger.date}}");
+  const [outlookBody, setOutlookBody] = useState("{{draft.output.html}}");
+  const [selectedNodeId, setSelectedNodeId] = useState<
+    | "trigger"
+    | "category"
+    | "append"
+    | "is-exception"
+    | "extract"
+    | "route-plan"
+    | "nws"
+    | "score"
+    | "draft"
+    | "delivery"
+  >("trigger");
   const [excelWorkbook, setExcelWorkbook] = useState("FedEx Ops / Exception Log.xlsx");
   const [excelSheet, setExcelSheet] = useState("Exceptions");
   const [excelTable, setExcelTable] = useState("ExceptionsTable");
@@ -536,7 +757,7 @@ export function AutomationSetupModal({
     ? "When a new email arrives in Outlook"
     : isSlackTrigger
     ? slackChannels.find((c) => c.id === details.slack)?.name ?? "#channel"
-    : frequency === "Daily"
+    : frequency === "Daily" || frequency === "Every day"
     ? `Every day at ${time}`
     : frequency === "Weekdays"
     ? `Every weekday at ${time}`
@@ -556,7 +777,7 @@ export function AutomationSetupModal({
       <div key={key} className="space-y-3 rounded-xl border border-border/80 bg-background p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex size-5 items-center justify-center">{meta.icon}</span>
+            <AppIcon>{meta.icon}</AppIcon>
             <span className="text-sm font-medium text-foreground">{meta.label}</span>
           </div>
           {value ? (
@@ -620,9 +841,10 @@ export function AutomationSetupModal({
         onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
           "overflow-hidden rounded-xl border border-border/80 p-0 shadow-[0_16px_48px_rgba(15,23,42,0.14)]",
+          "data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-top-0",
           testOpen
             ? "max-w-[1240px]"
-            : isFedexEmailLog
+            : hasSidebarLayout
             ? "max-w-[880px]"
             : "max-w-[640px]",
         )}
@@ -633,7 +855,7 @@ export function AutomationSetupModal({
             {automation.setupTitle ?? automation.name}
           </DialogTitle>
           <div className="flex items-center gap-2">
-            {isFedexEmailLog && (
+            {hasSidebarLayout && (
               <Button
                 type="button"
                 variant="outline"
@@ -657,8 +879,409 @@ export function AutomationSetupModal({
         </DialogHeader>
 
         {/* Body */}
-        <div className={cn("no-scrollbar overflow-y-auto", isFedexEmailLog ? "flex h-[520px] p-0" : "h-[520px] space-y-6 px-7 py-6")}>
-          {isFedexEmailLog ? (
+        <div className={cn("no-scrollbar overflow-y-auto", hasSidebarLayout ? "flex h-[520px] p-0" : "h-[520px] space-y-6 px-7 py-6")}>
+          {isWeatherBrief ? (
+            <>
+              {/* Left rail: node list */}
+              <div className="w-[220px] shrink-0 border-r border-border/80 bg-muted/30 py-4">
+                <p className="px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Needs configuration
+                </p>
+                <div className="space-y-0.5 px-2">
+                  {[
+                    {
+                      id: "trigger" as const,
+                      label: "Every weekday at 5:30 AM",
+                      icon: <ScheduleStepIcon />,
+                      status: "done",
+                    },
+                    {
+                      id: "route-plan" as const,
+                      label: "Pull Today's Route Plan",
+                      icon: <SharepointStepIcon />,
+                      status: station ? "done" : "needs",
+                    },
+                    {
+                      id: "delivery" as const,
+                      label: "Send Brief via Outlook",
+                      icon: <OutlookStepIcon />,
+                      status: outlookAddress ? "done" : "needs",
+                    },
+                  ].map((node) => (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                        selectedNodeId === node.id
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/80"
+                          : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn("flex size-6 items-center justify-center rounded-md", selectedNodeId === node.id ? "text-foreground" : "text-muted-foreground")}>
+                        {node.icon}
+                      </span>
+                      <span className="flex-1 truncate font-medium">{node.label}</span>
+                      {node.status === "done" && (
+                        <CheckIcon className="size-3.5 text-muted-foreground" />
+                      )}
+                      {node.status === "needs" && (
+                        <span className="size-1.5 rounded-full bg-amber-500" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="mt-5 px-4 pb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Locked configuration
+                </p>
+                <div className="space-y-0.5 px-2">
+                  {[
+                    { id: "nws" as const, label: "Fetch NWS Forecast", icon: <WeatherStepIcon /> },
+                    { id: "score" as const, label: "Score Route Risk", icon: <AnthropicStepIcon /> },
+                    { id: "draft" as const, label: "Draft Dispatch Brief", icon: <AnthropicStepIcon /> },
+                  ].map((node) => (
+                    <button
+                      key={node.id}
+                      type="button"
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                        selectedNodeId === node.id
+                          ? "bg-background text-foreground shadow-sm ring-1 ring-border/80"
+                          : "text-muted-foreground/70 hover:bg-background/60 hover:text-foreground",
+                      )}
+                    >
+                      <span className={cn("flex size-6 items-center justify-center rounded-md", selectedNodeId === node.id ? "" : "opacity-70")}>
+                        {node.icon}
+                      </span>
+                      <span className="flex-1 truncate font-medium">{node.label}</span>
+                      <LockIcon className="size-3 text-muted-foreground/60" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right pane: selected node config */}
+              <div className="no-scrollbar flex-1 overflow-y-auto px-7 py-6">
+                {selectedNodeId === "trigger" && (
+                  <div className="space-y-5">
+                    <p className="text-sm font-semibold text-muted-foreground">General</p>
+                    <NodeHeader
+                      name="Every weekday at 5:30 AM"
+                      description="Triggers this workflow on a recurring schedule at the times and timezone you set below."
+                    />
+                    <StaticField
+                      label="Provider"
+                      icon={<StackAiMark />}
+                      value="Stack AI"
+                    />
+                    <StaticField
+                      label="Trigger"
+                      icon={<CalendarClockIcon className="size-4 text-foreground" />}
+                      value="Scheduled Execution"
+                    />
+
+                    <div className="mt-6 space-y-5 border-t border-border/70 pt-6">
+                      <p className="text-sm font-semibold text-muted-foreground">Configuration</p>
+
+                      <ScheduleField label="Frequency" typeHint="select_string" required>
+                        <Select value={frequency} onValueChange={setFrequency}>
+                          <SelectTrigger className={fieldClassName}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Every day", "Weekdays", "Weekly", "Monthly"].map((f) => (
+                              <SelectItem key={f} value={f}>{f}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </ScheduleField>
+
+                      <ScheduleField label="Time(s)" typeHint="string_array" required>
+                        <div className="space-y-1.5">
+                          {time.split(",").filter(Boolean).map((t, i, arr) => (
+                            <div key={i} className="flex items-center gap-1.5">
+                              <input
+                                type="time"
+                                value={t.trim()}
+                                onChange={(e) => {
+                                  const next = [...arr];
+                                  next[i] = e.target.value;
+                                  setTime(next.join(","));
+                                }}
+                                className="h-10 flex-1 rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                              />
+                              {arr.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = arr.filter((_, j) => j !== i);
+                                    setTime(next.join(","));
+                                  }}
+                                  className="flex size-9 items-center justify-center rounded-lg border border-input text-muted-foreground hover:bg-muted hover:text-foreground"
+                                  aria-label="Remove time"
+                                >
+                                  <XIcon className="size-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => setTime(time ? `${time},09:00` : "09:00")}
+                            className="flex size-9 items-center justify-center rounded-lg border border-input text-muted-foreground hover:bg-muted hover:text-foreground"
+                            aria-label="Add time"
+                          >
+                            <PlusIcon className="size-4" />
+                          </button>
+                        </div>
+                      </ScheduleField>
+
+                      <ScheduleField label="Timezone" typeHint="select_string" required>
+                        <Select value={timezone} onValueChange={setTimezone}>
+                          <SelectTrigger className={fieldClassName}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="UTC">UTC</SelectItem>
+                            <SelectItem value="America/Chicago">America/Chicago</SelectItem>
+                            <SelectItem value="America/New_York">America/New_York</SelectItem>
+                            <SelectItem value="America/Los_Angeles">America/Los_Angeles</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </ScheduleField>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNodeId === "route-plan" && (
+                  <div className="space-y-5">
+                    <p className="text-sm font-semibold text-muted-foreground">General</p>
+                    <NodeHeader
+                      name="Pull Today's Route Plan"
+                      description="Fetches today's planned routes from the SharePoint list for the selected hub."
+                    />
+                    <StaticField label="Provider" icon={integrationIcons.sharepoint} value="Microsoft SharePoint" />
+                    <StaticField label="Action" icon={integrationIcons.sharepoint} value="Get List Items" />
+                    <ScheduleField label="Connection" required>
+                      <Select value={sharepointAccount} onValueChange={setSharepointAccount}>
+                        <SelectTrigger className={fieldClassName}>
+                          <SelectValue placeholder="Select a SharePoint connection" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(integrationMeta.sharepoint?.connections ?? [{ id: "sp-1", name: "dispatchhub.sharepoint.com" }]).map((conn) => (
+                            <SelectItem key={conn.id} value={conn.id}>
+                              {conn.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        <span className="underline decoration-dotted underline-offset-2">Your credentials are encrypted and can be removed at any time</span>. You can manage all your connections <span className="underline decoration-dotted underline-offset-2">here</span>.
+                      </p>
+                    </ScheduleField>
+
+                    <div className="mt-6 space-y-5 border-t border-border/70 pt-6">
+                      <p className="text-sm font-semibold text-muted-foreground">Configuration</p>
+
+                      <ScheduleField label="Site" typeHint="string" required>
+                        <input
+                          type="text"
+                          value={sharepointSite}
+                          onChange={(e) => setSharepointSite(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                        />
+                      </ScheduleField>
+
+                      <ScheduleField label="List" typeHint="string" required>
+                        <input
+                          type="text"
+                          value={sharepointList}
+                          onChange={(e) => setSharepointList(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                        />
+                      </ScheduleField>
+
+                      <ScheduleField label="Filter (OData)" typeHint="string">
+                        <textarea
+                          value={sharepointFilter}
+                          onChange={(e) => setSharepointFilter(e.target.value)}
+                          rows={2}
+                          className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-[12px] text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                        />
+                      </ScheduleField>
+
+                      <ScheduleField label="Hub" typeHint="select_string" required>
+                        <Select value={station} onValueChange={setStation}>
+                          <SelectTrigger className={fieldClassName}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Memphis Hub", "Indianapolis Hub", "Oakland Hub", "Anchorage Hub"].map((s) => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </ScheduleField>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNodeId === "nws" && (
+                  <div className="space-y-5">
+                    <p className="text-sm font-semibold text-muted-foreground">General</p>
+                    <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                      <LockIcon className="mt-0.5 size-3.5 shrink-0" />
+                      <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
+                    </div>
+                    <NodeHeader
+                      name="Fetch NWS Forecast"
+                      description="Calls the National Weather Service API to retrieve the hourly forecast for each route origin."
+                    />
+                    <StaticField
+                      label="Provider"
+                      icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10"/></svg>}
+                      value="Custom API"
+                    />
+                    <StaticField
+                      label="Action"
+                      icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>}
+                      value="HTTP Request"
+                    />
+
+                    <div className="mt-6 space-y-5 border-t border-border/70 pt-6">
+                      <p className="text-sm font-semibold text-muted-foreground">Configuration</p>
+                      <StaticField
+                        label="Method"
+                        icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M17 3 21 3 21 7"/><path d="m21 3-8 8"/><path d="M7 21H3v-4"/><path d="m3 21 8-8"/></svg>}
+                        value="GET"
+                      />
+                      <StaticField
+                        label="URL"
+                        icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>}
+                        value="https://api.weather.gov/points/{lat},{lon}/forecast/hourly"
+                      />
+                      <StaticField
+                        label="Headers"
+                        icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>}
+                        value="User-Agent: FedEx-DispatchBrief/1.0"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedNodeId === "score" && (
+                  <LlmAgentBody
+                    name="Score Route Risk"
+                    description="Uses Claude to score delay risk 0–100 for each route based on the NWS forecast, SLA commit, and driver-hours."
+                    provider="Anthropic"
+                    action="Anthropic Agent"
+                    aiProvider="Anthropic"
+                    aiProviderIcon={<AnthropicMark />}
+                    model="Claude 4.6 Sonnet"
+                    instructions={`You are a dispatch risk analyst for a FedEx hub.
+For each route, score delay risk 0-100 from NWS hourly forecast, SLA commit, and driver-hours.
+Return JSON only. Fields: route_id, service, risk_score, risk_band, primary_driver, sla_exposure_minutes, recommended_action.
+Recommended actions: HOLD_FOR_UPDATE | RESEQUENCE | PRE_STAGE_RELAY | NOTIFY_CUSTOMER | PROCEED.`}
+                  />
+                )}
+
+                {selectedNodeId === "draft" && (
+                  <LlmAgentBody
+                    name="Draft Dispatch Brief"
+                    description="Uses Claude to draft the morning risk brief email for the hub dispatcher from the scored route data."
+                    provider="Anthropic"
+                    action="Anthropic Agent"
+                    aiProvider="Anthropic"
+                    aiProviderIcon={<AnthropicMark />}
+                    model="Claude 4.6 Opus"
+                    instructions={`Draft the morning risk brief for the hub dispatcher.
+Input: JSON output of the risk scorer.
+Compose Outlook email with:
+- Subject: 'Morning Route Risk Brief — {hub_code} — {date}'
+- Summary line with count of HIGH+SEVERE routes and primary weather driver.
+- Ranked table of top 10 at-risk routes.
+- 'Watch items' paragraph flagging active NWS advisories.
+Tone: neutral, operational. No emoji.`}
+                  />
+                )}
+
+                {selectedNodeId === "delivery" && (
+                  <div className="space-y-5">
+                    <p className="text-sm font-semibold text-muted-foreground">General</p>
+                    <NodeHeader
+                      name="Send Brief via Outlook"
+                      description="Sends the drafted risk brief to the dispatch lead's inbox using the connected Outlook account."
+                    />
+                    <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
+                    <StaticField label="Action" icon={integrationIcons.outlook} value="Send Email" />
+                    <ScheduleField label="Connection" required>
+                      <Select value={outlookAccount} onValueChange={setOutlookAccount}>
+                        <SelectTrigger className={fieldClassName}>
+                          <SelectValue placeholder="Select an Outlook connection" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(integrationMeta.outlook?.connections ?? []).map((conn) => (
+                            <SelectItem key={conn.id} value={conn.id}>
+                              {conn.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        <span className="underline decoration-dotted underline-offset-2">Your credentials are encrypted and can be removed at any time</span>. You can manage all your connections <span className="underline decoration-dotted underline-offset-2">here</span>.
+                      </p>
+                    </ScheduleField>
+
+                    <div className="mt-6 space-y-5 border-t border-border/70 pt-6">
+                      <p className="text-sm font-semibold text-muted-foreground">Configuration</p>
+
+                      <ScheduleField label="To" typeHint="string" required>
+                        <input
+                          type="email"
+                          value={outlookRecipient}
+                          onChange={(e) => setOutlookRecipient(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                        />
+                      </ScheduleField>
+
+                      <ScheduleField label="Subject" typeHint="string" required>
+                        <input
+                          type="text"
+                          value={outlookSubject}
+                          onChange={(e) => setOutlookSubject(e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                        />
+                      </ScheduleField>
+
+                      <ScheduleField label="Body" typeHint="string" required>
+                        <textarea
+                          value={outlookBody}
+                          onChange={(e) => setOutlookBody(e.target.value)}
+                          rows={3}
+                          className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 font-mono text-[12px] text-foreground shadow-none outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/15"
+                        />
+                      </ScheduleField>
+
+                      <ScheduleField label="Body Format" typeHint="select_string" required>
+                        <Select value="HTML" onValueChange={() => {}}>
+                          <SelectTrigger className={fieldClassName}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="HTML">HTML</SelectItem>
+                            <SelectItem value="Text">Text</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </ScheduleField>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : isFedexEmailLog ? (
             <>
               {/* Left rail: node list */}
               <div className="w-[220px] shrink-0 border-r border-border/80 bg-muted/30 py-4">
@@ -705,11 +1328,11 @@ export function AutomationSetupModal({
                       id: "is-exception" as const,
                       label: "Is Exception?",
                       icon: (
-                        <span className="flex size-5 items-center justify-center rounded-sm bg-muted text-muted-foreground">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3">
+                        <AppIcon>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
                             <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96a1 1 0 0 1 1.8.66c0 1.87-.44 3.75-1.63 5.83a13.4 13.4 0 0 1-3.37 4.15" />
                           </svg>
-                        </span>
+                        </AppIcon>
                       ),
                     },
                     {
@@ -748,7 +1371,11 @@ export function AutomationSetupModal({
               <div className="space-y-5">
                 {/* General */}
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <p className="text-sm font-semibold text-muted-foreground">General</p>
+                  <NodeHeader
+                    name="New Exception Email"
+                    description="Triggers a workflow execution every time an email is received in the selected inbox."
+                  />
                   <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
                   <StaticField label="Trigger" icon={integrationIcons.outlook} value="On Email Received" />
                   <div className="space-y-3">
@@ -841,7 +1468,11 @@ export function AutomationSetupModal({
               <div className="space-y-5">
                 {/* General */}
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <p className="text-sm font-semibold text-muted-foreground">General</p>
+                  <NodeHeader
+                    name="Set Email Category"
+                    description="Applies a category tag to the incoming Outlook message so it can be filtered downstream."
+                  />
                   <StaticField label="Provider" icon={integrationIcons.outlook} value="Microsoft Outlook" />
                   <StaticField label="Action" icon={integrationIcons.outlook} value="Set Email Category" />
                   <div className="space-y-3">
@@ -869,7 +1500,7 @@ export function AutomationSetupModal({
                 {/* Configuration */}
                 <div>
                   <div className="flex items-center gap-2 py-3">
-                    <span className="text-sm font-semibold text-foreground">Configuration</span>
+                    <span className="text-sm font-semibold text-muted-foreground">Configuration</span>
                   </div>
                   <div className="space-y-4 py-2">
                     <div className="space-y-3">
@@ -928,17 +1559,20 @@ export function AutomationSetupModal({
               {/* Is Exception? (locked) */}
               {selectedNodeId === "is-exception" && (
               <div className="space-y-5 opacity-90">
-                <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
-                  <LockIcon className="mt-0.5 size-3.5 shrink-0" />
-                  <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-muted-foreground">General</p>
+                  <NodeHeader
+                    name="Is Exception?"
+                    description="Branches the workflow based on whether the extracted fields indicate a genuine exception."
+                  />
+                  <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
+                    <LockIcon className="mt-0.5 size-3.5 shrink-0" />
+                    <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
+                  </div>
+                  <StaticField label="Type" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22V11"/><path d="M21 3l-6.5 6.5a4 4 0 0 0-1.172 2.829"/><path d="M3 3l6.5 6.5a4 4 0 0 1 1.172 2.829"/></svg>} value="If-else router" />
                 </div>
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">General</p>
-                  <StaticField label="Type" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>} value="If-else router" />
-                  <StaticField label="Route" icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2v3"/><path d="M12 5a7 7 0 0 0-4 12.7c.5.5 1 1.3 1 2.3"/><path d="M12 5a7 7 0 0 1 4 12.7c-.5.5-1 1.3-1 2.3"/></svg>} value="Uses Extract Exception Fields output" />
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Branches</p>
+                  <p className="text-sm font-semibold text-muted-foreground">Branches</p>
                   <div className="rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5 text-[12.5px]">
                     <div className="flex items-center justify-between">
                       <span className="text-foreground">If <span className="font-mono text-[12px]">isException == true</span></span>
@@ -957,51 +1591,22 @@ export function AutomationSetupModal({
 
               {/* Extract Exception Fields (locked) */}
               {selectedNodeId === "extract" && (
-              <div className="space-y-5 opacity-90">
-                <div className="flex items-start gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2.5 text-[12.5px] text-muted-foreground">
-                  <LockIcon className="mt-0.5 size-3.5 shrink-0" />
-                  <span>Managed by the automation. This step runs automatically and cannot be edited.</span>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">General</p>
-                  <StaticField
-                    label="Type"
-                    icon={<svg viewBox="0 0 24 24" fill="currentColor" className="size-4"><path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" /></svg>}
-                    value="Anthropic Agent with tool calling"
-                  />
-                  <StaticField
-                    label="Model"
-                    icon={<svg viewBox="0 0 24 24" fill="currentColor" className="size-4"><path d="M17.304 3.541h-3.672l6.696 16.918H24L17.304 3.541zM6.696 3.541 0 20.459h3.744l1.37-3.553h7.005l1.37 3.553h3.745L10.539 3.541H6.696zm-.36 10.223L8.63 7.82l2.294 5.945H6.336z" /></svg>}
-                    value="Claude 4.6 Opus"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">Tools</p>
-                  <div className="rounded-lg border border-border/70 bg-muted/30 divide-y divide-border/60 text-[12.5px]">
-                    {[
-                      { name: "read_email", desc: "Fetch the triggering message body and headers" },
-                      { name: "lookup_tracking", desc: "Resolve tracking numbers via Shipment Visibility" },
-                      { name: "classify_severity", desc: "Map exception type to a severity bucket" },
-                    ].map((t) => (
-                      <div key={t.name} className="flex items-start gap-2 px-3 py-2">
-                        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-sm bg-background text-muted-foreground">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-mono text-[11.5px] text-foreground">{t.name}</p>
-                          <p className="text-[11.5px] text-muted-foreground">{t.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">System prompt</p>
-                  <pre className="no-scrollbar max-h-[140px] overflow-auto rounded-lg border border-border/70 bg-muted/30 px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-muted-foreground whitespace-pre-wrap">{`You extract structured fields from FedEx exception emails.
-Return: tracking, exception_type, severity, eta_impact.
-If the email is not an exception, return isException=false.`}</pre>
-                </div>
-              </div>
+                <LlmAgentBody
+                  name="Extract Exception Fields"
+                  description="Uses Claude to extract structured exception fields from the incoming email body."
+                  provider="Anthropic"
+                  action="Anthropic Agent"
+                  aiProvider="Anthropic"
+                  aiProviderIcon={<AnthropicMark />}
+                  model="Claude 4.6 Opus"
+                  instructions={`You extract structured fields from FedEx exception emails.
+Return JSON only: tracking_number, service_type, origin, destination, exception_code, exception_reason, event_timestamp (ISO 8601), shipper_account.
+Rules:
+- If a field is not present, use null. Do not guess.
+- Normalize timestamps to UTC.
+- exception_code ∈ { DELAY, DAMAGE, MISROUTE, HELD_CUSTOMS, DELIVERY_ATTEMPT_FAILED, OTHER }.
+- If the email is not an exception, return isException=false.`}
+                />
               )}
 
               {/* Destination: Excel */}
@@ -1009,7 +1614,11 @@ If the email is not an exception, return isException=false.`}</pre>
               <div className="space-y-5">
                 {/* General */}
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-foreground">General</p>
+                  <p className="text-sm font-semibold text-muted-foreground">General</p>
+                  <NodeHeader
+                    name="Append to Excel"
+                    description="Appends the extracted exception as a new row in the shared Excel log on SharePoint."
+                  />
                   <StaticField label="Provider" icon={integrationIcons.excel} value="Excel on SharePoint" />
                   <StaticField label="Action" icon={integrationIcons.excel} value="Append Row to Table" />
                   <div className="space-y-3">
@@ -1037,7 +1646,7 @@ If the email is not an exception, return isException=false.`}</pre>
                 {/* Configuration */}
                 <div>
                   <div className="flex items-center gap-2 py-3">
-                    <span className="text-sm font-semibold text-foreground">Configuration</span>
+                    <span className="text-sm font-semibold text-muted-foreground">Configuration</span>
                   </div>
                   <div className="space-y-4 py-2">
                     <div className="space-y-3">
@@ -1272,7 +1881,7 @@ If the email is not an exception, return isException=false.`}</pre>
             <div className="rounded-lg border border-border/80 bg-background p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex size-5 items-center justify-center">{integrationMeta.teams?.icon}</span>
+                  <AppIcon>{integrationMeta.teams?.icon}</AppIcon>
                   <span className="text-sm font-medium text-foreground">Microsoft Teams</span>
                 </div>
                 <span className="text-xs text-muted-foreground">Direct message to Jordan Lee</span>
@@ -1280,7 +1889,7 @@ If the email is not an exception, return isException=false.`}</pre>
             </div>
             <div className="rounded-lg border border-border/80 bg-background p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="flex size-5 items-center justify-center">{integrationMeta.outlook?.icon}</span>
+                <AppIcon>{integrationMeta.outlook?.icon}</AppIcon>
                 <span className="text-sm font-medium text-foreground">Outlook</span>
               </div>
               <input
@@ -1305,9 +1914,7 @@ If the email is not an exception, return isException=false.`}</pre>
               {automation.integrations.includes("shipment-visibility") && (
                 <div className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/40 p-4">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-5 items-center justify-center">
-                      {integrationMeta["shipment-visibility"]?.icon}
-                    </span>
+                    <AppIcon>{integrationMeta["shipment-visibility"]?.icon}</AppIcon>
                     <span className="text-sm font-medium text-foreground">Shipment Visibility</span>
                   </div>
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -1327,7 +1934,7 @@ If the email is not an exception, return isException=false.`}</pre>
         <DialogFooter className="border-t border-border/80 bg-muted/30 px-7 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div />
           <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
-            {!isFedexEmailLog && !testOpen && (
+            {!hasSidebarLayout && !testOpen && (
               <Button
                 type="button"
                 variant="outline"
@@ -1354,7 +1961,7 @@ If the email is not an exception, return isException=false.`}</pre>
                   </svg>
                   Activating…
                 </span>
-              ) : isSetup ? "Activate" : "Save"}
+              ) : isSetup ? "Activate" : "Update"}
             </Button>
           </div>
         </DialogFooter>

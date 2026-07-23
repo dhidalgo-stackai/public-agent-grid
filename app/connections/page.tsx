@@ -171,7 +171,7 @@ function UsageBadge({ integration }: { integration: string }) {
               key={item.id}
               className="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-muted/50"
             >
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-background">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-background">
                 {item.icon}
               </div>
               <div className="min-w-0">
@@ -278,7 +278,7 @@ export default function ConnectionsPage() {
                   >
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-background">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-neutral-200 bg-background">
                           {integrationIcons[conn.integration] ?? (
                             <Plug2Icon className="size-3.5 text-muted-foreground" />
                           )}
