@@ -15,7 +15,7 @@ import {
   XIcon,
   ListFilterIcon,
   StarIcon,
-  BookOpenIcon,
+  LibraryBigIcon,
   PuzzleIcon,
   Plug2Icon,
   CheckIcon,
@@ -333,7 +333,7 @@ export function AgentSidebar({
             isKnowledgeBases ? "bg-black/8 text-foreground" : "text-foreground/60 hover:text-foreground"
           )}
         >
-          <BookOpenIcon className="size-4" />
+          <LibraryBigIcon className="size-4" />
         </Link>
         <Link
           href="/connections"
@@ -578,7 +578,7 @@ export function AgentSidebar({
           )}
         >
           <span className="flex size-5 shrink-0 items-center justify-center">
-            <BookOpenIcon className="size-4" />
+            <LibraryBigIcon className="size-4" />
           </span>
           <span>Library</span>
         </Link>

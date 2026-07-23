@@ -2429,7 +2429,7 @@ export default function AgentChatPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeConv, setActiveConv] = useState<string | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => searchParams.get("prompt") ?? "");
   const [selectedWorkflows, setSelectedWorkflows] = useState<{id: string; name: string}[]>([]);
   const [autoSelectWorkflow, setAutoSelectWorkflow] = useState(false);
   const [workflowSearch, setWorkflowSearch] = useState("");
@@ -2470,6 +2470,67 @@ export default function AgentChatPage() {
   const mentionTextareaRef = useRef<HTMLDivElement>(null);
   const savedRangeRef = useRef<Range | null>(null);
   const anchoredAddMenuKeepOpenUntilRef = useRef(0);
+  const initialPromptRef = useRef(searchParams.get("prompt") ?? "");
+  const initialSkillRef = useRef(searchParams.get("skill") ?? "");
+  const promptSeededRef = useRef(false);
+
+  useEffect(() => {
+    if (promptSeededRef.current) return;
+    const el = mentionTextareaRef.current;
+    const prompt = initialPromptRef.current;
+    const skill = initialSkillRef.current;
+    if (!el || (!prompt && !skill)) return;
+    if (el.textContent) return;
+
+    if (skill) {
+      const chip = document.createElement("span");
+      chip.contentEditable = "false";
+      chip.setAttribute("data-skill-chip", skill);
+      chip.title = skill;
+      chip.className =
+        "group mx-0.5 inline-block max-w-[240px] rounded-md border border-border bg-white py-0.5 pl-1.5 pr-1 align-baseline text-[13px] leading-[18px] font-medium text-foreground dark:bg-background";
+
+      const iconWrapper = document.createElement("span");
+      iconWrapper.setAttribute("aria-hidden", "true");
+      iconWrapper.className =
+        "mr-1 inline-flex size-3.5 shrink-0 items-center justify-center align-middle text-muted-foreground";
+      iconWrapper.innerHTML = renderToStaticMarkup(
+        <SparklesIcon className="size-3.5" />
+      );
+      chip.appendChild(iconWrapper);
+
+      const label = document.createElement("span");
+      label.className = "inline-block max-w-[170px] truncate align-middle leading-[18px]";
+      label.textContent = skill;
+      chip.appendChild(label);
+
+      const removeBtn = document.createElement("span");
+      removeBtn.setAttribute("role", "button");
+      removeBtn.setAttribute("aria-label", `Remove ${skill}`);
+      removeBtn.className =
+        "ml-1 inline-block cursor-pointer align-middle text-gray-700/50 hover:text-gray-700 dark:text-gray-300/50 dark:hover:text-gray-300";
+      removeBtn.innerHTML = renderToStaticMarkup(
+        <XIcon className="inline size-3" />
+      );
+      removeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        chip.remove();
+        if (mentionTextareaRef.current) {
+          setMessage(getComposerText(mentionTextareaRef.current));
+        }
+      });
+      chip.appendChild(removeBtn);
+      el.appendChild(chip);
+      el.appendChild(document.createTextNode(" "));
+    }
+
+    if (prompt) {
+      el.appendChild(document.createTextNode(prompt));
+    }
+    promptSeededRef.current = true;
+    setMessage(getComposerText(el));
+  }, [isNewChat]);
 
   const saveSelection = useCallback(() => {
     const el = mentionTextareaRef.current;
