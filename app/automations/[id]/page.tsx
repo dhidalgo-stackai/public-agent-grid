@@ -1490,7 +1490,7 @@ function AutomationDetailPageContent() {
                       isActive ? "bg-emerald-500" : "bg-muted-foreground/50",
                     )}
                   />
-                  {automation?.version ?? "v1"}
+                  {"v1"}
                 </span>
                 <div className="flex items-center gap-2 mr-1">
                   <span className="text-xs font-medium text-foreground transition-colors">

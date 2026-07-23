@@ -631,7 +631,7 @@ function BuilderCanvas({ steps }: { steps: AutomationStep[] }) {
 
 // -------------------- Node settings sidebar --------------------
 
-const nodeSettingsMeta: Record<
+const nodeSettingsMeta: Partial<Record<
   NonNullable<AutomationStep["nodeKind"]>,
   {
     provider: string;
@@ -643,7 +643,7 @@ const nodeSettingsMeta: Record<
     description: string;
     showConnection: boolean;
   }
-> = {
+>> = {
   "outlook-trigger": {
     provider: "Microsoft Outlook",
     providerIcon: integrationIcons.outlook,
