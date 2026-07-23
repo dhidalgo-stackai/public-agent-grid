@@ -27,6 +27,7 @@ import {
   MessageSquareIcon,
   FolderInputIcon,
   DownloadIcon,
+  HistoryIcon,
 } from "lucide-react";
 import {
   DropdownMenuSub,
@@ -378,6 +379,10 @@ function FileActionsMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem>
+          <HistoryIcon className="mr-2 size-3.5" />
+          Find last conversation
+        </DropdownMenuItem>
+        <DropdownMenuItem>
           <EyeIcon className="mr-2 size-3.5" />
           Preview
         </DropdownMenuItem>
@@ -499,12 +504,12 @@ export default function KnowledgeBasesPage() {
         activeSection="knowledge-bases"
       />
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
-        <PageHeader>
+        <PageHeader className="!pb-1">
           <h1 className="text-base font-semibold">Library</h1>
         </PageHeader>
 
-        <div className={cn(pageContentScrollClass, "bg-background")}>
-          <div className={cn(pageContainerClass, "flex flex-col gap-10 pb-12 pt-0")}>
+        <div className={cn(pageContentScrollClass, "bg-background !py-0")}>
+          <div className={cn(pageContainerClass, "flex flex-col gap-16 pb-12 pt-0")}>
             <p className="text-sm text-muted-foreground">
               View recent files from chats & manage files in your knowledge bases.{" "}
               <a href="#" className="underline underline-offset-2 hover:text-foreground">

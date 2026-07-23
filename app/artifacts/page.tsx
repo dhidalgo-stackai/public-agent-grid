@@ -56,7 +56,7 @@ const ARTIFACTS: Artifact[] = [
       <div className="flex h-full w-full items-center justify-center bg-[#f4ead5]">
         <span
           className="text-[54px] font-semibold italic text-[#8a5a2b]"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           ¡Hola!
         </span>
